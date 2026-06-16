@@ -1,0 +1,21 @@
+{
+  "name": "pi-extensions",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Mr. Q's pi extension development workspace",
+  "scripts": {
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit --project tsconfig.json"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@earendil-works/pi-coding-agent": "latest",
+    "typebox": "^1.2.9",
+    "typescript": "^5.7.0",
+    "vitest": "^2.0.0"
+  }
+}

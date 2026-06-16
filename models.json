@@ -1,0 +1,184 @@
+{
+  "providers": {
+    "openrouter": {
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "api": "openai-completions",
+      "apiKey": "$OPENROUTER_API_KEY",
+      "models": [
+        {
+          "id": "stepfun/step-3.5-flash",
+          "name": "Step 3.5 Flash (openrouter)",
+          "reasoning": true,
+          "input": ["text"],
+          "contextWindow": 200000,
+          "maxTokens": 65536,
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+        }
+      ]
+    },
+    "minimax-token-plan": {
+      "baseUrl": "https://api.minimax.io/anthropic",
+      "api": "anthropic-messages",
+      "apiKey": "$MINIMAX_API_KEY",
+      "models": [
+        {
+          "id": "MiniMax-M2.5",
+          "name": "MiniMax-M2.5",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 204800,
+          "maxTokens": 196608,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "MiniMax-M2.5-Highspeed",
+          "name": "MiniMax-M2.5-Highspeed",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 204800,
+          "maxTokens": 131072,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "MiniMax-M2.7",
+          "name": "MiniMax-M2.7",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 204800,
+          "maxTokens": 131072,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "MiniMax-M2.7-Highspeed",
+          "name": "MiniMax-M2.7-Highspeed",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 204800,
+          "maxTokens": 131072,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        }
+      ]
+    },
+    "xiaomi-token-plan-sgp": {
+      "baseUrl": "https://token-plan-sgp.xiaomimimo.com/v1",
+      "api": "openai-completions",
+      "apiKey": "$MIMO_API_KEY",
+      "compat": {
+        "requiresReasoningContentOnAssistantMessages": true,
+        "thinkingFormat": "deepseek"
+      },
+      "models": [
+        {
+          "id": "mimo-v2-flash",
+          "name": "MiMo-V2-Flash",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 262144,
+          "maxTokens": 65536,
+          "cost": {
+            "input": 0.1,
+            "output": 0.3,
+            "cacheRead": 0.01,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "mimo-v2-omni",
+          "name": "MiMo-V2-Omni",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144,
+          "maxTokens": 131072,
+          "cost": {
+            "input": 0.4,
+            "output": 2,
+            "cacheRead": 0.08,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "mimo-v2-pro",
+          "name": "MiMo-V2-Pro",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1048576,
+          "maxTokens": 131072,
+          "cost": {
+            "input": 1,
+            "output": 3,
+            "cacheRead": 0.2,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "mimo-v2.5",
+          "name": "MiMo-V2.5",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1048576,
+          "maxTokens": 131072,
+          "cost": {
+            "input": 0.4,
+            "output": 2,
+            "cacheRead": 0.08,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "mimo-v2.5-pro",
+          "name": "MiMo-V2.5-Pro",
+          "reasoning": true,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1048576,
+          "maxTokens": 131072,
+          "cost": {
+            "input": 1,
+            "output": 3,
+            "cacheRead": 0.2,
+            "cacheWrite": 0
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+auth.json
+.llm-wiki/
+sessions/
+npm/
+node_modules/
+.DS_Store
