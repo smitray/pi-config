@@ -19,7 +19,19 @@ import type { HooksConfig } from './types/schema';
 export default function hooksExtension(pi: ExtensionAPI): void {
   let enabled = true;
 
-  const config: HooksConfig = [];
+  const config: HooksConfig = [
+    {
+      group: "shutdown",
+      pattern: "*",
+      hooks: [
+        {
+          event: "session_shutdown",
+          command: "echo 'pi session ended at' $(date) >> ~/.pi/agent/.session-log",
+          timeout: 5000,
+        },
+      ],
+    },
+  ];
 
   registerEventHandlers(
     pi,
