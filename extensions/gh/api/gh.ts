@@ -6,12 +6,13 @@ export interface GhResult {
   exitCode: number;
 }
 
-export function gh(args: string[]): GhResult {
+export function gh(args: string[], stdin?: string): GhResult {
   try {
     const stdout = execSync(`gh ${args.join(' ')}`, {
       encoding: 'utf-8',
       maxBuffer: 1024 * 1024 * 10,
       timeout: 30_000,
+      input: stdin,
     });
     return { stdout, stderr: '', exitCode: 0 };
   } catch (err: unknown) {

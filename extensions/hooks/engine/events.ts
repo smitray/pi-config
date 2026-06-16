@@ -9,7 +9,8 @@ export function registerEventHandlers(
 ): void {
   // Session events
   for (const event of ['session_start', 'session_shutdown', 'agent_start'] as const) {
-    pi.on(event, async (_event: unknown, ctx: ExtensionContext) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (pi.on as any)(event, async (_event: unknown, ctx: any) => {
       try {
         if (!isEnabled()) return;
         const config = await getConfig();
@@ -57,9 +58,9 @@ export function registerEventHandlers(
           input: event.input as Record<string, unknown>,
           toolCallId: event.toolCallId,
           toolResponse: {
-            content: event.result?.content as unknown[] | undefined,
-            details: event.result?.details as Record<string, unknown> | undefined,
-            isError: event.result?.isError,
+            content: event.content as unknown[] | undefined,
+            details: event.details as Record<string, unknown> | undefined,
+            isError: event.isError,
           },
         }
       );
