@@ -6,13 +6,10 @@ My [pi coding agent](https://github.com/earendil-works/pi) configuration.
 
 ```bash
 git clone git@github.com:smitray/pi-config.git ~/.pi/agent
+cd ~/.pi/agent && ./setup.sh
 ```
 
-Packages auto-install on first pi startup. Extensions dev deps require manual install:
-
-```bash
-cd ~/.pi/agent/extensions && npm install
-```
+Packages auto-install on first pi startup.
 
 ## What's inside
 
