@@ -1,4 +1,4 @@
-import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent';
+import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { matchCommandPattern, matchContentPattern, matchFileNamePattern } from './matcher';
 import type { GuardrailsGroup, GuardrailsRule, MatchedRule } from './types';
 
@@ -14,7 +14,8 @@ function getInputField(input: unknown, field: string): string | undefined {
 function isPathWithinProject(filePath: string, cwd: string): boolean {
   const abs = filePath.startsWith('/') ? filePath : `${cwd}/${filePath}`;
   const norm = abs.replace(/\/+/g, '/');
-  const root = cwd.replace(/\/+/g, '/');
+  const root = cwd.replace(/\/+$/, '').replace(/\/+/g, '/');
+  if (!root) return false;
   return norm.startsWith(`${root}/`);
 }
 
@@ -135,7 +136,11 @@ export function setupGateHook(
       const { rule, group, targetValue } = matched;
 
       if (rule.action === 'block') {
-        return { block: true, reason: `Blocked [${group.group}]: ${rule.reason}` };
+        const reason = `Blocked [${group.group}]: ${rule.reason}`;
+        if (ctx.hasUI) {
+          ctx.ui.notify(`Guardrails: ${group.group}`, 'warning');
+        }
+        return { block: true, reason };
       }
 
       if (rule.action === 'confirm') {

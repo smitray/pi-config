@@ -2,29 +2,52 @@ import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-a
 import type { HooksConfig } from '../types/schema';
 import { runHooks } from './hook-execution';
 
+function notifyMessages(ctx: ExtensionContext, messages: string[] | undefined): void {
+  if (!ctx.hasUI || !messages || messages.length === 0) return;
+  // Cap at 5 to avoid flooding the UI on busy sessions.
+  for (const msg of messages.slice(0, 5)) {
+    ctx.ui.notify(msg, 'info');
+  }
+}
+
+async function runSessionEvent(
+  ctx: ExtensionContext,
+  event: 'session_start' | 'session_shutdown' | 'agent_start',
+  isEnabled: () => boolean,
+  getConfig: () => Promise<HooksConfig>
+): Promise<void> {
+  if (!isEnabled()) return;
+  try {
+    const config = await getConfig();
+    const result = await runHooks(config, event, { cwd: ctx.cwd });
+    notifyMessages(ctx, result.messages);
+  } catch (err) {
+    ctx.ui.notify(`Hook error (${event}): ${err}`, 'warning');
+  }
+}
+
 export function registerEventHandlers(
   pi: ExtensionAPI,
   getConfig: () => Promise<HooksConfig>,
   isEnabled: () => boolean
 ): void {
-  // Session events
-  for (const event of ['session_start', 'session_shutdown', 'agent_start'] as const) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (pi.on as any)(event, async (_event: unknown, ctx: any) => {
-      try {
-        if (!isEnabled()) return;
-        const config = await getConfig();
-        await runHooks(config, event, { cwd: ctx.cwd });
-      } catch {
-        // stale context
-      }
-    });
-  }
+  // Session lifecycle — informational only (no blocking, no input).
+  pi.on('session_start', async (_event, ctx) => {
+    await runSessionEvent(ctx, 'session_start', isEnabled, getConfig);
+  });
 
-  // Tool call (can block)
+  pi.on('session_shutdown', async (_event, ctx) => {
+    await runSessionEvent(ctx, 'session_shutdown', isEnabled, getConfig);
+  });
+
+  pi.on('agent_start', async (_event, ctx) => {
+    await runSessionEvent(ctx, 'agent_start', isEnabled, getConfig);
+  });
+
+  // tool_call — hooks can block execution.
   pi.on('tool_call', async (event, ctx) => {
+    if (!isEnabled()) return undefined;
     try {
-      if (!isEnabled()) return;
       const config = await getConfig();
       const result = await runHooks(
         config,
@@ -35,21 +58,23 @@ export function registerEventHandlers(
           input: event.input as Record<string, unknown>,
         }
       );
+      notifyMessages(ctx, result.messages);
       if (result.block) {
+        ctx.ui.notify(`Hook blocked ${event.toolName}: ${result.reason}`, 'warning');
         return { block: true, reason: result.reason };
       }
-    } catch {
-      // stale context
+    } catch (err) {
+      ctx.ui.notify(`Hook error (tool_call): ${err}`, 'warning');
     }
     return undefined;
   });
 
-  // Tool result
+  // tool_result — post-execution hooks. Cannot block.
   pi.on('tool_result', async (event, ctx) => {
+    if (!isEnabled()) return;
     try {
-      if (!isEnabled()) return;
       const config = await getConfig();
-      await runHooks(
+      const result = await runHooks(
         config,
         'tool_result',
         { cwd: ctx.cwd },
@@ -64,8 +89,9 @@ export function registerEventHandlers(
           },
         }
       );
-    } catch {
-      // stale context
+      notifyMessages(ctx, result.messages);
+    } catch (err) {
+      ctx.ui.notify(`Hook error (tool_result): ${err}`, 'warning');
     }
   });
 }

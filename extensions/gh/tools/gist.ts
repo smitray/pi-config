@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import { gh } from '../api/gh';
+import { gh, spawnErrorMessage } from '../api/gh';
+import { err, ok } from '../lib/result';
 
 export function registerGistTools(pi: ExtensionAPI) {
   pi.registerTool({
@@ -12,8 +13,10 @@ export function registerGistTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { limit } = params as { limit?: number };
-      const r = gh(['gist', 'list', `--limit=${limit ?? 10}`]);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
+      const r = await gh(['gist', 'list', `--limit=${limit ?? 10}`]);
+      if (!r.ok || r.exitCode !== 0) {
+        return err('GH_FAILED', spawnErrorMessage(r), {});
+      }
       return ok(r.stdout, {});
     },
   });
@@ -27,8 +30,10 @@ export function registerGistTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { id } = params as { id: string };
-      const r = gh(['gist', 'view', id]);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
+      const r = await gh(['gist', 'view', id]);
+      if (!r.ok || r.exitCode !== 0) {
+        return err('GH_FAILED', spawnErrorMessage(r), { id });
+      }
       return ok(r.stdout, { id });
     },
   });
@@ -50,26 +55,26 @@ export function registerGistTools(pi: ExtensionAPI) {
         description?: string;
         public?: boolean;
       };
-      const ok2 = await ctx.ui.confirm('Create gist?', p.filename);
-      if (!ok2) return err('Blocked: User denied gist creation');
+      const dialogBody = [
+        `**${p.filename}**${p.public ? ' (public)' : ' (secret)'}`,
+        p.description ?? '',
+        p.content ? `\n${p.content.slice(0, 200)}${p.content.length > 200 ? '…' : ''}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      const confirmed = await ctx.ui.confirm('Create gist?', dialogBody);
+      if (!confirmed) return err('BLOCKED', 'User denied gist creation', { filename: p.filename });
 
       const args = ['gist', 'create', `--filename=${p.filename}`];
       if (p.public) args.push('--public');
       if (p.description) args.push(`--desc=${p.description}`);
-      const r = gh([...args, '-'], p.content);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
-      return ok(`Gist created\n${r.stdout}`, { filename: p.filename });
+      args.push('-');
+      const r = await gh(args, p.content);
+      if (!r.ok || r.exitCode !== 0) {
+        return err('GIST_CREATE_FAILED', spawnErrorMessage(r), { filename: p.filename });
+      }
+      return ok(`Gist created\n${r.stdout}`, { filename: p.filename, url: r.stdout.trim() });
     },
   });
-}
-
-function ok(text: string, details: Record<string, unknown> = {}) {
-  return { content: [{ type: 'text' as const, text }], details };
-}
-
-function err(msg: string) {
-  return {
-    content: [{ type: 'text' as const, text: `Error: ${msg}` }],
-    details: { error: msg },
-  };
 }

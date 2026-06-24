@@ -9,6 +9,9 @@
  */
 
 function tokenize(cmd: string): string[] {
+  // Backslash-space (escaped whitespace) is unescaped first; then we split on
+  // any run of whitespace. Pattern tokens that contain literal spaces can be
+  // matched because shell would have already escaped them.
   return cmd.replace(/\\\s+/g, ' ').split(/\s+/).filter(Boolean);
 }
 
@@ -58,12 +61,19 @@ function matchSequence(patternTokens: string[], valueTokens: string[]): boolean 
   return pi === patternTokens.length && vi === valueTokens.length;
 }
 
-/** Normalize shell command: strip env vars, wrappers (env, nohup, time) */
+/** Normalize shell command: strip env vars and wrappers. */
 function normalizeCommand(cmd: string): string {
-  return cmd
-    .replace(/^(\w+=\S+\s+)+/, '')
-    .replace(/^(env|nohup|time|command|exec)\s+/, '')
-    .trim();
+  return (
+    cmd
+      // Strip any number of leading VAR=value assignments (greedy: handles A=1 B=2 cmd).
+      .replace(/^(\s*\w+=\S+\s+)+/, '')
+      // Strip common wrappers and their `-c "<command>"` payload.
+      .replace(/^(?:env|nohup|time|command|exec)\s+/, '')
+      // `bash -c "rm -rf /tmp"` and similar — drop the interpreter + `-c` flag and
+      // unwrap the quoted payload so the inner command is matched directly.
+      .replace(/^(?:bash|sh|zsh|ksh|dash)\s+-c\s+(['"])(.*)\1\s*$/, '$2')
+      .trim()
+  );
 }
 
 /** Split command into segments by shell operators */

@@ -1,5 +1,31 @@
 import type { GuardrailsGroup } from './types';
 
+/**
+ * Default guardrails. Edit this file to customize.
+ *
+ * Each group has a name (`group`), an optional pattern that scopes the group
+ * to certain tools (use `*` to match every tool), and a list of rules.
+ *
+ * Rule shape:
+ *   {
+ *     context: 'command' | 'file_name' | 'file_content',
+ *     pattern: <token pattern for command, regex otherwise>,
+ *     file_pattern?: <regex>    // only match rules whose file matches this first
+ *     includes?: <pattern>      // rule only applies if this also matches
+ *     excludes?: <pattern>      // rule skipped if this matches
+ *     scope?: 'project' | 'external',
+ *     action: 'block' | 'confirm',
+ *     reason: string,
+ *   }
+ *
+ * Token-pattern syntax (for `context: 'command'`):
+ *   *            zero or more tokens
+ *   ?            exactly one token
+ *   {a,b,c}      one of the listed literals
+ *
+ * Add a new rule under an existing group, or create a new group entirely.
+ */
+
 const defaults: GuardrailsGroup[] = [
   // Dangerous commands
   {
@@ -26,7 +52,7 @@ const defaults: GuardrailsGroup[] = [
       },
       {
         context: 'command',
-        pattern: 'mkfs *',
+        pattern: '{mkfs,mkfs.*} *',
         action: 'block',
         reason: 'Format disk — blocked',
       },

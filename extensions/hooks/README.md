@@ -63,8 +63,7 @@ Use these variables in hook commands:
 {
   "decision": "block",
   "reason": "Not allowed",
-  "systemMessage": "Hook message",
-  "suppressOutput": false
+  "systemMessage": "Hook message"
 }
 ```
 

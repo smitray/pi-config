@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import { gh } from '../api/gh';
+import { gh, spawnErrorMessage } from '../api/gh';
+import { err, ok } from '../lib/result';
 
 export function registerRepoTools(pi: ExtensionAPI) {
   pi.registerTool({
@@ -13,8 +14,17 @@ export function registerRepoTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { owner, repo } = params as { owner: string; repo: string };
-      const r = gh(['repo', 'view', `${owner}/${repo}`]);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
+      const r = await gh(['repo', 'view', `${owner}/${repo}`]);
+      if (!r.ok) {
+        return err('GH_FAILED', r.stderr || r.error || 'gh repo view failed', {
+          owner,
+          repo,
+          exitCode: r.exitCode,
+        });
+      }
+      if (r.exitCode !== 0) {
+        return err('GH_NONZERO', r.stderr || r.stdout, { owner, repo, exitCode: r.exitCode });
+      }
       return ok(r.stdout, { owner, repo });
     },
   });
@@ -38,20 +48,15 @@ export function registerRepoTools(pi: ExtensionAPI) {
         'Clone repository?',
         `${owner}/${repo}${dir ? ` → ${dir}` : ''}`
       );
-      if (!ok2) return err('Blocked: User denied clone');
+      if (!ok2) return err('BLOCKED', 'User denied clone', { owner, repo });
+
       const args = ['repo', 'clone', `${owner}/${repo}`];
       if (dir) args.push(dir);
-      const r = gh(args);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
-      return ok(`Cloned ${owner}/${repo}`, { owner, repo });
+      const r = await gh(args);
+      if (!r.ok || r.exitCode !== 0) {
+        return err('CLONE_FAILED', spawnErrorMessage(r), { owner, repo, exitCode: r.exitCode });
+      }
+      return ok(`Cloned ${owner}/${repo}${dir ? ` to ${dir}` : ''}`, { owner, repo, dir });
     },
   });
-}
-
-function ok(text: string, details: Record<string, unknown> = {}) {
-  return { content: [{ type: 'text' as const, text }], details };
-}
-
-function err(msg: string) {
-  return { content: [{ type: 'text' as const, text: `Error: ${msg}` }], details: { error: msg } };
 }

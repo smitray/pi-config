@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import { gh } from '../api/gh';
+import { gh, spawnErrorMessage } from '../api/gh';
+import { err, ok } from '../lib/result';
 
 export function registerSearchTools(pi: ExtensionAPI) {
   pi.registerTool({
@@ -13,8 +14,10 @@ export function registerSearchTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { query, limit } = params as { query: string; limit?: number };
-      const r = gh(['search', 'repos', query, `--limit=${limit ?? 10}`]);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
+      const r = await gh(['search', 'repos', query, `--limit=${limit ?? 10}`]);
+      if (!r.ok || r.exitCode !== 0) {
+        return err('GH_FAILED', spawnErrorMessage(r), { query });
+      }
       return ok(r.stdout, { query });
     },
   });
@@ -29,8 +32,10 @@ export function registerSearchTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { query, limit } = params as { query: string; limit?: number };
-      const r = gh(['search', 'code', query, `--limit=${limit ?? 10}`]);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
+      const r = await gh(['search', 'code', query, `--limit=${limit ?? 10}`]);
+      if (!r.ok || r.exitCode !== 0) {
+        return err('GH_FAILED', spawnErrorMessage(r), { query });
+      }
       return ok(r.stdout, { query });
     },
   });
@@ -45,8 +50,10 @@ export function registerSearchTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { query, limit } = params as { query: string; limit?: number };
-      const r = gh(['search', 'issues', query, `--limit=${limit ?? 10}`]);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
+      const r = await gh(['search', 'issues', query, `--limit=${limit ?? 10}`]);
+      if (!r.ok || r.exitCode !== 0) {
+        return err('GH_FAILED', spawnErrorMessage(r), { query });
+      }
       return ok(r.stdout, { query });
     },
   });
@@ -61,20 +68,11 @@ export function registerSearchTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { query, limit } = params as { query: string; limit?: number };
-      const r = gh(['search', 'prs', query, `--limit=${limit ?? 10}`]);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
+      const r = await gh(['search', 'prs', query, `--limit=${limit ?? 10}`]);
+      if (!r.ok || r.exitCode !== 0) {
+        return err('GH_FAILED', spawnErrorMessage(r), { query });
+      }
       return ok(r.stdout, { query });
     },
   });
-}
-
-function ok(text: string, details: Record<string, unknown> = {}) {
-  return { content: [{ type: 'text' as const, text }], details };
-}
-
-function err(msg: string) {
-  return {
-    content: [{ type: 'text' as const, text: `Error: ${msg}` }],
-    details: { error: msg },
-  };
 }

@@ -6,9 +6,10 @@ describe('gh extension', () => {
     expect(typeof mod.default).toBe('function');
   });
 
-  it('api/gh should export gh and ghJson functions', async () => {
+  it('api/gh should export gh, ghRepo, spawnErrorMessage', async () => {
     const mod = await import('../api/gh.ts');
     expect(typeof mod.gh).toBe('function');
-    expect(typeof mod.ghJson).toBe('function');
+    expect(typeof mod.ghRepo).toBe('function');
+    expect(typeof mod.spawnErrorMessage).toBe('function');
   });
 });

@@ -4,3 +4,4 @@ sessions/
 npm/
 node_modules/
 .DS_Store
+.session-log

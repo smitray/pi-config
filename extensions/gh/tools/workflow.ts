@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import { gh } from '../api/gh';
+import { ghRepo, spawnErrorMessage } from '../api/gh';
+import { err, ok } from '../lib/result';
 
 export function registerWorkflowTools(pi: ExtensionAPI) {
   pi.registerTool({
@@ -13,8 +14,10 @@ export function registerWorkflowTools(pi: ExtensionAPI) {
     }),
     async execute(_id, params) {
       const { owner, repo } = params as { owner: string; repo: string };
-      const r = gh(['workflow', 'list', '-R', `${owner}/${repo}`]);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
+      const r = await ghRepo(owner, repo, ['workflow', 'list']);
+      if (!r.ok || r.exitCode !== 0) {
+        return err('GH_FAILED', spawnErrorMessage(r), { owner, repo });
+      }
       return ok(r.stdout, { owner, repo });
     },
   });
@@ -36,22 +39,13 @@ export function registerWorkflowTools(pi: ExtensionAPI) {
         workflow?: string;
         limit?: number;
       };
-      const args = ['run', 'list', '-R', `${owner}/${repo}`, `--limit=${limit ?? 10}`];
+      const args = ['run', 'list', `--limit=${limit ?? 10}`];
       if (workflow) args.push(`--workflow=${workflow}`);
-      const r = gh(args);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
+      const r = await ghRepo(owner, repo, args);
+      if (!r.ok || r.exitCode !== 0) {
+        return err('GH_FAILED', spawnErrorMessage(r), { owner, repo });
+      }
       return ok(r.stdout, { owner, repo });
     },
   });
-}
-
-function ok(text: string, details: Record<string, unknown> = {}) {
-  return { content: [{ type: 'text' as const, text }], details };
-}
-
-function err(msg: string) {
-  return {
-    content: [{ type: 'text' as const, text: `Error: ${msg}` }],
-    details: { error: msg },
-  };
 }

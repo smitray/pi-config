@@ -6,4 +6,4 @@ echo "Installing extensions dev dependencies..."
 cd extensions && npm install
 
 echo ""
-echo "Done. Pi packages (llm-wiki, caveman, observational-memory) auto-install on first startup."
+echo "Done. Pi package (observational-memory) auto-installs on first startup."

@@ -18,9 +18,10 @@ Packages auto-install on first pi startup.
 | `settings.json` | Provider, model, theme, packages |
 | `models.json` | Custom model definitions (xiaomi, minimax, openrouter) |
 | `keybindings.json` | Vim-style keybindings |
-| `caveman.json` | Compression config |
 | `APPEND_SYSTEM.md` | System prompt augmentation |
-| `extensions/` | Custom extensions (gh, guardrails, hooks) |
+| `extensions/` | Custom extensions (`gh`, `guardrails`, `hooks`, `web-access`) |
+| `skills/` | User-level pi skills (e.g. `git-commit`) |
+| `themes/` | User-level pi themes (e.g. `catppuccin-mocha`) |
 
 ## Extensions
 
@@ -29,11 +30,11 @@ Packages auto-install on first pi startup.
 | `gh` | GitHub CLI integration — repos, PRs, issues, search, gists, workflows |
 | `guardrails` | Security rules blocking risky tool calls |
 | `hooks` | Shell hooks on lifecycle events |
+| `web-access` | Web search, fetch/crawl, persisted docs, media download |
 
 See [extensions/README.md](extensions/README.md) for dev setup and commands.
 
 ## Packages
 
-- `@zosmaai/pi-llm-wiki` — persistent LLM wiki
-- `pi-caveman` — token compression
 - `pi-observational-memory` — session continuity
+- `pi-ponytail` — lazy-senior-dev mode for the model

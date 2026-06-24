@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import { gh } from '../api/gh';
+import { ghRepo, spawnErrorMessage } from '../api/gh';
+import { err, ok } from '../lib/result';
 
 export function registerIssueTools(pi: ExtensionAPI) {
   pi.registerTool({
@@ -20,15 +21,15 @@ export function registerIssueTools(pi: ExtensionAPI) {
         state?: string;
         limit?: number;
       };
-      const r = gh([
+      const r = await ghRepo(owner, repo, [
         'issue',
         'list',
-        '-R',
-        `${owner}/${repo}`,
         `--state=${state ?? 'open'}`,
         `--limit=${limit ?? 20}`,
       ]);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
+      if (!r.ok || r.exitCode !== 0) {
+        return err('GH_FAILED', spawnErrorMessage(r), { owner, repo });
+      }
       return ok(r.stdout, { owner, repo, state, limit });
     },
   });
@@ -48,8 +49,10 @@ export function registerIssueTools(pi: ExtensionAPI) {
         repo: string;
         number: number;
       };
-      const r = gh(['issue', 'view', String(number), '-R', `${owner}/${repo}`]);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
+      const r = await ghRepo(owner, repo, ['issue', 'view', String(number)]);
+      if (!r.ok || r.exitCode !== 0) {
+        return err('GH_FAILED', spawnErrorMessage(r), { owner, repo, number });
+      }
       return ok(r.stdout, { owner, repo, number });
     },
   });
@@ -73,26 +76,33 @@ export function registerIssueTools(pi: ExtensionAPI) {
         body?: string;
         label?: string[];
       };
-      const ok2 = await ctx.ui.confirm('Create issue?', p.title);
-      if (!ok2) return err('Blocked: User denied issue creation');
+      const dialogBody = [
+        `**${p.title}**`,
+        p.label?.length ? `labels: ${p.label.join(', ')}` : '',
+        p.body ? `\n${p.body.slice(0, 200)}${p.body.length > 200 ? '…' : ''}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n');
 
-      const args = ['issue', 'create', '-R', `${p.owner}/${p.repo}`, `--title=${p.title}`];
+      const confirmed = await ctx.ui.confirm(`Create issue in ${p.owner}/${p.repo}?`, dialogBody);
+      if (!confirmed) return err('BLOCKED', 'User denied issue creation', p);
+
+      const args = ['issue', 'create', `--title=${p.title}`];
       if (p.body) args.push(`--body=${p.body}`);
-      if (p.label) args.push(`--label=${p.label.join(',')}`);
-      const r = gh(args);
-      if (r.exitCode !== 0) return err(r.stderr || r.stdout);
-      return ok(`Issue created\n${r.stdout}`, { owner: p.owner, repo: p.repo });
+      if (p.label?.length) args.push(`--label=${p.label.join(',')}`);
+      const r = await ghRepo(p.owner, p.repo, args);
+      if (!r.ok) return err('ISSUE_CREATE_FAILED', r.stderr || r.error, p);
+      if (r.exitCode !== 0) {
+        return err('ISSUE_CREATE_FAILED', r.stderr || r.stdout, {
+          ...p,
+          exitCode: r.exitCode,
+        });
+      }
+      return ok(`Issue created\n${r.stdout}`, {
+        owner: p.owner,
+        repo: p.repo,
+        url: r.stdout.trim(),
+      });
     },
   });
-}
-
-function ok(text: string, details: Record<string, unknown> = {}) {
-  return { content: [{ type: 'text' as const, text }], details };
-}
-
-function err(msg: string) {
-  return {
-    content: [{ type: 'text' as const, text: `Error: ${msg}` }],
-    details: { error: msg },
-  };
 }

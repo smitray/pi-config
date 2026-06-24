@@ -12,10 +12,10 @@
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.0",
+    "@biomejs/biome": "^2.5.0",
     "@earendil-works/pi-coding-agent": "latest",
     "typebox": "^1.2.9",
-    "typescript": "^5.7.0",
-    "vitest": "^2.0.0"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
   }
 }

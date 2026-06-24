@@ -7,7 +7,7 @@ describe('hooks extension', () => {
   });
 
   it('types should have correct structure', async () => {
-    const mod = await import('../types/schema.ts');
+    const _mod = await import('../types/schema.ts');
     // Type exports are erased at runtime, just verify import succeeds
     expect(true).toBe(true);
   });

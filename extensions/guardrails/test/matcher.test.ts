@@ -40,6 +40,17 @@ describe('matchCommandPattern', () => {
     expect(matchCommandPattern('env npm install', 'npm *')).toBe(true);
     expect(matchCommandPattern('nohup npm start', 'npm *')).toBe(true);
   });
+
+  it('strips multiple leading env assignments', () => {
+    expect(matchCommandPattern('A=1 B=2 npm test', 'npm *')).toBe(true);
+    expect(matchCommandPattern('NODE_ENV=prod DEBUG=1 npm build', 'npm *')).toBe(true);
+  });
+
+  it('unwraps bash -c wrappers', () => {
+    expect(matchCommandPattern('bash -c "rm -rf /tmp/foo"', 'rm -rf *')).toBe(true);
+    expect(matchCommandPattern("sh -c 'rm -rf /tmp/foo'", 'rm -rf *')).toBe(true);
+    expect(matchCommandPattern('zsh -c "mkfs.ext4 /dev/sda"', '{mkfs,mkfs.*} *')).toBe(true);
+  });
 });
 
 describe('matchFileNamePattern', () => {

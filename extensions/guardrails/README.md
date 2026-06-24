@@ -67,7 +67,7 @@ Standard regex patterns:
 
 ## Adding Rules
 
-Edit `src/defaults.ts`:
+Edit `defaults.ts`:
 
 ```typescript
 {

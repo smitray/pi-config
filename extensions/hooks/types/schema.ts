@@ -1,12 +1,13 @@
+// ponytail: only register events that actually fire in this runtime. agent_end,
+// turn_start, turn_end are valid pi events but we don't handle them — YAGNI.
+// Re-add when a hook author actually needs one.
+
 export type HookEvent =
   | 'session_start'
   | 'session_shutdown'
-  | 'tool_call'
-  | 'tool_result'
   | 'agent_start'
-  | 'agent_end'
-  | 'turn_start'
-  | 'turn_end';
+  | 'tool_call'
+  | 'tool_result';
 
 export type HookContext = 'tool_name' | 'file_name' | 'command';
 

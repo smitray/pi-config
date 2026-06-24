@@ -9,10 +9,13 @@ Custom extensions for [pi coding agent](https://github.com/earendil-works/pi).
 | [gh](./gh/) | GitHub integration via `gh` CLI | [README](./gh/README.md) |
 | [guardrails](./guardrails/) | Security rules blocking risky tool calls | [README](./guardrails/README.md) |
 | [hooks](./hooks/) | Shell hooks on lifecycle events | [README](./hooks/README.md) |
+| [web-access](./web-access/) | Web search, fetch/crawl, persisted docs, media download | [README](./web-access/README.md) |
+
+Internal helpers shared between extensions live in [`_shared/`](./_shared/) — not a pi extension itself.
 
 ## Setup
 
-Extensions auto-discovered from `~/.pi/agent/extensions/*/index.ts`. No settings.json config needed.
+Extensions auto-discovered from `~/.pi/agent/extensions/*/index.ts` (anything not starting with `_`). No settings.json config needed.
 
 ```bash
 # Install dependencies
@@ -37,9 +40,11 @@ extensions/
 ├── biome.json           # lint/format config
 ├── tsconfig.json        # TypeScript config
 ├── package.json         # shared dependencies + scripts
+├── _shared/             # internal helpers (spawn wrapper, etc.) — not a pi extension
 ├── guardrails/          # security rules extension
 ├── gh/                  # GitHub CLI wrapper extension
 ├── hooks/               # lifecycle shell hooks extension
+├── web-access/          # web search / docs / media extension
 └── README.md            # you are here
 ```
 

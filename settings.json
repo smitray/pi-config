@@ -1,19 +1,14 @@
 {
   "theme": "catppuccin-mocha",
-  "lastChangelogVersion": "0.79.4",
-  "defaultProvider": "deepseek",
-  "defaultModel": "deepseek-v4-pro",
+  "lastChangelogVersion": "0.80.2",
+  "defaultProvider": "minimax",
+  "defaultModel": "MiniMax-M3",
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "packages": [
-    "npm:@zosmaai/pi-llm-wiki",
-    "npm:pi-caveman",
-    "npm:pi-observational-memory"
+    "npm:pi-observational-memory",
+    "npm:pi-ponytail"
   ],
-  "llm-wiki": {
-    "semanticWeight": 0.5,
-    "recallLinksThreshold": 50
-  },
   "observational-memory": {
     "observeAfterTokens": 10000,
     "reflectAfterTokens": 20000,
@@ -28,5 +23,8 @@
     },
     "passive": false,
     "debugLog": true
+  },
+  "terminal": {
+    "showTerminalProgress": false
   }
 }
