@@ -12,10 +12,10 @@ const TEMPLATES: Record<PageType, string> = {
   concept: `---
 title: "{{title}}"
 type: concept
-tags: []
+tags: [{{tags}}]
 created: "{{created}}"
 updated: "{{updated}}"
-stage: brainstorm
+stage: {{stage}}
 sources: []
 ---
 
@@ -33,10 +33,10 @@ sources: []
 title: "{{title}}"
 type: entity
 category: tool
-tags: []
+tags: [{{tags}}]
 created: "{{created}}"
 updated: "{{updated}}"
-stage: brainstorm
+stage: {{stage}}
 sources: []
 ---
 
@@ -51,10 +51,10 @@ sources: []
   synthesis: `---
 title: "{{title}}"
 type: synthesis
-tags: []
+tags: [{{tags}}]
 created: "{{created}}"
 updated: "{{updated}}"
-stage: brainstorm
+stage: {{stage}}
 sources: []
 ---
 
@@ -71,10 +71,10 @@ sources: []
   analysis: `---
 title: "{{title}}"
 type: analysis
-tags: []
+tags: [{{tags}}]
 created: "{{created}}"
 updated: "{{updated}}"
-stage: brainstorm
+stage: {{stage}}
 sources: []
 ---
 
@@ -145,6 +145,8 @@ export function buildPage(
     title,
     created: today,
     updated: today,
+    tags: '',
+    stage: 'brainstorm',
     ...extraVars,
   });
   const slug = title

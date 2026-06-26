@@ -32,6 +32,13 @@ export function parseFrontmatter(content: string): Record<string, unknown> {
     if (!kv) continue;
     const key = kv[1];
     let val: unknown = kv[2].trim();
+    // Strip surrounding quotes
+    if (
+      typeof val === 'string' &&
+      ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'")))
+    ) {
+      val = val.slice(1, -1);
+    }
     // Parse YAML arrays: [a, b, c]
     if (typeof val === 'string' && val.startsWith('[') && val.endsWith(']')) {
       val = val
