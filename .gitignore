@@ -12,4 +12,5 @@ node_modules/
 !extensions/**/*.md
 notes/
 observational-memory/
+docs/
 .kb/
