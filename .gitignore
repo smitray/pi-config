@@ -1,7 +1,15 @@
 auth.json
-.llm-wiki/
 sessions/
 npm/
 node_modules/
 .DS_Store
 .session-log
+
+# Session artifacts
+*.md
+!README.md
+!APPEND_SYSTEM.md
+!extensions/**/*.md
+notes/
+observational-memory/
+.kb/

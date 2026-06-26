@@ -1,13 +1,14 @@
 {
   "theme": "catppuccin-mocha",
   "lastChangelogVersion": "0.80.2",
-  "defaultProvider": "minimax",
-  "defaultModel": "MiniMax-M3",
+  "defaultProvider": "xiaomi-token-plan-sgp",
+  "defaultModel": "mimo-v2.5-pro",
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-observational-memory",
-    "npm:pi-ponytail"
+    "npm:pi-ponytail",
+    "npm:@juicesharp/rpiv-ask-user-question"
   ],
   "observational-memory": {
     "observeAfterTokens": 10000,
@@ -23,6 +24,11 @@
     },
     "passive": false,
     "debugLog": true
+  },
+  "kb": {
+    "taskModel": "deepseek/deepseek-v4-pro",
+    "recallLinksThreshold": 50,
+    "autoIngest": false
   },
   "terminal": {
     "showTerminalProgress": false

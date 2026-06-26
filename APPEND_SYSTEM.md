@@ -32,3 +32,6 @@ Commands:
 
 ## Extensions
 For any extension-related task (test, lint, format): cd to `~/.pi/agent/extensions` and run `npm run pick` (fzf selector). Read AGENTS.md there for details.
+
+## Auto Web Search
+If the LLM cannot answer a question from its training data or context, automatically perform a web search via `web-search` to find the answer. Don't ask the user for permission — just search and respond with the findings.

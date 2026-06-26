@@ -9,7 +9,7 @@ import { getUningestedSources, markSourceIngested } from './lib/ingest';
 import { rebuildMetadata } from './lib/metadata';
 import { formatOmEntries, queryOmMemory } from './lib/om';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
-import { buildPage, writeDefaultTemplates } from './lib/templates';
+import { buildPage, writeAgentsMd, writeDefaultTemplates } from './lib/templates';
 import {
   ensureVaultStructure,
   fmtDate,
@@ -113,6 +113,25 @@ export default function (pi: ExtensionAPI) {
 
       ensureVaultStructure(paths);
 
+      // Ask user what to include in AGENTS.md
+      let agentsSections = 'all';
+      if (ctx.hasUI) {
+        const choice = await ctx.ui.select('AGENTS.md sections:', [
+          'all — workflows, tools, templates, naming',
+          'minimal — tools + page format only',
+          'skip — no AGENTS.md',
+        ]);
+        agentsSections = choice?.startsWith('skip')
+          ? 'skip'
+          : choice?.startsWith('minimal')
+            ? 'minimal'
+            : 'all';
+      }
+
+      if (agentsSections !== 'skip') {
+        writeAgentsMd(paths, agentsSections === 'minimal');
+      }
+
       writeJson(join(paths.dotKb, 'config.json'), {
         topic: params.topic,
         mode: resolvedMode,
@@ -167,6 +186,46 @@ export default function (pi: ExtensionAPI) {
           description: 'Page body content (optional; template provides structure if omitted)',
         })
       ),
+      tags: Type.Optional(
+        Type.Array(Type.String(), {
+          description: 'Tags for the page (e.g. ["extension", "gh"])',
+        })
+      ),
+      problem_tags: Type.Optional(
+        Type.Array(Type.String(), {
+          description: 'Tags for Problem Statement section (artifacts)',
+        })
+      ),
+      research_tags: Type.Optional(
+        Type.Array(Type.String(), {
+          description: 'Tags for Research section (artifacts)',
+        })
+      ),
+      ideas_tags: Type.Optional(
+        Type.Array(Type.String(), {
+          description: 'Tags for Ideas section (artifacts)',
+        })
+      ),
+      tasks_tags: Type.Optional(
+        Type.Array(Type.String(), {
+          description: 'Tags for Tasks section (artifacts)',
+        })
+      ),
+      impl_tags: Type.Optional(
+        Type.Array(Type.String(), {
+          description: 'Tags for Implementation section (artifacts)',
+        })
+      ),
+      testing_tags: Type.Optional(
+        Type.Array(Type.String(), {
+          description: 'Tags for Testing section (artifacts)',
+        })
+      ),
+      notes_tags: Type.Optional(
+        Type.Array(Type.String(), {
+          description: 'Tags for Notes section (artifacts)',
+        })
+      ),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
       const cwd = ctx.cwd ?? process.cwd();
@@ -181,18 +240,28 @@ export default function (pi: ExtensionAPI) {
         };
       }
 
-      const validTypes = ['concept', 'entity', 'synthesis', 'analysis', 'source'];
+      const validTypes = ['concept', 'entity', 'synthesis', 'analysis', 'source', 'meeting', 'diary', 'artifact'];
       const pageType = validTypes.includes(params.type) ? params.type : 'concept';
 
       const { content, filename } = buildPage(
         pageType as Parameters<typeof buildPage>[0],
         params.title,
-        paths
+        paths,
+        {
+          tags: params.tags || [],
+          problem_tags: params.problem_tags || [],
+          research_tags: params.research_tags || [],
+          ideas_tags: params.ideas_tags || [],
+          tasks_tags: params.tasks_tags || [],
+          impl_tags: params.impl_tags || [],
+          testing_tags: params.testing_tags || [],
+          notes_tags: params.notes_tags || [],
+        }
       );
 
       const fullContent = params.content ? `${content}\n${params.content}` : content;
 
-      const typeDir = join(paths.wiki, `${pageType}s`);
+      const typeDir = join(paths.wiki, pageType === 'entity' ? 'entities' : `${pageType}s`);
       if (!existsSync(typeDir)) mkdirSync(typeDir, { recursive: true });
 
       writeFileSync(join(typeDir, filename), fullContent, 'utf-8');
@@ -492,7 +561,15 @@ export default function (pi: ExtensionAPI) {
       const wikiPages: Record<string, number> = {};
       let totalWiki = 0;
       for (const type of ['sources', 'entities', 'concepts', 'syntheses', 'analyses']) {
-        const typeDir = join(paths.wiki, type);
+        // ponytail: entity→entitys typo from early bootstrap, check both
+        let typeDir = join(paths.wiki, type);
+        if (type === 'entities') {
+          const entitysDir = join(paths.wiki, 'entitys');
+          // Use entitys/ if it has .md files, otherwise use entities/
+          if (existsSync(entitysDir) && readdirSync(entitysDir).some((f: string) => f.endsWith('.md'))) {
+            typeDir = entitysDir;
+          }
+        }
         if (existsSync(typeDir)) {
           const files = readdirSync(typeDir).filter((f: string) => f.endsWith('.md'));
           wikiPages[type] = files.length;
