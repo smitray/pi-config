@@ -150,6 +150,8 @@ const config: HooksConfig = [{
 - `session_start` — notify KB active
 - `before_agent_start` — auto-recall if prompt has knowledge keywords
 - `tool_result` — auto-rebuild metadata after wiki edits
+- `tool_result` — auto-ingest after `kb_capture` (in-process)
+- `tool_result` — auto-lint after ingest (logs warnings)
 
 ---
 
