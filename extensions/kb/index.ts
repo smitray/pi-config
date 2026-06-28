@@ -12,6 +12,7 @@ import { rebuildMetadata } from './lib/metadata';
 import { formatObservationResult, saveObservation } from './lib/observe';
 import { formatOmEntries, queryOmMemory } from './lib/om';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
+import { formatRetroResult, saveInsight } from './lib/retro';
 import { buildPage, writeAgentsMd, writeDefaultTemplates } from './lib/templates';
 import {
   ensureVaultStructure,
@@ -764,6 +765,48 @@ export default function (pi: ExtensionAPI) {
 
       const formatted = formatObservationResult(result, params.title);
       return ok(formatted, { sourceId: result.sourceId });
+    },
+  });
+
+  // ─── kb_retro ─────────────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'kb_retro',
+    label: 'KB Retro',
+    description:
+      'Atomic insight capture at task end. Single markdown file, no source packet overhead. ' +
+      'Use for saving quick insights, decisions, or learnings.',
+    promptSnippet: 'Save an insight at task end',
+    promptGuidelines: [
+      'Use kb_retro to save atomic insights at task end. ' +
+        'Lighter than kb_capture — single file, no source packet.',
+    ],
+    parameters: Type.Object({
+      title: Type.String({ description: 'Insight title' }),
+      body: Type.String({ description: 'Insight content' }),
+      category: Type.Optional(
+        Type.String({
+          description: 'Category for grouping (e.g. decision, learning, pattern)',
+        })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const { root } = resolveVaultContext(cwd);
+      const paths = getVaultPaths(root);
+
+      if (!existsSync(join(paths.dotKb, 'config.json'))) {
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+      }
+
+      const result = saveInsight(paths, {
+        title: params.title,
+        body: params.body,
+        category: params.category,
+      });
+
+      const formatted = formatRetroResult(result, params.title);
+      return ok(formatted, { slug: result.slug });
     },
   });
 
