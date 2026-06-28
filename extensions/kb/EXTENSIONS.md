@@ -131,11 +131,11 @@ const config: HooksConfig = [{
 
 ## kb
 
-### Tools (14)
+### Tools (15)
 - `kb_bootstrap`, `kb_ensure_page`, `kb_capture`, `kb_ingest`
 - `kb_recall_context`, `kb_recall_docs`, `kb_mark_ingested`
 - `kb_status`, `kb_search_tags`, `kb_rebuild_meta`
-- `kb_lint`, `kb_observe`, `kb_retro`, `kb_log_event`
+- `kb_lint`, `kb_observe`, `kb_retro`, `kb_log_event`, `kb_enrich`
 
 ### Libs
 - `lib/vault.ts` — `resolveVaultContext()`, `getVaultPaths()`, `getExplicitVaultPaths()`
