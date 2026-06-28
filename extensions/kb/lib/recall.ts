@@ -1,4 +1,5 @@
 import { join } from 'node:path';
+import { hybridSearch } from './embeddings';
 import type { RegistryEntry } from './metadata';
 import type { VaultPaths } from './vault';
 import { readJson } from './vault';
@@ -75,7 +76,9 @@ export function searchWiki(
   personalPaths: VaultPaths,
   query: string,
   mode: RecallMode,
-  maxResults = 5
+  maxResults = 5,
+  queryEmbedding?: number[] | null,
+  hybridWeight?: number
 ): RecallResult[] {
   const queryTokens = tokenize(query);
   const projectResults = projectPaths ? searchVault(projectPaths, queryTokens, 'project') : [];
@@ -99,6 +102,27 @@ export function searchWiki(
       seen.add(r.id);
       merged.push(r);
     }
+  }
+
+  // If we have embeddings, use hybrid search to re-rank
+  if (queryEmbedding && merged.length > 0) {
+    const paths = mode === 'context' ? (projectPaths ?? personalPaths) : personalPaths;
+    const lexicalForHybrid = merged.map((r) => ({ pagePath: r.path, score: r.score }));
+    const hybridResults = hybridSearch(
+      paths,
+      query,
+      queryEmbedding,
+      lexicalForHybrid,
+      maxResults,
+      hybridWeight
+    );
+
+    // Re-map hybrid results back to RecallResult
+    const resultMap = new Map(merged.map((r) => [r.path, r]));
+    return hybridResults
+      .map((hr) => resultMap.get(hr.pagePath))
+      .filter((r): r is RecallResult => r !== undefined)
+      .slice(0, maxResults);
   }
 
   return merged.slice(0, maxResults);
