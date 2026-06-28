@@ -5,6 +5,7 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { err, ok } from '../_shared/result';
 import { captureFile, captureText } from './lib/capture';
+import { logEvent } from './lib/events';
 import { installGuardrails } from './lib/guardrails';
 import { getUningestedSources, markSourceIngested } from './lib/ingest';
 import { formatLintReport, lintWiki } from './lib/lint';
@@ -807,6 +808,41 @@ export default function (pi: ExtensionAPI) {
 
       const formatted = formatRetroResult(result, params.title);
       return ok(formatted, { slug: result.slug });
+    },
+  });
+
+  // ─── kb_log_event ─────────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'kb_log_event',
+    label: 'KB Log Event',
+    description:
+      'Append an event to meta/events.jsonl for audit trail. ' +
+      'Each line is a self-contained JSON object.',
+    promptSnippet: 'Log an event to KB audit trail',
+    promptGuidelines: [
+      'Use kb_log_event to record significant events: ingestions, page creations, etc.',
+    ],
+    parameters: Type.Object({
+      kind: Type.String({ description: 'Event kind (e.g. ingest, page_create, lint)' }),
+      data: Type.Optional(
+        Type.Record(Type.String(), Type.Unknown(), {
+          description: 'Additional event data',
+        })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const { root } = resolveVaultContext(cwd);
+      const paths = getVaultPaths(root);
+
+      if (!existsSync(join(paths.dotKb, 'config.json'))) {
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+      }
+
+      logEvent(paths, { kind: params.kind, data: params.data as Record<string, unknown> });
+
+      return ok(`✅ Event logged: ${params.kind}`, { kind: params.kind });
     },
   });
 
