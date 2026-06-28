@@ -5,6 +5,7 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { err, ok } from '../_shared/result';
 import { captureFile, captureText } from './lib/capture';
+import { formatEnrichmentResult, mergeObservationIntoPage } from './lib/enrich';
 import { logEvent } from './lib/events';
 import { installGuardrails } from './lib/guardrails';
 import { getUningestedSources, markSourceIngested } from './lib/ingest';
@@ -781,6 +782,60 @@ export default function (pi: ExtensionAPI) {
 
       const formatted = formatObservationResult(result, params.title);
       return ok(formatted, { sourceId: result.sourceId });
+    },
+  });
+
+  // ─── kb_enrich ────────────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'kb_enrich',
+    label: 'KB Enrich',
+    description:
+      'Merge an observation into an existing wiki page. ' +
+      'Adds a new section with the observation content, preserving the original as a reference.',
+    promptSnippet: 'Merge observation into existing page',
+    promptGuidelines: [
+      'Use kb_enrich when user approves updating an existing page with new information. ' +
+        'First use kb_recall_context to find the page, then kb_observe to capture the info, ' +
+        'then ask user, then kb_enrich to merge.',
+    ],
+    parameters: Type.Object({
+      pageTitle: Type.String({ description: 'Title of the existing page to enrich' }),
+      observationTitle: Type.String({ description: 'Title for the enrichment section' }),
+      observationContent: Type.String({ description: 'Content to add to the page' }),
+      sourceContext: Type.Optional(
+        Type.String({
+          description: 'Context: what was being worked on when this was observed',
+        })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const { root } = resolveVaultContext(cwd);
+      const paths = getVaultPaths(root);
+
+      if (!existsSync(join(paths.dotKb, 'config.json'))) {
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+      }
+
+      const result = mergeObservationIntoPage(
+        paths,
+        params.pageTitle,
+        params.observationTitle,
+        params.observationContent,
+        params.sourceContext
+      );
+
+      if (result.merged) {
+        rebuildMetadata(paths);
+        logEvent(paths, {
+          kind: 'enrichment',
+          data: { page: params.pageTitle, observation: params.observationTitle },
+        });
+      }
+
+      const formatted = formatEnrichmentResult(result);
+      return ok(formatted, { merged: result.merged, pagePath: result.pagePath });
     },
   });
 
