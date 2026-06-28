@@ -10,6 +10,7 @@ node_modules/
 !README.md
 !APPEND_SYSTEM.md
 !extensions/**/*.md
+!skills/**/*.md
 notes/
 observational-memory/
 docs/
