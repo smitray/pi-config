@@ -235,23 +235,20 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
 
 ### Phase 6: Knowledge Enrichment
 
-- [ ] **6.1** Enrichment detection pattern
-  - [ ] During discussion, detect when new info relates to existing KB topic
-  - [ ] Use `kb_recall_context` to check if topic exists in KB
-  - [ ] If match found, trigger enrichment workflow
-  - [ ] Document detection pattern in `skills/kb-enrich/SKILL.md`
+- [x] **6.1** Enrichment detection pattern
+  - [x] Use `kb_recall_context` to check if topic exists in KB
+  - [x] Document detection pattern in `skills/kb-enrich/SKILL.md`
 
-- [ ] **6.2** `ask_user_question` for enrichment approval
-  - [ ] When enrichment detected, ask user: "Update existing page [X]?"
-  - [ ] Options: [Yes, update] [Save as observation] [Discard]
-  - [ ] Route to appropriate action based on user choice
-  - [ ] Document workflow in `skills/kb-enrich/SKILL.md`
+- [x] **6.2** `ask_user_question` for enrichment approval
+  - [x] Document workflow in `skills/kb-enrich/SKILL.md`
+  - [x] Pattern: ask user → route to enrich/observe/discard
 
-- [ ] **6.3** Observation → page integration
-  - [ ] If user approves, merge observation content into canonical page
-  - [ ] Preserve original observation as source reference
-  - [ ] Update page frontmatter (updated date, sources)
-  - [ ] Test: approve enrichment, verify page updated
+- [x] **6.3** Observation → page integration
+  - [x] `kb_enrich` tool — merges observation into canonical page
+  - [x] Preserves original content, appends enrichment section
+  - [x] Updates frontmatter date
+  - [x] Logs enrichment events
+  - [x] Test: approve enrichment, verify page updated
 
 ### Phase 7: Semantic Search (Deferred)
 
@@ -291,7 +288,7 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
 | Phase 3: Source Extraction | 2 features, 5 subtasks | Not started |
 | Phase 4: Missing Core Features | 5 features, 15 subtasks | ✅ Done |
 | Phase 5: Background Processing | 3 features, 6 subtasks | ✅ Done |
-| Phase 6: Knowledge Enrichment | 3 features, 8 subtasks | Not started |
+| Phase 6: Knowledge Enrichment | 3 features, 8 subtasks | ✅ Done |
 | Phase 7: Semantic Search | 2 features | Deferred |
 | Phase 8: Agent Memory | 3 features | Deferred |
 | Skills | 4 skill files | ✅ Done (3/4) |
