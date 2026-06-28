@@ -939,8 +939,8 @@ export default function (pi: ExtensionAPI) {
   });
 
   // Rebuild metadata after wiki edits (only when kb tools were used)
+  // Auto-ingest after kb_capture, auto-lint after ingest
   pi.on('tool_result', async (event, ctx) => {
-    // Only trigger when a kb tool was the source of the write
     const kbTools = ['kb_ensure_page', 'kb_capture'];
     if (!kbTools.includes(event.toolName)) return;
 
@@ -949,6 +949,38 @@ export default function (pi: ExtensionAPI) {
     const paths = getVaultPaths(root);
 
     if (!existsSync(join(paths.dotKb, 'config.json'))) return;
+
+    // Auto-ingest after kb_capture
+    if (event.toolName === 'kb_capture') {
+      const pending = getUningestedSources(paths);
+      for (const source of pending) {
+        if (!existsSync(source.extractedPath)) continue;
+
+        const { readFileSync } = await import('node:fs');
+        const extracted = readFileSync(source.extractedPath, 'utf-8');
+        const { content, filename } = buildPage('source', source.title, paths, {
+          tags: ['auto-ingested'],
+        });
+        const pagePath = join(paths.wiki, 'sources', filename);
+        mkdirSync(join(paths.wiki, 'sources'), { recursive: true });
+        writeFileSync(pagePath, content.replace('{{content}}', extracted), 'utf-8');
+        markSourceIngested(source.sourceId, paths);
+        logEvent(paths, {
+          kind: 'auto_ingest',
+          data: { sourceId: source.sourceId, title: source.title },
+        });
+      }
+
+      // Auto-lint after ingest
+      if (pending.length > 0) {
+        const report = lintWiki(paths);
+        if (report.summary.warnings > 0) {
+          logEvent(paths, { kind: 'lint_warnings', data: { warnings: report.summary.warnings } });
+        }
+      }
+    }
+
+    // Rebuild metadata
     rebuildMetadata(paths);
   });
 }
