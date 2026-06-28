@@ -190,30 +190,30 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
   - [x] Expose existing `rebuildMetadata()` from `lib/metadata.ts`
   - [x] Test: manual rebuild, verify registry + backlinks updated
 
-- [ ] **4.2** Add `kb_lint` tool
-  - [ ] Check for orphan pages (no inbound wikilinks)
-  - [ ] Check for broken wikilinks (target page doesn't exist)
-  - [ ] Check for missing cross-references (entity mentioned but no page)
-  - [ ] Check for stale pages (not updated in N days)
-  - [ ] Return lint report as structured output
-  - [ ] Test: create wiki with known issues, verify lint catches them
+- [x] **4.2** Add `kb_lint` tool
+  - [x] Check for orphan pages (no inbound wikilinks)
+  - [x] Check for broken wikilinks (target page doesn't exist)
+  - [x] Check for empty pages (no content beyond frontmatter)
+  - [x] Check for stale pages (not updated in N days)
+  - [x] Return lint report as structured output
+  - [x] Test: create wiki with known issues, verify lint catches them
   - [ ] Document in `skills/kb-lint/SKILL.md`
 
-- [ ] **4.3** Add `kb_observe` tool
-  - [ ] Write observation to `wiki/sources/` with `type: source`, `status: observation`
-  - [ ] Accept title, content, relevance level, tags
-  - [ ] Test: observe something, verify searchable via `kb_recall_*`
+- [x] **4.3** Add `kb_observe` tool
+  - [x] Write observation to `wiki/sources/` with `type: source`, `status: observation`
+  - [x] Accept title, content, relevance level, tags
+  - [x] Test: observe something, verify searchable via `kb_recall_*`
   - [ ] Document in `skills/kb-enrich/SKILL.md`
 
-- [ ] **4.4** Add `kb_retro` tool
-  - [ ] Write single markdown file to `wiki/sources/` (no source packet)
-  - [ ] Accept title, body, category
-  - [ ] Test: save insight, verify searchable
+- [x] **4.4** Add `kb_retro` tool
+  - [x] Write single markdown file to `wiki/sources/` (no source packet)
+  - [x] Accept title, body, category
+  - [x] Test: save insight, verify searchable
 
-- [ ] **4.5** Add `kb_log_event` tool
-  - [ ] Append JSONL entry to `meta/events.jsonl`
-  - [ ] Accept event kind, data payload
-  - [ ] Test: log event, verify file updated
+- [x] **4.5** Add `kb_log_event` tool
+  - [x] Append JSONL entry to `meta/events.jsonl`
+  - [x] Accept event kind, data payload
+  - [x] Test: log event, verify file updated
 
 ### Phase 5: Background Processing
 
