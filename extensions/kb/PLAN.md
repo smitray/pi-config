@@ -157,19 +157,19 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
 
 ### Phase 2: URL & Document Ingestion
 
-- [ ] **2.1** Single URL → KB workflow
-  - [ ] Add `vault` parameter to `kb_capture` (personal/project/auto)
+- [x] **2.1** Single URL → KB workflow
+  - [x] Add `vault` parameter to `kb_capture` (personal/project/auto)
   - [ ] Implement `ask_user_question` for ambiguous vault routing
-  - [ ] Document workflow in `skills/kb-ingest/SKILL.md`
+  - [x] Document workflow in `skills/kb-ingest/SKILL.md`
   - [ ] Test end-to-end with a real URL
 
 - [ ] **2.2** Multi-page docs ingest workflow
   - [ ] Add `vault` parameter to `kb_capture` (default: personal for docs)
-  - [ ] Document workflow: `web-fetch-docs` → iterate → `kb_capture` each
+  - [x] Document workflow: `web-fetch-docs` → iterate → `kb_capture` each
   - [ ] Test with a small docs site (3-5 pages)
 
 - [ ] **2.3** YouTube transcript ingest (blocked)
-  - [ ] Document planned workflow in `skills/kb-ingest/SKILL.md`
+  - [x] Document planned workflow in `skills/kb-ingest/SKILL.md`
   - [ ] Mark as blocked: STT model not available
   - [ ] Unblock when STT model lands
 
@@ -199,13 +199,13 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
   - [x] Check for stale pages (not updated in N days)
   - [x] Return lint report as structured output
   - [x] Test: create wiki with known issues, verify lint catches them
-  - [ ] Document in `skills/kb-lint/SKILL.md`
+  - [x] Document in `skills/kb-lint/SKILL.md`
 
 - [x] **4.3** Add `kb_observe` tool
   - [x] Write observation to `wiki/sources/` with `type: source`, `status: observation`
   - [x] Accept title, content, relevance level, tags
   - [x] Test: observe something, verify searchable via `kb_recall_*`
-  - [ ] Document in `skills/kb-enrich/SKILL.md`
+  - [x] Document in `skills/kb-enrich/SKILL.md`
 
 - [x] **4.4** Add `kb_retro` tool
   - [x] Write single markdown file to `wiki/sources/` (no source packet)
@@ -287,17 +287,17 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
 
 | Phase | Tasks | Status |
 |-------|-------|--------|
-| Phase 1: Cross-Extension Integration | 3 features, 9 subtasks | Not started |
-| Phase 2: URL & Document Ingestion | 3 features, 7 subtasks | Not started |
+| Phase 1: Cross-Extension Integration | 3 features, 9 subtasks | ✅ Done |
+| Phase 2: URL & Document Ingestion | 3 features, 7 subtasks | Partial (2.1 done) |
 | Phase 3: Source Extraction | 2 features, 5 subtasks | Not started |
-| Phase 4: Missing Core Features | 5 features, 15 subtasks | Not started |
+| Phase 4: Missing Core Features | 5 features, 15 subtasks | ✅ Done |
 | Phase 5: Background Processing | 3 features, 6 subtasks | Not started |
 | Phase 6: Knowledge Enrichment | 3 features, 8 subtasks | Not started |
 | Phase 7: Semantic Search | 2 features | Deferred |
 | Phase 8: Agent Memory | 3 features | Deferred |
-| Skills | 4 skill files | Not started |
+| Skills | 4 skill files | ✅ Done (3/4) |
 
-**Immediate focus:** Phase 1 + Phase 4.1 + Skills
+**Immediate focus:** Phase 3 + Phase 5
 
 ---
 
