@@ -1,11 +1,11 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  loadKBConfig,
-  getModelConfig,
-  getEmbeddingsConfig,
   clearConfigCache,
-  resolveApiKey,
+  getEmbeddingsConfig,
+  getModelConfig,
   getProviderBaseUrl,
+  loadKBConfig,
+  resolveApiKey,
 } from '../lib/models';
 
 beforeEach(() => {
@@ -84,7 +84,9 @@ describe('getProviderBaseUrl', () => {
   });
 
   it('returns xiaomi url', () => {
-    expect(getProviderBaseUrl('xiaomi-token-plan-sgp')).toBe('https://token-plan-sgp.xiaomimimo.com/v1');
+    expect(getProviderBaseUrl('xiaomi-token-plan-sgp')).toBe(
+      'https://token-plan-sgp.xiaomimimo.com/v1'
+    );
   });
 
   it('returns empty string for unknown provider', () => {

@@ -1,6 +1,6 @@
-import { describe, expect, it, beforeEach } from 'vitest';
-import { installGuardrails } from '../lib/guardrails';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { getDynamicGroups } from '../../guardrails/api';
+import { installGuardrails } from '../lib/guardrails';
 
 // Reset dynamic groups between tests
 beforeEach(() => {

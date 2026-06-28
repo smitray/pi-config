@@ -6,14 +6,31 @@ import { fmtDate } from './vault';
 // Templates live in extensions/kb/templates/pages/ as single source of truth.
 // Copied to vault on bootstrap. kb_ensure_page reads from vault or extension.
 
-export type PageType = 'concept' | 'entity' | 'synthesis' | 'analysis' | 'source' | 'meeting' | 'diary' | 'artifact';
+export type PageType =
+  | 'concept'
+  | 'entity'
+  | 'synthesis'
+  | 'analysis'
+  | 'source'
+  | 'meeting'
+  | 'diary'
+  | 'artifact';
 
 // Extension dir resolved once at import time
 const EXT_DIR = join(import.meta.dirname ?? __dirname, '..');
 
 export function writeDefaultTemplates(paths: VaultPaths): void {
   const pagesDir = join(EXT_DIR, 'templates', 'pages');
-  for (const type of ['concept', 'entity', 'synthesis', 'analysis', 'source', 'meeting', 'diary', 'artifact']) {
+  for (const type of [
+    'concept',
+    'entity',
+    'synthesis',
+    'analysis',
+    'source',
+    'meeting',
+    'diary',
+    'artifact',
+  ]) {
     const target = join(paths.templates, `${type}.md`);
     if (existsSync(target)) continue;
 
@@ -95,7 +112,18 @@ export function populateTemplate(template: string, vars: Record<string, string>)
 }
 
 // Artifact prefixes: feat/fix/wip/docs/refactor/test/chore/revert/perf/ci/build
-export type ArtifactPrefix = 'feat' | 'fix' | 'wip' | 'docs' | 'refactor' | 'test' | 'chore' | 'revert' | 'perf' | 'ci' | 'build';
+export type ArtifactPrefix =
+  | 'feat'
+  | 'fix'
+  | 'wip'
+  | 'docs'
+  | 'refactor'
+  | 'test'
+  | 'chore'
+  | 'revert'
+  | 'perf'
+  | 'ci'
+  | 'build';
 
 export function buildPage(
   type: PageType,
@@ -109,8 +137,11 @@ export function buildPage(
   // Format tags as YAML array
   const formatTags = (input: string | string[] | undefined): string => {
     if (!input) return '';
-    const arr = Array.isArray(input) ? input : input.split(',').map(t => t.trim());
-    return arr.filter(Boolean).map(t => `"${t}"`).join(', ');
+    const arr = Array.isArray(input) ? input : input.split(',').map((t) => t.trim());
+    return arr
+      .filter(Boolean)
+      .map((t) => `"${t}"`)
+      .join(', ');
   };
 
   // Build template vars — spread extraVars first, then override with formatted tags
