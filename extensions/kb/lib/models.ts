@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import type { VaultPaths } from './vault';
 
 export interface ModelConfig {
   provider: string;
@@ -10,6 +9,27 @@ export interface ModelConfig {
   maxTokens?: number;
   dimensions?: number;
   fallback?: string;
+}
+
+export interface Message {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface CompletionOptions {
+  signal?: AbortSignal;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+export interface CompletionResult {
+  content: string;
+  usage?: { input: number; output: number };
+}
+
+export interface EmbeddingResult {
+  embeddings: number[][];
+  usage?: { input: number };
 }
 
 export interface KBModelsConfig {
@@ -146,9 +166,114 @@ export function resolveApiKey(provider: string): string | undefined {
  */
 export function getProviderBaseUrl(provider: string): string {
   const urls: Record<string, string> = {
-    'openrouter': 'https://openrouter.ai/api/v1',
+    openrouter: 'https://openrouter.ai/api/v1',
     'xiaomi-token-plan-sgp': 'https://token-plan-sgp.xiaomimimo.com/v1',
     'minimax-token-plan': 'https://api.minimax.io/anthropic',
   };
   return urls[provider] ?? '';
+}
+
+// ─── API Client ────────────────────────────────────────────────
+
+// ponytail: simple retry with exponential backoff for transient errors
+async function fetchWithRetry(url: string, init: RequestInit, retries = 3): Promise<Response> {
+  for (let i = 0; i < retries; i++) {
+    const res = await fetch(url, init);
+    if (res.status !== 429 && res.status < 500) return res;
+    if (i < retries - 1) {
+      const delay = 2 ** i * 1000;
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  // Final attempt returns whatever we got
+  return fetch(url, init);
+}
+
+/**
+ * Send chat completion request (OpenAI-compatible).
+ */
+export async function complete(
+  config: ModelConfig,
+  messages: Message[],
+  options?: CompletionOptions
+): Promise<CompletionResult> {
+  const baseUrl = getProviderBaseUrl(config.provider);
+  const apiKey = resolveApiKey(config.provider);
+
+  if (!apiKey) {
+    throw new Error(`No API key found for provider: ${config.provider}`);
+  }
+
+  const body = {
+    model: config.id,
+    messages,
+    max_tokens: options?.maxTokens ?? config.maxTokens ?? 4096,
+    temperature: options?.temperature,
+  };
+
+  const res = await fetchWithRetry(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+    signal: options?.signal,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => 'unknown error');
+    throw new Error(`Completion failed (${res.status}): ${text}`);
+  }
+
+  const data = (await res.json()) as {
+    choices: Array<{ message: { content: string } }>;
+    usage?: { prompt_tokens: number; completion_tokens: number };
+  };
+
+  return {
+    content: data.choices[0]?.message?.content ?? '',
+    usage: data.usage
+      ? { input: data.usage.prompt_tokens, output: data.usage.completion_tokens }
+      : undefined,
+  };
+}
+
+/**
+ * Generate embeddings (OpenAI-compatible).
+ */
+export async function embed(config: ModelConfig, texts: string[]): Promise<EmbeddingResult> {
+  const baseUrl = getProviderBaseUrl(config.provider);
+  const apiKey = resolveApiKey(config.provider);
+
+  if (!apiKey) {
+    throw new Error(`No API key found for provider: ${config.provider}`);
+  }
+
+  const res = await fetchWithRetry(`${baseUrl}/embeddings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: config.id,
+      input: texts,
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => 'unknown error');
+    throw new Error(`Embedding failed (${res.status}): ${text}`);
+  }
+
+  const data = (await res.json()) as {
+    data: Array<{ embedding: number[] }>;
+    usage?: { prompt_tokens: number };
+  };
+
+  return {
+    embeddings: data.data.map((d) => d.embedding),
+    usage: data.usage ? { input: data.usage.prompt_tokens } : undefined,
+  };
 }
