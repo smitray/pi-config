@@ -7,6 +7,7 @@ import { err, ok } from '../_shared/result';
 import { captureFile, captureText } from './lib/capture';
 import { installGuardrails } from './lib/guardrails';
 import { getUningestedSources, markSourceIngested } from './lib/ingest';
+import { formatLintReport, lintWiki } from './lib/lint';
 import { rebuildMetadata } from './lib/metadata';
 import { formatOmEntries, queryOmMemory } from './lib/om';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
@@ -677,6 +678,39 @@ export default function (pi: ExtensionAPI) {
       rebuildMetadata(paths);
 
       return ok('✅ Metadata rebuilt — registry and backlinks updated.', { root: paths.dotKb });
+    },
+  });
+
+  // ─── kb_lint ───────────────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'kb_lint',
+    label: 'KB Lint',
+    description:
+      'Health check for the wiki: orphan pages, broken wikilinks, empty pages, stale pages. ' +
+      'Returns a structured lint report.',
+    promptSnippet: 'Run KB health check',
+    promptGuidelines: ['Use kb_lint to check wiki health. Run after ingest or periodically.'],
+    parameters: Type.Object({
+      staleDays: Type.Optional(
+        Type.Number({
+          description: 'Days before a page is considered stale (default: 30)',
+        })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const { root } = resolveVaultContext(cwd);
+      const paths = getVaultPaths(root);
+
+      if (!existsSync(join(paths.dotKb, 'config.json'))) {
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+      }
+
+      const report = lintWiki(paths, params.staleDays ?? 30);
+      const formatted = formatLintReport(report);
+
+      return ok(formatted, { summary: report.summary });
     },
   });
 
