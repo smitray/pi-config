@@ -1,8 +1,8 @@
 {
   "theme": "catppuccin-mocha",
   "lastChangelogVersion": "0.80.2",
-  "defaultProvider": "minimax",
-  "defaultModel": "MiniMax-M3",
+  "defaultProvider": "xiaomi-token-plan-sgp",
+  "defaultModel": "mimo-v2.5-pro",
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "packages": [
@@ -26,9 +26,42 @@
     "debugLog": true
   },
   "kb": {
-    "taskModel": "deepseek/deepseek-v4-pro",
-    "recallLinksThreshold": 50,
-    "autoIngest": false
+    "models": {
+      "task": {
+        "provider": "xiaomi-token-plan-sgp",
+        "id": "mimo-v2.5",
+        "thinking": "low",
+        "maxTokens": 4096
+      },
+      "synthesis": {
+        "provider": "xiaomi-token-plan-sgp",
+        "id": "mimo-v2.5-pro",
+        "thinking": "medium",
+        "maxTokens": 8192
+      },
+      "embedding": {
+        "provider": "openrouter",
+        "id": "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+        "dimensions": 1024,
+        "fallback": "qwen/qwen3-embedding-8b"
+      }
+    },
+    "embeddings": {
+      "enabled": false,
+      "batchSize": 50,
+      "storePath": "meta/embeddings.json"
+    },
+    "recall": {
+      "linksThreshold": 50,
+      "maxResults": 5,
+      "hybridWeight": 0.3
+    },
+    "autoIngest": true,
+    "autoLint": true,
+    "lint": {
+      "staleDays": 30,
+      "warnOnOrphans": true
+    }
   },
   "terminal": {
     "showTerminalProgress": false
