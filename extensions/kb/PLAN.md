@@ -181,8 +181,8 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
   - [x] Test: capture a large document, verify chunking
 
 - [x] **3.2** HTML normalization in captures
-  - [x] Detect HTML content in source text
-  - [x] Convert to markdown before writing `extracted.md`
+  - [x] ~~Detect HTML content in source text~~ N/A — `web-fetch` already returns markdown via Crawl4AI
+  - [x] ~~Convert to markdown before writing `extracted.md`~~ N/A — Crawl4AI handles this
   - [x] Test: capture raw HTML, verify clean markdown output
 
 ### Phase 4: Missing Core Features
