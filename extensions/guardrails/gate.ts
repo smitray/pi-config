@@ -1,4 +1,5 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
+import { getDynamicGroups } from './api';
 import { matchCommandPattern, matchContentPattern, matchFileNamePattern } from './matcher';
 import type { GuardrailsGroup, GuardrailsRule, MatchedRule } from './types';
 
@@ -130,7 +131,9 @@ export function setupGateHook(
     if (!isEnabled()) return;
     if (EXCLUDED_TOOLS.has(event.toolName)) return;
 
-    const matches = findMatches(config, event.toolName, event.input, ctx.cwd);
+    // Merge static config with dynamically registered rules
+    const allGroups = [...config, ...getDynamicGroups()];
+    const matches = findMatches(allGroups, event.toolName, event.input, ctx.cwd);
 
     for (const matched of matches) {
       const { rule, group, targetValue } = matched;

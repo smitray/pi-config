@@ -1,34 +1,40 @@
-import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { isToolCallEventType } from '@earendil-works/pi-coding-agent';
+import { registerRules } from '../../guardrails/api';
 import { getVaultPaths, resolveVaultContext } from './vault';
 
-// ponytail: guardrail resolves vault path per-event (not at load time).
-// Fixes the bug where guardrail pointed to startup-cwd vault instead of
-// the actual active vault when cwd changes between sessions/projects.
+// ponytail: KB guardrails register with the guardrails extension instead of
+// using an inline tool_call hook. The guardrails extension handles the hook,
+// pattern matching, and user confirmation. We just declare the rules.
 
-export function installGuardrails(pi: ExtensionAPI): void {
-  pi.on('tool_call', async (event, _ctx) => {
-    if (
-      !(
-        (event.toolName === 'write' && isToolCallEventType('write', event)) ||
-        (event.toolName === 'edit' && isToolCallEventType('edit', event))
-      )
-    ) {
-      return;
-    }
-
-    const cwd = _ctx.cwd ?? process.cwd();
-    const { root } = resolveVaultContext(cwd);
-    const paths = getVaultPaths(root);
-    const dotKb = paths.dotKb;
-
-    const targetPath = 'path' in event.input ? (event.input as { path: string }).path : '';
-
-    if (targetPath.includes(`${dotKb}/raw`) || targetPath.includes(`${dotKb}/meta`)) {
-      return {
-        block: true,
-        reason: `kb: ${dotKb}/raw/ and ${dotKb}/meta/ are immutable. Edit pages in wiki/ instead.`,
-      };
-    }
+/**
+ * Register KB-specific guardrails with the guardrails extension.
+ *
+ * Rules:
+ * - Block writes to .kb/raw/ (immutable source packets)
+ * - Block writes to .kb/meta/ (auto-generated metadata)
+ *
+ * Vault path is resolved per-event from cwd, not at load time.
+ * This handles the case where cwd changes between sessions/projects.
+ */
+export function installGuardrails(): void {
+  // ponytail: we register a single group with a wildcard pattern.
+  // The actual path matching happens in the rule's context + pattern.
+  // We use file_name context with a regex that matches .kb/raw or .kb/meta.
+  registerRules({
+    group: 'kb-immutable',
+    pattern: '*',
+    rules: [
+      {
+        context: 'file_name',
+        pattern: '\\.kb/raw',
+        action: 'block',
+        reason: '.kb/raw/ is immutable — source packets cannot be edited after capture',
+      },
+      {
+        context: 'file_name',
+        pattern: '\\.kb/meta',
+        action: 'block',
+        reason: '.kb/meta/ is auto-generated — edit pages in wiki/ instead',
+      },
+    ],
   });
 }
