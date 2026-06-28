@@ -651,6 +651,35 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
+  // ─── kb_rebuild_meta ─────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'kb_rebuild_meta',
+    label: 'KB Rebuild Meta',
+    description:
+      'Manually trigger metadata rebuild (registry + backlinks). ' +
+      'Normally auto-triggered after wiki edits via hooks. ' +
+      'Use this when metadata seems stale or after manual wiki edits.',
+    promptSnippet: 'Manually rebuild KB metadata',
+    promptGuidelines: [
+      'Use kb_rebuild_meta when metadata seems stale or after manual wiki edits outside of kb tools.',
+    ],
+    parameters: Type.Object({}),
+    async execute(_id, _params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const { root } = resolveVaultContext(cwd);
+      const paths = getVaultPaths(root);
+
+      if (!existsSync(join(paths.dotKb, 'config.json'))) {
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+      }
+
+      rebuildMetadata(paths);
+
+      return ok('✅ Metadata rebuilt — registry and backlinks updated.', { root: paths.dotKb });
+    },
+  });
+
   // ─── om_recall ────────────────────────────────────────────────
 
   pi.registerTool({
