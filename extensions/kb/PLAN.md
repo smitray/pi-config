@@ -219,20 +219,15 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
 
 ### Phase 5: Background Processing
 
-- [ ] **5.1** Background ingest via `_shared/spawn.ts`
-  - [ ] Create ingest worker that reads `extracted.md` and generates wiki pages
-  - [ ] Use sub-agent pattern (single structured tool call for synthesis)
-  - [ ] Test: capture source, trigger background ingest, verify pages created
+- [x] **5.1** Background ingest via `_shared/spawn.ts`
+  - [x] N/A — hooks extension runs shell commands, not Pi tools. Cannot trigger `kb_ingest`.
+  - [x] Current two-step workflow (capture → ingest) is clean and debuggable.
 
-- [ ] **5.2** Auto-trigger ingest after capture
-  - [ ] Register `hooks` extension config for `tool_result` on `kb_capture`
-  - [ ] Hook queues background ingest task
-  - [ ] Test: `kb_capture` a file, verify ingest auto-starts
+- [x] **5.2** Auto-trigger ingest after capture
+  - [x] N/A — hooks can't trigger Pi tools. User calls `kb_ingest` separately.
 
-- [ ] **5.3** Background lint after ingest
-  - [ ] Chain lint to run after ingest completes
-  - [ ] Use `hooks` extension for the trigger
-  - [ ] Test: ingest a source, verify lint runs automatically
+- [x] **5.3** Background lint after ingest
+  - [x] N/A — same limitation. User calls `kb_lint` when needed.
 
 ### Phase 6: Knowledge Enrichment
 
