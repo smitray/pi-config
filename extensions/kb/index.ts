@@ -85,7 +85,7 @@ function isKnowledgePrompt(prompt: string): boolean {
 
 export default function (pi: ExtensionAPI) {
   // ─── Guardrails (vault path resolved per-event) ─────────────────
-  installGuardrails(pi);
+  installGuardrails();
 
   // ─── kb_bootstrap ──────────────────────────────────────────────
 
