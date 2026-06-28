@@ -174,7 +174,7 @@ export function cosineSearch(
  */
 export function hybridSearch(
   paths: VaultPaths,
-  query: string,
+  _query: string,
   queryEmbedding: number[] | null,
   lexicalResults: Array<{ pagePath: string; score: number }>,
   topK = 5,

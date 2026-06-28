@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { complete, getModelConfig, type Message } from './models';
 import type { VaultPaths } from './vault';
 import { fmtDate } from './vault';
 
@@ -99,4 +100,65 @@ export function formatEnrichmentResult(result: EnrichmentResult): string {
     return `❌ ${result.message}`;
   }
   return result.message;
+}
+
+/**
+ * AI-powered enrichment: use synthesis model to intelligently merge content.
+ * Falls back to simple append if model unavailable.
+ */
+export async function enrichWithAI(
+  paths: VaultPaths,
+  pageTitle: string,
+  observationTitle: string,
+  observationContent: string,
+  sourceContext?: string
+): Promise<EnrichmentResult> {
+  const pagePath = findPageByTitle(paths, pageTitle);
+
+  if (!pagePath) {
+    return {
+      pagePath: '',
+      merged: false,
+      message: `Page not found: ${pageTitle}`,
+    };
+  }
+
+  const existingContent = readFileSync(pagePath, 'utf-8');
+  const today = fmtDate();
+
+  try {
+    const config = getModelConfig('synthesis');
+    const messages: Message[] = [
+      {
+        role: 'system',
+        content: `You are a knowledge base assistant. Merge new information into existing wiki page content.\nRules:\n- Preserve existing structure and headings\n- Add new content under appropriate existing headings or create new ones\n- Update relevant cross-references\n- Keep frontmatter intact\n- Return ONLY the merged markdown content, no explanations`,
+      },
+      {
+        role: 'user',
+        content: `Existing page:\n\n${existingContent}\n\n---\n\nNew information to merge:\n\n## ${observationTitle}\n\n${observationContent}${sourceContext ? `\n\nContext: ${sourceContext}` : ''}`,
+      },
+    ];
+
+    const result = await complete(config, messages);
+    const merged = result.content;
+
+    // Update frontmatter date
+    const final = merged.replace(/updated:\s*\d{4}-\d{2}-\d{2}/, `updated: ${today}`);
+    writeFileSync(pagePath, final, 'utf-8');
+
+    return {
+      pagePath,
+      merged: true,
+      message: `✅ AI-enriched "${pageTitle}" with "${observationTitle}"`,
+    };
+  } catch {
+    // Fallback to simple append
+    return mergeObservationIntoPage(
+      paths,
+      pageTitle,
+      observationTitle,
+      observationContent,
+      sourceContext
+    );
+  }
 }
