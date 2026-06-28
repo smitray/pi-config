@@ -175,15 +175,15 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
 
 ### Phase 3: Source Extraction
 
-- [ ] **3.1** Add markdown chunking for large sources
-  - [ ] Import `approxTokens()` and `splitIntoChunks()` from `web-access/lib/markdown.ts`
-  - [ ] Use in `kb_capture` when extracted content exceeds token threshold
-  - [ ] Test: capture a large document, verify chunking
+- [x] **3.1** Add markdown chunking for large sources
+  - [x] Import `approxTokens()` and `splitIntoChunks()` from `web-access/lib/markdown.ts`
+  - [x] Use in `kb_capture` when extracted content exceeds token threshold
+  - [x] Test: capture a large document, verify chunking
 
-- [ ] **3.2** HTML normalization in captures
-  - [ ] Detect HTML content in source text
-  - [ ] Convert to markdown before writing `extracted.md`
-  - [ ] Test: capture raw HTML, verify clean markdown output
+- [x] **3.2** HTML normalization in captures
+  - [x] Detect HTML content in source text
+  - [x] Convert to markdown before writing `extracted.md`
+  - [x] Test: capture raw HTML, verify clean markdown output
 
 ### Phase 4: Missing Core Features
 
