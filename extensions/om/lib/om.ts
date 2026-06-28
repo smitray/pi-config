@@ -32,42 +32,81 @@ function getSessionsDir(): string {
   return join(homedir(), '.pi', 'agent', 'sessions', '--home-debasmitr-.pi-agent--');
 }
 
-function _getOmDebugDir(): string {
-  return join(homedir(), '.pi', 'agent', 'observational-memory', 'debug');
+/**
+ * Get timezone offset in hours from environment or default to UTC.
+ * Set OM_TIMEZONE_OFFSET=5.5 for IST, -8 for PST, etc.
+ */
+function getTimezoneOffset(): number {
+  const env = process.env.OM_TIMEZONE_OFFSET;
+  if (env) return parseFloat(env);
+  return 0; // Default UTC
 }
 
-/** Parse a date string (YYYY-MM-DD or "yesterday" or "today") into a Date range */
-export function parseDateQuery(query: string): { start: Date; end: Date } {
+/** Parse a date string into a UTC Date range, accounting for timezone */
+export function parseDateQuery(query: string, timezoneOffset?: number): { start: Date; end: Date } {
+  const offset = timezoneOffset ?? getTimezoneOffset();
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Helper: create UTC date at midnight local time
+  // For IST (+5.5), "2026-06-28" local = 2026-06-27T18:30:00Z
+  function localMidnightToUtc(year: number, month: number, day: number): Date {
+    // Create date at midnight UTC, then subtract offset to get UTC equivalent of local midnight
+    const utcMidnight = Date.UTC(year, month, day, 0, 0, 0);
+    return new Date(utcMidnight - offset * 3600000);
+  }
+
+  // Get today's date components in local timezone
+  const todayYear = now.getFullYear();
+  const todayMonth = now.getMonth();
+  const todayDay = now.getDate();
 
   if (query === 'today') {
-    return { start: today, end: new Date(today.getTime() + 86400000) };
+    const start = localMidnightToUtc(todayYear, todayMonth, todayDay);
+    const end = new Date(start.getTime() + 86400000);
+    return { start, end };
   }
+
   if (query === 'yesterday') {
-    const yesterday = new Date(today.getTime() - 86400000);
-    return { start: yesterday, end: today };
+    const yesterday = new Date(todayYear, todayMonth, todayDay - 1);
+    const start = localMidnightToUtc(
+      yesterday.getFullYear(),
+      yesterday.getMonth(),
+      yesterday.getDate()
+    );
+    const end = new Date(start.getTime() + 86400000);
+    return { start, end };
   }
 
   // Try YYYY-MM-DD
   const match = query.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (match) {
-    const d = new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10));
-    return { start: d, end: new Date(d.getTime() + 86400000) };
+    const start = localMidnightToUtc(
+      parseInt(match[1], 10),
+      parseInt(match[2], 10) - 1,
+      parseInt(match[3], 10)
+    );
+    const end = new Date(start.getTime() + 86400000);
+    return { start, end };
   }
 
   // Try "last N days"
   const daysMatch = query.match(/^last\s+(\d+)\s+days?$/i);
   if (daysMatch) {
     const days = parseInt(daysMatch[1], 10);
-    return {
-      start: new Date(today.getTime() - days * 86400000),
-      end: new Date(today.getTime() + 86400000),
-    };
+    const startDate = new Date(todayYear, todayMonth, todayDay - days);
+    const start = localMidnightToUtc(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate()
+    );
+    const end = localMidnightToUtc(todayYear, todayMonth, todayDay + 1);
+    return { start, end };
   }
 
   // Default: today
-  return { start: today, end: new Date(today.getTime() + 86400000) };
+  const start = localMidnightToUtc(todayYear, todayMonth, todayDay);
+  const end = new Date(start.getTime() + 86400000);
+  return { start, end };
 }
 
 /** Find session files that overlap with a date range */
@@ -84,12 +123,14 @@ function findSessionsInRange(start: Date, end: Date): string[] {
     if (!tsMatch) continue;
 
     const fileDate = new Date(
-      parseInt(tsMatch[1], 10),
-      parseInt(tsMatch[2], 10) - 1,
-      parseInt(tsMatch[3], 10),
-      parseInt(tsMatch[4], 10),
-      parseInt(tsMatch[5], 10),
-      parseInt(tsMatch[6], 10)
+      Date.UTC(
+        parseInt(tsMatch[1], 10),
+        parseInt(tsMatch[2], 10) - 1,
+        parseInt(tsMatch[3], 10),
+        parseInt(tsMatch[4], 10),
+        parseInt(tsMatch[5], 10),
+        parseInt(tsMatch[6], 10)
+      )
     );
 
     if (fileDate >= start && fileDate < end) {
@@ -185,8 +226,8 @@ function extractOmEntries(filePath: string): OMEntry[] {
 }
 
 /** Query OM memory for a date range */
-export function queryOmMemory(dateQuery: string): OMEntry[] {
-  const { start, end } = parseDateQuery(dateQuery);
+export function queryOmMemory(dateQuery: string, timezoneOffset?: number): OMEntry[] {
+  const { start, end } = parseDateQuery(dateQuery, timezoneOffset);
   const sessionFiles = findSessionsInRange(start, end);
 
   const allEntries: OMEntry[] = [];
@@ -204,33 +245,45 @@ export function queryOmMemory(dateQuery: string): OMEntry[] {
   return allEntries;
 }
 
-/** Format OM entries for display */
-export function formatOmEntries(entries: OMEntry[]): string {
+/**
+ * Format OM entries for display.
+ * Filters to high/critical relevance observations by default.
+ */
+export function formatOmEntries(entries: OMEntry[], options?: { verbose?: boolean }): string {
   if (entries.length === 0) return '';
 
   const observations = entries.filter((e) => e.type === 'observation');
   const reflections = entries.filter((e) => e.type === 'reflection');
 
+  // Filter to important observations unless verbose
+  const importantObs = options?.verbose
+    ? observations
+    : observations.filter((o) => o.relevance === 'high' || o.relevance === 'critical');
+
   const lines: string[] = [];
 
   if (reflections.length > 0) {
-    lines.push('## Reflections (durable facts)');
+    lines.push('## Reflections');
     for (const ref of reflections) {
       lines.push(`- ${ref.content}`);
     }
     lines.push('');
   }
 
-  if (observations.length > 0) {
-    lines.push('## Observations (events & decisions)');
-    for (const obs of observations) {
-      const relevance = obs.relevance ? ` [${obs.relevance}]` : '';
+  if (importantObs.length > 0) {
+    lines.push('## Key Events');
+    for (const obs of importantObs) {
       const time = obs.timestamp ? ` (${obs.timestamp.split('T')[1]?.split('.')[0] || ''})` : '';
-      lines.push(`- ${obs.content}${relevance}${time}`);
+      lines.push(`- ${obs.content}${time}`);
     }
     lines.push('');
   }
 
-  lines.push(`_Total: ${observations.length} observations, ${reflections.length} reflections_`);
+  const total = observations.length;
+  const shown = importantObs.length;
+  if (total > shown && !options?.verbose) {
+    lines.push(`_${shown} of ${total} observations shown (use verbose mode for all)_`);
+  }
+
   return lines.join('\n');
 }
