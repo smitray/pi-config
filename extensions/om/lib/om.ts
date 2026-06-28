@@ -33,12 +33,25 @@ function getSessionsDir(): string {
 }
 
 /**
- * Get timezone offset in hours from environment or default to UTC.
- * Set OM_TIMEZONE_OFFSET=5.5 for IST, -8 for PST, etc.
+ * Get timezone offset in hours.
+ * Priority: env var OM_TIMEZONE_OFFSET > settings.json > default UTC.
  */
 function getTimezoneOffset(): number {
+  // Env var takes precedence
   const env = process.env.OM_TIMEZONE_OFFSET;
   if (env) return parseFloat(env);
+
+  // Try settings.json
+  try {
+    const { readFileSync } = require('node:fs');
+    const { join } = require('node:path');
+    const { homedir } = require('node:os');
+    const settings = JSON.parse(
+      readFileSync(join(homedir(), '.pi', 'agent', 'settings.json'), 'utf-8')
+    );
+    if (typeof settings.om?.timezoneOffset === 'number') return settings.om.timezoneOffset;
+  } catch {}
+
   return 0; // Default UTC
 }
 

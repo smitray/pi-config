@@ -10,6 +10,9 @@
     "npm:pi-ponytail",
     "npm:@juicesharp/rpiv-ask-user-question"
   ],
+  "om": {
+    "timezoneOffset": 5.5
+  },
   "observational-memory": {
     "observeAfterTokens": 10000,
     "reflectAfterTokens": 20000,
