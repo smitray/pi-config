@@ -3,11 +3,11 @@
 // Usage: node om-recall.mjs [date] [--verbose]
 // Date: yesterday, today, last N days, YYYY-MM-DD
 
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-const SESSIONS_DIR = join(homedir(), '.pi', 'agent', 'sessions', '--home-debasmitr-.pi-agent--');
+const SESSIONS_BASE = join(homedir(), '.pi', 'agent', 'sessions');
 const SETTINGS_PATH = join(homedir(), '.pi', 'agent', 'settings.json');
 
 // Parse args
@@ -31,8 +31,9 @@ function parseDateQuery(query, offset) {
   const now = new Date();
   const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
   
-  function localMidnight(year, month, day) {
-    return new Date(Date.UTC(year, month, day) - offset * 3600000);
+  // UTC timestamp for local midnight
+  function localMidnightUTC(year, month, day) {
+    return Date.UTC(year, month, day) - offset * 3600000;
   }
 
   let startDate;
@@ -50,18 +51,55 @@ function parseDateQuery(query, offset) {
     startDate = new Date(y, m, d);
   }
 
-  const start = localMidnight(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  const startMs = localMidnightUTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
   
   // For "last N days", end is today+1; otherwise start+1 day
   if (/^last\s+\d+\s+days?$/i.test(query)) {
-    const end = localMidnight(y, m, d + 1);
-    return { start, end };
+    const endMs = localMidnightUTC(y, m, d + 1);
+    return { startMs, endMs };
   }
-  return { start, end: new Date(start.getTime() + 86400000) };
+  return { startMs, endMs: startMs + 86400000 };
 }
 
-// Extract OM entries from session file
-function extractEntries(filePath) {
+// Find ALL session directories
+function getSessionDirs() {
+  if (!existsSync(SESSIONS_BASE)) return [];
+  return readdirSync(SESSIONS_BASE)
+    .filter(d => statSync(join(SESSIONS_BASE, d)).isDirectory())
+    .map(d => join(SESSIONS_BASE, d));
+}
+
+// Find session files across ALL directories within date range
+function findSessionFiles(startMs, endMs) {
+  const dirs = getSessionDirs();
+  const results = [];
+  
+  for (const dir of dirs) {
+    const files = readdirSync(dir).filter(f => f.endsWith('.jsonl'));
+    for (const file of files) {
+      // Parse UTC timestamp from filename: 2026-06-28T23-36-56-447Z_sessionid.jsonl
+      const match = file.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})/);
+      if (!match) continue;
+      
+      const fileMs = Date.UTC(
+        parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]),
+        parseInt(match[4]), parseInt(match[5]), parseInt(match[6])
+      );
+      
+      // Include if session started within range (with 24h buffer for long sessions)
+      if (fileMs >= startMs - 86400000 && fileMs < endMs) {
+        results.push({ path: join(dir, file), fileMs });
+      }
+    }
+  }
+  
+  // Sort by timestamp, newest first
+  results.sort((a, b) => b.fileMs - a.fileMs);
+  return results.map(r => r.path);
+}
+
+// Extract OM entries from a session file, optionally filtering by time range
+function extractEntries(filePath, startMs, endMs) {
   const entries = [];
   const sessionId = filePath.split('/').pop()?.replace('.jsonl', '') || 'unknown';
   const lines = readFileSync(filePath, 'utf-8').split('\n').filter(l => l.trim());
@@ -69,43 +107,68 @@ function extractEntries(filePath) {
   for (const line of lines) {
     let entry;
     try { entry = JSON.parse(line); } catch { continue; }
-    if (entry.type !== 'custom') continue;
-
-    const data = entry.data;
-    if (entry.customType === 'om.observations.recorded' && data?.observations) {
-      for (const obs of data.observations) {
-        entries.push({ type: 'observation', ...obs, sessionId });
+    
+    // Check for observation/reflection entries
+    if (entry.type === 'custom') {
+      const data = entry.data;
+      const entryTime = entry.timestamp ? new Date(entry.timestamp).getTime() : 0;
+      
+      // Skip if entry is outside our time range
+      if (entryTime && (entryTime < startMs || entryTime >= endMs)) continue;
+      
+      if (entry.customType === 'om.observations.recorded' && data?.observations) {
+        for (const obs of data.observations) {
+          entries.push({ type: 'observation', ...obs, sessionId });
+        }
+      }
+      if (entry.customType === 'om.reflections.recorded' && data?.reflections) {
+        for (const ref of data.reflections) {
+          entries.push({ type: 'reflection', ...ref, sessionId, timestamp: entry.timestamp });
+        }
       }
     }
-    if (entry.customType === 'om.reflections.recorded' && data?.reflections) {
-      for (const ref of data.reflections) {
-        entries.push({ type: 'reflection', ...ref, sessionId });
+    
+    // Check compaction details
+    if (entry.details && typeof entry.details === 'object') {
+      const details = entry.details;
+      if (details.type === 'om.folded') {
+        const entryTime = entry.timestamp ? new Date(entry.timestamp).getTime() : 0;
+        if (entryTime && (entryTime < startMs || entryTime >= endMs)) continue;
+        
+        if (details.observations) {
+          for (const obs of details.observations) {
+            entries.push({ type: 'observation', ...obs, sessionId });
+          }
+        }
+        if (details.reflections) {
+          for (const ref of details.reflections) {
+            entries.push({ type: 'reflection', ...ref, sessionId, timestamp: entry.timestamp });
+          }
+        }
       }
     }
   }
   return entries;
 }
 
-// Main
-const offset = getTimezoneOffset();
-const { start, end } = parseDateQuery(dateArg, offset);
-
-if (!existsSync(SESSIONS_DIR)) {
-  console.log('No session directory found.');
-  process.exit(0);
+// Deduplicate entries by content
+function dedup(entries) {
+  const seen = new Set();
+  return entries.filter(e => {
+    const key = `${e.type}:${e.content?.substring(0, 100)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
-const files = readdirSync(SESSIONS_DIR)
-  .filter(f => f.endsWith('.jsonl'))
-  .filter(f => {
-    const match = f.match(/^(\d{4})-(\d{2})-(\d{2})T/);
-    if (!match) return false;
-    const fileDate = new Date(Date.UTC(+match[1], +match[2]-1, +match[3]));
-    return fileDate >= start && fileDate < end;
-  })
-  .map(f => join(SESSIONS_DIR, f));
+// Main
+const offset = getTimezoneOffset();
+const { startMs, endMs } = parseDateQuery(dateArg, offset);
 
-const allEntries = files.flatMap(extractEntries);
+const files = findSessionFiles(startMs, endMs);
+const allEntries = dedup(files.flatMap(f => extractEntries(f, startMs, endMs)));
+
 if (allEntries.length === 0) {
   console.log(`No observations found for "${dateArg}".`);
   process.exit(0);
