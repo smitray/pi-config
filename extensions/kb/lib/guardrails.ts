@@ -1,5 +1,4 @@
 import { registerRules } from '../../guardrails/api';
-import { getVaultPaths, resolveVaultContext } from './vault';
 
 // ponytail: KB guardrails register with the guardrails extension instead of
 // using an inline tool_call hook. The guardrails extension handles the hook,

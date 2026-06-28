@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import { join, resolve as resolvePath } from 'node:path';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
+import { err, ok } from '../_shared/result';
 import { captureFile, captureText } from './lib/capture';
 import { installGuardrails } from './lib/guardrails';
 import { getUningestedSources, markSourceIngested } from './lib/ingest';
@@ -233,14 +234,19 @@ export default function (pi: ExtensionAPI) {
       const paths = getVaultPaths(root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return {
-          content: [{ type: 'text', text: '❌ No KB vault found. Run `kb_bootstrap` first.' }],
-          details: {},
-          isError: true,
-        };
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
       }
 
-      const validTypes = ['concept', 'entity', 'synthesis', 'analysis', 'source', 'meeting', 'diary', 'artifact'];
+      const validTypes = [
+        'concept',
+        'entity',
+        'synthesis',
+        'analysis',
+        'source',
+        'meeting',
+        'diary',
+        'artifact',
+      ];
       const pageType = validTypes.includes(params.type) ? params.type : 'concept';
 
       const { content, filename } = buildPage(
@@ -309,11 +315,7 @@ export default function (pi: ExtensionAPI) {
       const paths = getVaultPaths(root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return {
-          content: [{ type: 'text', text: '❌ No KB vault found. Run `kb_bootstrap` first.' }],
-          details: {},
-          isError: true,
-        };
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
       }
 
       const sourceType = params.type || 'auto';
@@ -326,11 +328,7 @@ export default function (pi: ExtensionAPI) {
         if (existsSync(resolvedPath)) {
           result = captureFile(resolvedPath, params.title, paths);
         } else if (sourceType === 'file') {
-          return {
-            content: [{ type: 'text', text: `❌ File not found: ${resolvedPath}` }],
-            details: {},
-            isError: true,
-          };
+          return err('FILE_NOT_FOUND', `File not found: ${resolvedPath}`);
         } else {
           result = captureText(params.source, params.title, paths);
         }
@@ -375,11 +373,7 @@ export default function (pi: ExtensionAPI) {
       const paths = getVaultPaths(root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return {
-          content: [{ type: 'text', text: '❌ No KB vault found. Run `kb_bootstrap` first.' }],
-          details: {},
-          isError: true,
-        };
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
       }
 
       const sources = getUningestedSources(paths);
@@ -508,25 +502,18 @@ export default function (pi: ExtensionAPI) {
       const paths = getVaultPaths(root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return {
-          content: [{ type: 'text', text: '❌ No KB vault found. Run `kb_bootstrap` first.' }],
-          details: {},
-          isError: true,
-        };
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
       }
 
-      const ok = markSourceIngested(params.sourceId, paths);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: ok
-              ? `✅ Source \`${params.sourceId}\` marked as ingested.`
-              : `❌ Source \`${params.sourceId}\` not found.`,
-          },
-        ],
-        details: { sourceId: params.sourceId, ingested: ok },
-      };
+      const ingested = markSourceIngested(params.sourceId, paths);
+      return ingested
+        ? ok(`Source \`${params.sourceId}\` marked as ingested.`, {
+            sourceId: params.sourceId,
+            ingested: true,
+          })
+        : err('SOURCE_NOT_FOUND', `Source \`${params.sourceId}\` not found.`, {
+            sourceId: params.sourceId,
+          });
     },
   });
 
@@ -546,11 +533,7 @@ export default function (pi: ExtensionAPI) {
       const paths = getVaultPaths(ctx2.root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return {
-          content: [{ type: 'text', text: '❌ No KB vault found at this location.' }],
-          details: {},
-          isError: true,
-        };
+        return err('NO_VAULT', 'No KB vault found at this location.');
       }
 
       const config = readJson<{ topic: string; mode: string; created: string }>(
@@ -566,7 +549,10 @@ export default function (pi: ExtensionAPI) {
         if (type === 'entities') {
           const entitysDir = join(paths.wiki, 'entitys');
           // Use entitys/ if it has .md files, otherwise use entities/
-          if (existsSync(entitysDir) && readdirSync(entitysDir).some((f: string) => f.endsWith('.md'))) {
+          if (
+            existsSync(entitysDir) &&
+            readdirSync(entitysDir).some((f: string) => f.endsWith('.md'))
+          ) {
             typeDir = entitysDir;
           }
         }
