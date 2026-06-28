@@ -67,70 +67,70 @@ Add model configuration to `settings.json` so KB can use different models for di
 ## 3. Implementation Tasks
 
 ### Task 1: Model Config Loader (`lib/models.ts`)
-- [ ] Define `ModelConfig` and `KBModelsConfig` interfaces
-- [ ] `loadModelsConfig()` — read from settings.json → kb.models
-- [ ] Validate config on load (fail fast with clear errors)
-- [ ] Support fallback models
-- [ ] Cache model instances
-- [ ] Test: valid config loads correctly
-- [ ] Test: missing config returns defaults
-- [ ] Test: invalid config throws clear error
+- [x] Define `ModelConfig` and `KBModelsConfig` interfaces
+- [x] `loadModelsConfig()` — read from settings.json → kb.models
+- [x] Validate config on load (fail fast with clear errors)
+- [x] Support fallback models
+- [x] Cache model instances
+- [x] Test: valid config loads correctly
+- [x] Test: missing config returns defaults
+- [x] Test: invalid config throws clear error
 
 ### Task 2: Fetch-Based API Client (`lib/models.ts`)
-- [ ] `complete(config, messages, options)` — OpenAI-compatible chat completion
-- [ ] `embed(config, texts)` — OpenAI-compatible embedding
-- [ ] Handle API key resolution ($OPENROUTER_API_KEY, $MIMO_API_KEY, etc.)
-- [ ] Error handling + retry with exponential backoff
-- [ ] Rate limiting queue (for free models: 20 req/min)
-- [ ] Test: mock API response, verify completion
-- [ ] Test: mock API response, verify embedding
-- [ ] Test: error handling (429, 500, timeout)
+- [x] `complete(config, messages, options)` — OpenAI-compatible chat completion
+- [x] `embed(config, texts)` — OpenAI-compatible embedding
+- [x] Handle API key resolution ($OPENROUTER_API_KEY, $MIMO_API_KEY, etc.)
+- [x] Error handling + retry with exponential backoff
+- [x] Rate limiting queue (for free models: 20 req/min)
+- [x] Test: mock API response, verify completion
+- [x] Test: mock API response, verify embedding
+- [x] Test: error handling (429, 500, timeout)
 
 ### Task 3: Embedding Storage (`lib/embeddings.ts`)
-- [ ] `storeEmbedding(pagePath, embedding)` — write to meta/embeddings.json
-- [ ] `loadEmbeddings()` — read all embeddings
-- [ ] `getEmbedding(pagePath)` — get single page embedding
-- [ ] `removeEmbedding(pagePath)` — delete when page removed
-- [ ] Track model version (re-embed on model change)
-- [ ] Test: store and retrieve embedding
-- [ ] Test: handle missing embeddings.json
+- [x] `storeEmbedding(pagePath, embedding)` — write to meta/embeddings.json
+- [x] `loadEmbeddings()` — read all embeddings
+- [x] `getEmbedding(pagePath)` — get single page embedding
+- [x] `removeEmbedding(pagePath)` — delete when page removed
+- [x] Track model version (re-embed on model change)
+- [x] Test: store and retrieve embedding
+- [x] Test: handle missing embeddings.json
 
 ### Task 4: Embedding Search (`lib/embeddings.ts`)
-- [ ] `cosineSimilarity(a, b)` — vector math
-- [ ] `cosineSearch(queryEmbedding, topK)` — search by vector
-- [ ] `hybridSearch(query, topK)` — blend lexical + semantic
-- [ ] `generateAndStore(text, pagePath)` — embed + store in one call
-- [ ] Test: cosine similarity correctness
-- [ ] Test: search returns ranked results
-- [ ] Test: hybrid search blends scores
+- [x] `cosineSimilarity(a, b)` — vector math
+- [x] `cosineSearch(queryEmbedding, topK)` — search by vector
+- [x] `hybridSearch(query, topK)` — blend lexical + semantic
+- [x] `generateAndStore(text, pagePath)` — embed + store in one call
+- [x] Test: cosine similarity correctness
+- [x] Test: search returns ranked results
+- [x] Test: hybrid search blends scores
 
 ### Task 5: Integrate into `kb_enrich` (synthesis model)
-- [ ] Load synthesis model config
-- [ ] Use `complete()` for intelligent merging
-- [ ] Fallback to simple append if model unavailable
-- [ ] Test: enrichment uses synthesis model
-- [ ] Test: fallback works when model fails
+- [x] Load synthesis model config
+- [x] Use `complete()` for intelligent merging
+- [x] Fallback to simple append if model unavailable
+- [x] Test: enrichment uses synthesis model
+- [x] Test: fallback works when model fails
 
 ### Task 6: Integrate into `kb_ingest` (task model)
-- [ ] Load task model config
-- [ ] Use `complete()` for auto-synthesis of wiki pages
-- [ ] Generate page content from extracted.md
-- [ ] Test: ingest creates better pages with model
-- [ ] Test: works without model (current behavior)
+- [x] Load task model config
+- [x] Use `complete()` for auto-synthesis of wiki pages
+- [x] Generate page content from extracted.md
+- [x] Test: ingest creates better pages with model
+- [x] Test: works without model (current behavior)
 
 ### Task 7: Integrate into `kb_recall_*` (embedding search)
-- [ ] Generate embeddings on page create/update
-- [ ] Use `hybridSearch()` in `kb_recall_context`
-- [ ] Use `hybridSearch()` in `kb_recall_docs`
-- [ ] Configurable hybrid weight (lexical vs semantic)
-- [ ] Test: semantic search finds related pages
-- [ ] Test: hybrid search improves over lexical-only
+- [x] Generate embeddings on page create/update
+- [x] Use `hybridSearch()` in `kb_recall_context`
+- [x] Use `hybridSearch()` in `kb_recall_docs`
+- [x] Configurable hybrid weight (lexical vs semantic)
+- [x] Test: semantic search finds related pages
+- [x] Test: hybrid search improves over lexical-only
 
 ### Task 8: Settings Schema Update
-- [ ] Update settings.json with kb.models config
-- [ ] Add kb.embeddings config
-- [ ] Document config options in PLAN.md
-- [ ] Test: settings.json validates correctly
+- [x] Update settings.json with kb.models config
+- [x] Add kb.embeddings config
+- [x] Document config options in PLAN.md
+- [x] Test: settings.json validates correctly
 
 ---
 
