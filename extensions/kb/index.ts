@@ -9,6 +9,7 @@ import { installGuardrails } from './lib/guardrails';
 import { getUningestedSources, markSourceIngested } from './lib/ingest';
 import { formatLintReport, lintWiki } from './lib/lint';
 import { rebuildMetadata } from './lib/metadata';
+import { formatObservationResult, saveObservation } from './lib/observe';
 import { formatOmEntries, queryOmMemory } from './lib/om';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
 import { buildPage, writeAgentsMd, writeDefaultTemplates } from './lib/templates';
@@ -711,6 +712,58 @@ export default function (pi: ExtensionAPI) {
       const formatted = formatLintReport(report);
 
       return ok(formatted, { summary: report.summary });
+    },
+  });
+
+  // ─── kb_observe ───────────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'kb_observe',
+    label: 'KB Observe',
+    description:
+      'Mid-session observation capture. Lightweight write to wiki/sources/ with status: observation. ' +
+      'Use for capturing insights during discussion that can later be integrated into canonical pages.',
+    promptSnippet: 'Capture an observation during discussion',
+    promptGuidelines: [
+      'Use kb_observe when you find new information about an existing KB topic during discussion. ' +
+        'Observations are searchable via kb_recall_* and can be integrated later.',
+    ],
+    parameters: Type.Object({
+      title: Type.String({ description: 'Short descriptive title (≤80 chars)' }),
+      content: Type.String({ description: 'The observation content' }),
+      relevance: Type.String({
+        description: 'Relevance level: low, medium, high, critical',
+      }),
+      tags: Type.Optional(
+        Type.Array(Type.String(), {
+          description: 'Tags for categorization',
+        })
+      ),
+      sourceContext: Type.Optional(
+        Type.String({
+          description: 'Context: what was being worked on when this was observed',
+        })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const { root } = resolveVaultContext(cwd);
+      const paths = getVaultPaths(root);
+
+      if (!existsSync(join(paths.dotKb, 'config.json'))) {
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+      }
+
+      const result = saveObservation(paths, {
+        title: params.title,
+        content: params.content,
+        relevance: params.relevance as 'low' | 'medium' | 'high' | 'critical',
+        tags: params.tags,
+        sourceContext: params.sourceContext,
+      });
+
+      const formatted = formatObservationResult(result, params.title);
+      return ok(formatted, { sourceId: result.sourceId });
     },
   });
 
