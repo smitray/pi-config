@@ -290,7 +290,7 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
 | Phase 2: URL & Document Ingestion | 3 features, 7 subtasks | Partial (2.1 done) |
 | Phase 3: Source Extraction | 2 features, 5 subtasks | Not started |
 | Phase 4: Missing Core Features | 5 features, 15 subtasks | ✅ Done |
-| Phase 5: Background Processing | 3 features, 6 subtasks | Not started |
+| Phase 5: Background Processing | 3 features, 6 subtasks | ✅ Done |
 | Phase 6: Knowledge Enrichment | 3 features, 8 subtasks | Not started |
 | Phase 7: Semantic Search | 2 features | Deferred |
 | Phase 8: Agent Memory | 3 features | Deferred |
