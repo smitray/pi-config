@@ -15,9 +15,11 @@ import { formatOmEntries, queryOmMemory } from './lib/om';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
 import { formatRetroResult, saveInsight } from './lib/retro';
 import { buildPage, writeAgentsMd, writeDefaultTemplates } from './lib/templates';
+import type { VaultPaths } from './lib/vault';
 import {
   ensureVaultStructure,
   fmtDate,
+  getExplicitVaultPaths,
   getVaultPaths,
   readJson,
   resolveVaultContext,
@@ -312,11 +314,24 @@ export default function (pi: ExtensionAPI) {
           description: 'Source type: file or text (auto-detected if omitted)',
         })
       ),
+      vault: Type.Optional(
+        Type.String({
+          description: 'Target vault: personal, project, or auto (default: auto)',
+        })
+      ),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
       const cwd = ctx.cwd ?? process.cwd();
-      const { root } = resolveVaultContext(cwd);
-      const paths = getVaultPaths(root);
+
+      // Determine vault based on explicit selection or auto-detect
+      let paths: VaultPaths;
+      const vaultChoice = params.vault || 'auto';
+      if (vaultChoice === 'personal' || vaultChoice === 'project') {
+        paths = getExplicitVaultPaths(vaultChoice, cwd);
+      } else {
+        const { root } = resolveVaultContext(cwd);
+        paths = getVaultPaths(root);
+      }
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
         return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
