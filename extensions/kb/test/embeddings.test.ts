@@ -3,8 +3,11 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   clearEmbeddingsCache,
+  cosineSearch,
+  cosineSimilarity,
   getEmbeddedPages,
   getEmbedding,
+  hybridSearch,
   needsReEmbedding,
   removeEmbedding,
   storeEmbedding,
@@ -108,5 +111,68 @@ describe('needsReEmbedding', () => {
     clearEmbeddingsCache();
 
     expect(needsReEmbedding(paths)).toBe(true);
+  });
+});
+
+describe('cosineSimilarity', () => {
+  it('returns 1 for identical vectors', () => {
+    expect(cosineSimilarity([1, 0, 0], [1, 0, 0])).toBe(1);
+  });
+
+  it('returns 0 for orthogonal vectors', () => {
+    expect(cosineSimilarity([1, 0], [0, 1])).toBe(0);
+  });
+
+  it('returns -1 for opposite vectors', () => {
+    expect(cosineSimilarity([1, 0], [-1, 0])).toBe(-1);
+  });
+
+  it('returns 0 for different lengths', () => {
+    expect(cosineSimilarity([1, 0], [1, 0, 0])).toBe(0);
+  });
+});
+
+describe('cosineSearch', () => {
+  it('returns ranked results', () => {
+    const paths = makePaths();
+    storeEmbedding(paths, 'a.md', [1, 0, 0]);
+    storeEmbedding(paths, 'b.md', [0, 1, 0]);
+    storeEmbedding(paths, 'c.md', [0.7, 0.7, 0]);
+
+    const results = cosineSearch(paths, [1, 0, 0], 2);
+    expect(results).toHaveLength(2);
+    expect(results[0].pagePath).toBe('a.md');
+    expect(results[0].score).toBeCloseTo(1, 5);
+  });
+});
+
+describe('hybridSearch', () => {
+  it('blends lexical and semantic scores', () => {
+    const paths = makePaths();
+    storeEmbedding(paths, 'a.md', [1, 0, 0]);
+    storeEmbedding(paths, 'b.md', [0, 1, 0]);
+
+    const lexicalResults = [
+      { pagePath: 'a.md', score: 0.5 },
+      { pagePath: 'b.md', score: 0.8 },
+    ];
+
+    const results = hybridSearch(paths, 'test', [1, 0, 0], lexicalResults, 2, 0.3);
+    expect(results).toHaveLength(2);
+    // b.md has higher lexical but a.md has higher semantic
+    // With weight 0.3 lexical, semantic dominates
+    expect(results[0].pagePath).toBe('a.md');
+  });
+
+  it('falls back to lexical-only when no embedding', () => {
+    const paths = makePaths();
+    const lexicalResults = [
+      { pagePath: 'a.md', score: 0.5 },
+      { pagePath: 'b.md', score: 0.8 },
+    ];
+
+    const results = hybridSearch(paths, 'test', null, lexicalResults, 2);
+    expect(results).toHaveLength(2);
+    expect(results[0].pagePath).toBe('b.md');
   });
 });
