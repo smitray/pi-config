@@ -12,7 +12,6 @@ import { getUningestedSources, markSourceIngested } from './lib/ingest';
 import { formatLintReport, lintWiki } from './lib/lint';
 import { rebuildMetadata } from './lib/metadata';
 import { formatObservationResult, saveObservation } from './lib/observe';
-import { formatOmEntries, queryOmMemory } from './lib/om';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
 import { formatRetroResult, saveInsight } from './lib/retro';
 import { buildPage, writeAgentsMd, writeDefaultTemplates } from './lib/templates';
@@ -913,54 +912,6 @@ export default function (pi: ExtensionAPI) {
       logEvent(paths, { kind: params.kind, data: params.data as Record<string, unknown> });
 
       return ok(`✅ Event logged: ${params.kind}`, { kind: params.kind });
-    },
-  });
-
-  // ─── om_recall ────────────────────────────────────────────────
-
-  pi.registerTool({
-    name: 'om_recall',
-    label: 'OM Recall',
-    description:
-      'Query observational memory by date. Returns observations and reflections from ' +
-      'previous Pi sessions. Use for: "what did I do yesterday", "what happened on Monday".',
-    promptSnippet: 'Query OM memory by date',
-    promptGuidelines: [
-      'Use om_recall when the user asks about past work: "what did I do yesterday", "what happened on Monday", etc.',
-    ],
-    parameters: Type.Object({
-      date: Type.String({
-        description: 'Date query: "yesterday", "today", "last 3 days", or YYYY-MM-DD',
-      }),
-    }),
-    async execute(_id, params, _signal, _onUpdate, _ctx) {
-      const entries = queryOmMemory(params.date);
-
-      if (entries.length === 0) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text:
-                `No observational memory found for "${params.date}". ` +
-                'This could mean: no sessions on that date, or sessions were not compacted.',
-            },
-          ],
-          details: { date: params.date, count: 0 },
-        };
-      }
-
-      const formatted = formatOmEntries(entries);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `# Observational Memory — ${params.date}\n\n${formatted}`,
-          },
-        ],
-        details: { date: params.date, count: entries.length },
-      };
     },
   });
 
