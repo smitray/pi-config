@@ -1,8 +1,10 @@
 # KB Extension — Feature & Task Plan
 
 **Date:** 2026-06-29  
-**Status:** Planning  
+**Status:** In Progress  
 **Principle:** Cross-extension composition over duplication
+
+> **⚠️ TODO: Delete this file once all phases are complete.** This is a working plan, not permanent documentation.
 
 ---
 
