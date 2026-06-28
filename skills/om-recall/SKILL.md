@@ -24,18 +24,22 @@ Date formats: `yesterday`, `today`, `last 3 days`, `YYYY-MM-DD`
 
 ## Timezone
 
-OM stores timestamps in UTC. If you're in IST (UTC+5:30), set:
+Configured in `settings.json` under `om.timezoneOffset`:
 
-```
-OM_TIMEZONE_OFFSET=5.5
+```json
+{
+  "om": {
+    "timezoneOffset": 5.5
+  }
+}
 ```
 
-Add to your shell profile (`~/.bashrc`, `~/.zshrc`) or Pi's environment.
+Override with env var: `OM_TIMEZONE_OFFSET=5.5`
 
 ## Troubleshooting
 
-**"No observational memory found"** — Session wasn't compacted yet (~80K tokens threshold) or timezone mismatch.
+**"No observational memory found"** — Session wasn't compacted yet (~80K tokens threshold).
 
-**Wrong day's results** — Set `OM_TIMEZONE_OFFSET` to your UTC offset (e.g., `5.5` for IST, `-8` for PST).
+**Wrong day's results** — Check `om.timezoneOffset` in settings.json matches your UTC offset.
 
-**Too many results** — By default only high/critical relevance shown. Use `verbose: true` for all.
+**Too many results** — Use `verbose: true` to see all observations.
