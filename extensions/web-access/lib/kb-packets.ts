@@ -1,5 +1,8 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { approxTokens, splitIntoChunks } from './markdown';
+
+export { approxTokens, splitIntoChunks };
 
 /**
  * KB source-packet shape written to `{kbRoot}/raw/sources/SRC-YYYY-MM-DD-NNN/`:
@@ -63,11 +66,6 @@ function existingUrlPackets(rawSourcesDir: string): Map<string, ExistingPacket> 
 
 const MAX_TOKENS = 4000;
 
-function approxTokens(s: string): number {
-  // ~4 chars per token, same heuristic as web-access/lib/markdown.ts
-  return Math.ceil(s.length / 4);
-}
-
 /**
  * Write each crawled page as a KB source packet under {kbRoot}/raw/sources/.
  * Pages whose URL already exists as a packet are skipped (idempotent re-crawl).
@@ -102,7 +100,12 @@ export function writePagesAsKbPackets(
 
     writeFileSync(join(packetDir, 'original', 'url.txt'), page.url, 'utf-8');
     const tokens = approxTokens(page.markdown);
-    const extracted = page.markdown;
+    // Match kb/lib/capture.ts: chunk content that exceeds MAX_TOKENS so each
+    // section stays within agent-readable size. Re-uses web-access chunker.
+    const extracted =
+      tokens > MAX_TOKENS
+        ? splitIntoChunks(page.markdown, MAX_TOKENS).join('\n\n---\n\n')
+        : page.markdown;
     writeFileSync(join(packetDir, 'extracted.md'), extracted, 'utf-8');
 
     const manifest = {
