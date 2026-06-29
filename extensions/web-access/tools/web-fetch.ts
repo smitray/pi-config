@@ -11,6 +11,7 @@ import {
   savePage,
 } from '../lib/docs-store';
 import { fetchJson } from '../lib/http';
+import { writePagesAsKbPackets } from '../lib/kb-packets';
 import { approxTokens, extractLinks, extractTitle, splitIntoChunks } from '../lib/markdown';
 import { err, ok } from '../lib/result';
 
@@ -209,14 +210,21 @@ export function registerWebFetch(pi: ExtensionAPI, config: AccessConfig): void {
       refresh: Type.Optional(
         Type.Boolean({ description: 'Force re-crawl even if label exists on disk', default: false })
       ),
+      kbRoot: Type.Optional(
+        Type.String({
+          description:
+            'If set, write each crawled page as a KB source packet to {kbRoot}/raw/sources/ (one packet per page, deduplicated by URL).',
+        })
+      ),
     }),
     async execute(_id, params) {
-      const { baseUrl, label, depth, chunkIndex, refresh } = params as {
+      const { baseUrl, label, depth, chunkIndex, refresh, kbRoot } = params as {
         baseUrl: string;
         label?: string;
         depth?: number;
         chunkIndex?: number;
         refresh?: boolean;
+        kbRoot?: string;
       };
       const requestedIndex = chunkIndex ?? 0;
       const effectiveDepth = depth ?? config.maxDepth;
@@ -275,6 +283,16 @@ export function registerWebFetch(pi: ExtensionAPI, config: AccessConfig): void {
         }
       }
 
+      // Optional KB ingestion: write one source packet per page under {kbRoot}/raw/sources/.
+      // Skipped on plain re-read (existing && !refresh) because packets were written on first crawl.
+      let kbPackets: ReturnType<typeof writePagesAsKbPackets> = [];
+      if (kbRoot && (!existing || refresh)) {
+        kbPackets = writePagesAsKbPackets(
+          pages.map((p) => ({ url: p.url, title: p.title, markdown: p.markdown })),
+          kbRoot
+        );
+      }
+
       let cached = chunkCache.get(cacheKey);
       if (!cached) {
         const fullText = pages
@@ -317,6 +335,19 @@ export function registerWebFetch(pi: ExtensionAPI, config: AccessConfig): void {
         chunkIndex: requestedIndex,
         totalTokens: cached.totalTokens,
         source: existing ? 'disk' : label ? 'fresh-disk' : 'memory',
+        ...(kbRoot
+          ? {
+              kbRoot,
+              kbPackets: kbPackets.map((p) => ({
+                sourceId: p.sourceId,
+                url: p.url,
+                title: p.title,
+                skipped: p.skipped ?? false,
+              })),
+              kbPacketsCreated: kbPackets.filter((p) => !p.skipped).length,
+              kbPacketsSkipped: kbPackets.filter((p) => p.skipped).length,
+            }
+          : {}),
       });
     },
   });

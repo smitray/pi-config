@@ -155,10 +155,12 @@ Workflow-based skills (compose web-access + gh + kb tools):
   - [x] Document workflow in `skills/kb-capture-url/SKILL.md` and `skills/kb/SKILL.md`
   - [ ] Test end-to-end with a real URL
 
-- [ ] **2.2** Multi-page docs ingest workflow
-  - [ ] Add `vault` parameter to `kb_capture` (default: personal for docs)
-  - [x] Document workflow: `web-fetch-docs` → iterate → `kb_capture` each
-  - [ ] Test with a small docs site (3-5 pages)
+- [x] **2.2** Multi-page docs ingest workflow
+  - [x] Add `vault` parameter to `kb_capture` (default: personal for docs)
+  - [x] Add `kbRoot` parameter to `web-fetch-docs` → writes one source packet per crawled page to `{kbRoot}/raw/sources/` (idempotent, dedup by URL)
+  - [x] Update `skills/kb-capture-url/SKILL.md` and `skills/access-web/SKILL.md` to document kbRoot
+  - [x] Add 5 unit tests in `web-access/test/kb-packets.test.ts`
+  - [ ] Test end-to-end with a real docs site (e.g. `https://wiki.hypr.land/`)
 
 - [ ] **2.3** YouTube transcript ingest (blocked)
   - [x] Document planned workflow in `skills/kb-capture-url/SKILL.md`
