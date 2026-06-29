@@ -1,3 +1,10 @@
+---
+name: kb-enrich
+description: >
+  Knowledge enrichment workflow for the KB extension. Use when new information discovered
+  during discussion relates to an existing KB topic — observe, review, integrate.
+---
+
 # kb-enrich
 
 Knowledge enrichment workflow — observe, review, integrate.

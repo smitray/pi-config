@@ -1,3 +1,10 @@
+---
+name: kb-lint
+description: >
+  Wiki health checks and maintenance workflows for the KB extension. Use for checking
+  orphan pages, broken wikilinks, empty pages, and stale content.
+---
+
 # kb-lint
 
 Wiki health checks and maintenance workflows.

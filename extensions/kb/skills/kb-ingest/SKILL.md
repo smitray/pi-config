@@ -1,3 +1,10 @@
+---
+name: kb-ingest
+description: >
+  URL and document ingestion workflows for the KB extension. Use when capturing web pages,
+  documentation, or files into the knowledge base.
+---
+
 # kb-ingest
 
 URL and document ingestion workflows for the KB extension.
