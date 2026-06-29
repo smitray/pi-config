@@ -46,15 +46,29 @@ export function captureFile(
 
   // Extract text content
   let extracted = '';
+  const ext = basename(filePath).split('.').pop()?.toLowerCase() || '';
+
+  // Ponytail: PDFs are binary; force user to run pdftotext first.
+  // Scanned PDFs need OCR — defer to a future skill.
+  if (ext === 'pdf') {
+    throw new Error(
+      `PDF detected (${basename(filePath)}). Run \`pdftotext ${filePath} output.txt\` first, ` +
+        `then capture the .txt file. For scanned PDFs, use an OCR tool before capture.`
+    );
+  }
+
   try {
     extracted = readFileSync(filePath, 'utf-8');
     // Wrap in markdown code fence if not already markdown
-    const ext = basename(filePath).split('.').pop()?.toLowerCase() || '';
     if (!['md', 'txt'].includes(ext)) {
       extracted = `\`\`\`${ext}\n${extracted}\n\`\`\``;
     }
-  } catch {
-    extracted = `_Binary file: ${basename(filePath)}_`;
+  } catch (e) {
+    const msg =
+      (e as NodeJS.ErrnoException).code === 'ENOENT'
+        ? `File not found: ${filePath}`
+        : `Cannot read ${filePath}: ${(e as Error).message}`;
+    throw new Error(msg);
   }
 
   writeFileSync(join(packetDir, 'extracted.md'), extracted, 'utf-8');

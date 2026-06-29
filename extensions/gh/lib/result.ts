@@ -1,42 +1,29 @@
 /**
- * Shared tool-result helpers. Mirrors web-access/lib/result.ts so both
- * extensions return the same shape — { content, details, isError }.
+ * Shared tool-result helpers for all extensions.
+ *
+ * ponytail: three extensions (kb, web-access, gh) all return the same shape.
+ * One source of truth — but inlined to avoid cross-extension dependency issues.
  */
 
-export interface ToolOk {
-  content: [{ type: 'text'; text: string }];
+export interface ToolContent {
+  type: 'text';
+  text: string;
+}
+
+export interface ToolResult {
+  content: ToolContent[];
   details: Record<string, unknown>;
-  isError: false;
+  isError?: boolean;
 }
 
-export interface ToolErr {
-  content: [{ type: 'text'; text: string }];
-  details: Record<string, unknown>;
-  isError: true;
+export function ok(text: string, details?: Record<string, unknown>): ToolResult {
+  return { content: [{ type: 'text', text }], details: details ?? {}, isError: false };
 }
 
-export type ToolResult = ToolOk | ToolErr;
-
-export function ok(text: string, details: Record<string, unknown> = {}): ToolOk {
-  return { content: [{ type: 'text', text }], details, isError: false };
-}
-
-export function err(code: string, message: string, details: Record<string, unknown> = {}): ToolErr {
+export function err(code: string, message: string, details?: Record<string, unknown>): ToolResult {
   return {
-    content: [{ type: 'text', text: `${code}: ${message}` }],
-    details: { error: code, message, ...details },
-    isError: true,
-  };
-}
-
-/**
- * Convenience: same as `err` but with no structured code — just a free-form message.
- * Prefer `err(code, message)` for any new failure paths.
- */
-export function errMessage(message: string): ToolErr {
-  return {
-    content: [{ type: 'text', text: `Error: ${message}` }],
-    details: { error: message },
+    content: [{ type: 'text', text: `❌ ${code}: ${message}` }],
+    details: { error: code, ...(details ?? {}) },
     isError: true,
   };
 }

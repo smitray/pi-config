@@ -11,6 +11,7 @@ import { installGuardrails } from './lib/guardrails';
 import { getUningestedSources, markSourceIngested } from './lib/ingest';
 import { formatLintReport, lintWiki } from './lib/lint';
 import { rebuildMetadata } from './lib/metadata';
+import { loadKBConfig } from './lib/models';
 import { formatObservationResult, saveObservation } from './lib/observe';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
 import { formatRetroResult, saveInsight } from './lib/retro';
@@ -347,7 +348,11 @@ export default function (pi: ExtensionAPI) {
           ? params.source
           : resolvePath(cwd, params.source);
         if (existsSync(resolvedPath)) {
-          result = captureFile(resolvedPath, params.title, paths);
+          try {
+            result = captureFile(resolvedPath, params.title, paths);
+          } catch (e) {
+            return err('CAPTURE_FAILED', (e as Error).message);
+          }
         } else if (sourceType === 'file') {
           return err('FILE_NOT_FOUND', `File not found: ${resolvedPath}`);
         } else {
@@ -1038,8 +1043,11 @@ export default function (pi: ExtensionAPI) {
 
     if (!existsSync(join(paths.dotKb, 'config.json'))) return;
 
-    // Auto-ingest after kb_capture
-    if (event.toolName === 'kb_capture') {
+    // Load config to respect autoIngest/autoLint flags
+    const cfg = loadKBConfig();
+
+    // Auto-ingest after kb_capture (only if enabled in config)
+    if (event.toolName === 'kb_capture' && cfg.autoIngest) {
       const pending = getUningestedSources(paths);
       for (const source of pending) {
         if (!existsSync(source.extractedPath)) continue;
@@ -1059,8 +1067,8 @@ export default function (pi: ExtensionAPI) {
         });
       }
 
-      // Auto-lint after ingest
-      if (pending.length > 0) {
+      // Auto-lint after ingest (only if enabled in config)
+      if (pending.length > 0 && cfg.autoLint) {
         const report = lintWiki(paths);
         if (report.summary.warnings > 0) {
           logEvent(paths, { kind: 'lint_warnings', data: { warnings: report.summary.warnings } });

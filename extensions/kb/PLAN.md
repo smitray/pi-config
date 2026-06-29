@@ -103,7 +103,7 @@ Workflow-based skills (compose web-access + gh + kb tools):
 | **kb-research** | `skills/kb-research/SKILL.md` | web-search → web-fetch → kb_capture → kb_ingest → pages |
 | **kb-capture-url** | `skills/kb-capture-url/SKILL.md` | Auto-route GitHub/docs/YouTube → gh/web-access/media → kb_capture |
 | **kb-bootstrap** | `skills/kb-bootstrap/SKILL.md` | Detect mode → kb_bootstrap → seed with README |
-| **kb-update** | `skills/kb-update/SKILL.md` | kb_recall_context → kb_observe → ask_user_question → kb_enrich |
+| **kb-update** | `skills/kb-update/SKILL.md` | kb_recall_context → kb_observe → kb_enrich (inline approval) |
 
 ### Skill: kb-research
 

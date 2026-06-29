@@ -62,7 +62,7 @@ kb_capture source="README.md" title="Project README"
 kb_capture source="docs/ARCHITECTURE.md" title="Architecture Overview"
 
 # Process pending sources
-kb_ingest
+kb_ingest vault=project  # or vault=personal for personal KB
 # → read extracted.md, create pages with kb_ensure_page
 ```
 
