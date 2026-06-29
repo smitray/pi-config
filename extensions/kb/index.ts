@@ -177,7 +177,7 @@ export default function (pi: ExtensionAPI) {
     label: 'KB Ensure Page',
     description:
       'Create or update a wiki page with enforced template frontmatter. ' +
-      'Page types: concept, entity, synthesis, analysis, source. ' +
+      'Page types: concept, entity, synthesis, analysis, source, artifact, meeting, diary. ' +
       'Templates are loaded from .kb/templates/pages/{type}.md and always applied.',
     promptSnippet: 'Create a KB wiki page from a template',
     promptGuidelines: [
@@ -185,7 +185,8 @@ export default function (pi: ExtensionAPI) {
     ],
     parameters: Type.Object({
       type: Type.String({
-        description: 'Page type: concept, entity, synthesis, analysis, source',
+        description:
+          'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary',
       }),
       title: Type.String({ description: 'Page title' }),
       content: Type.Optional(
@@ -569,7 +570,16 @@ export default function (pi: ExtensionAPI) {
       const wikiPages: Record<string, number> = {};
       let totalWiki = 0;
       // ponytail: handle typo dirs from earlier versions (entitys, synthesiss)
-      const typeNames = ['sources', 'entities', 'concepts', 'syntheses', 'analyses', 'artifacts', 'meetings', 'diaries'];
+      const typeNames = [
+        'sources',
+        'entities',
+        'concepts',
+        'syntheses',
+        'analyses',
+        'artifacts',
+        'meetings',
+        'diaries',
+      ];
       const typoAliases: Record<string, string> = {
         entities: 'entitys',
         syntheses: 'synthesiss',
@@ -646,7 +656,8 @@ export default function (pi: ExtensionAPI) {
       tag: Type.Optional(Type.String({ description: 'Frontmatter tag to search for' })),
       type: Type.Optional(
         Type.String({
-          description: 'Page type: concept, entity, synthesis, analysis, source',
+          description:
+            'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary',
         })
       ),
       stage: Type.Optional(

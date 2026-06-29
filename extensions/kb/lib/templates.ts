@@ -21,15 +21,7 @@ const EXT_DIR = join(import.meta.dirname ?? __dirname, '..');
 
 export function writeDefaultTemplates(paths: VaultPaths, mode?: string): void {
   const pagesDir = join(EXT_DIR, 'templates', 'pages');
-  const types = [
-    'concept',
-    'entity',
-    'synthesis',
-    'analysis',
-    'source',
-    'meeting',
-    'diary',
-  ];
+  const types = ['concept', 'entity', 'synthesis', 'analysis', 'source', 'meeting', 'diary'];
   // Artifact template is project-only
   if (mode !== 'personal') types.push('artifact');
 

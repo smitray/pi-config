@@ -2,33 +2,49 @@
 name: kb
 description: >
   Knowledge Base extension for Pi. Self-contained .kb/ vaults with wiki pages, source capture,
-  template enforcement, tag-aware search, and dual-mode recall (project-first vs docs-first).
-  Integrates with web-access for URL capture and gh for GitHub repo/issue/PR capture.
+  template enforcement, tag-aware search, dual-mode recall, automated linting, AI-powered
+  enrichment, embeddings + hybrid search, and cross-extension integration with web-access and gh.
 compatibility: >
-  Requires the kb pi extension (installed at ~/.pi/agent/extensions/kb). Optional integrations:
-  web-access extension for URL capture, gh extension for GitHub capture.
+  Requires the kb pi extension (~/.pi/agent/extensions/kb). Optional: web-access extension for
+  URL capture, gh extension for GitHub capture. Use workflow skills (kb-research, kb-capture-url,
+  kb-bootstrap, kb-update) for common tasks — this file is the full tool reference.
 ---
 
 # kb — Knowledge Base
 
-A from-scratch knowledge base extension implementing the Karpathy LLM Wiki pattern.
-Stores knowledge in `.kb/` vaults with four layers: raw (immutable sources), wiki (editable
-pages with wikilinks), meta (auto-generated registry and backlinks), and config (templates).
+Self-contained `.kb/` vaults. Four layers: **raw** (immutable sources), **wiki** (editable
+pages with wikilinks), **meta** (auto-generated registry + backlinks + embeddings), and
+**config** (templates + AGENTS.md).
 
-## Vault structure
+## Workflow Skills (Use These First)
+
+For common tasks, use the workflow skills — they compose multiple tools across extensions:
+
+| Skill | Trigger | What It Does |
+|-------|---------|--------------|
+| `kb-research` | "research X and save to KB" | web-search → web-fetch → kb_capture → kb_ingest → kb_ensure_page |
+| `kb-capture-url` | "capture this URL" | Auto-routes GitHub → gh tools, docs → web-fetch-docs, YouTube → media-transcribe |
+| `kb-bootstrap` | "create a KB for this project" | Detect mode → kb_bootstrap → seed with README |
+| `kb-update` | "update the KB with this" | kb_recall_context → kb_observe → ask_user_question → kb_enrich |
+
+This file documents all 14 KB tools individually. Use this as reference, not as workflow
+instructions.
+
+## Vault Structure
 
 ```text
 .kb/
 ├── config.json                    # topic, mode, created, version
-├── templates/pages/               # 8 page templates (5 core + 3 personal)
-│   ├── concept.md
-│   ├── entity.md
-│   ├── synthesis.md
-│   ├── analysis.md
-│   ├── source.md
-│   ├── meeting.md                 # personal vault only
-│   ├── diary.md                   # personal vault only
-│   └── artifact.md                # project vault only
+├── AGENTS.md                      # KB usage instructions
+├── templates/pages/               # 8 page templates
+│   ├── concept.md                 #   abstract idea, pattern, technique
+│   ├── entity.md                  #   concrete thing (library, tool, person, project)
+│   ├── synthesis.md               #   combined insight from multiple sources
+│   ├── analysis.md                #   comparison, evaluation, trade-off
+│   ├── source.md                  #   summary of a captured source
+│   ├── meeting.md                 #   personal vault only — meeting notes
+│   ├── diary.md                   #   personal vault only — daily log
+│   └── artifact.md                #   project vault only — WIP, brainstorming, planning
 ├── raw/sources/SRC-YYYY-MM-DD-NNN/
 │   ├── manifest.json              # sourceId, type, title, status, captured
 │   ├── original/                  # original file or content.txt
@@ -38,315 +54,252 @@ pages with wikilinks), meta (auto-generated registry and backlinks), and config 
 │   ├── entities/                  # entity pages
 │   ├── syntheses/                 # synthesis pages
 │   ├── analyses/                  # analysis pages
-│   └── sources/                   # source summary pages
+│   ├── sources/                   # source summary pages
+│   ├── artifacts/                 # project vault: WIP and planning
+│   ├── meetings/                  # personal vault: meeting notes
+│   └── diaries/                   # personal vault: daily logs
 └── meta/
-    ├── registry.json              # all wiki pages indexed by id, title, type, tags, stage
-    └── backlinks.json             # wikilink [[target]] → source page mapping
+    ├── registry.json              # all wiki pages: id, title, type, tags, stage, backlinks
+    ├── backlinks.json             # wikilink [[target]] → source page mapping
+    ├── embeddings.json            # page embeddings for hybrid search
+    └── events.jsonl               # audit trail (kb_log_event)
 ```
 
-## Vault resolution
+## Vault Resolution
 
-Vault mode is detected from cwd:
+- **Project mode:** `.kb/` exists in cwd/parent, or cwd inside a git repo → creates `.kb/` in cwd
+- **Personal mode:** fallback → `~/.kb/` (or `KB_HOME` env var)
+- Override: `KB_MODE=project` or `KB_MODE=personal`
 
-- **Project mode:** `.kb/` exists in cwd or parent, OR cwd is inside a git repo
-- **Personal mode:** fallback to `~/.kb/` (or `KB_HOME` env var)
+## Tools (14 total)
 
-Override with `KB_MODE=project` or `KB_MODE=personal` env var.
+### Lifecycle
 
-## Tool reference
-
-### `kb_bootstrap`
-
-Initialize a new `.kb/` vault. Auto-detects project vs personal mode.
+#### `kb_bootstrap`
+Initialize a new vault. Auto-detects mode unless overridden.
 
 ```text
 kb_bootstrap topic="My Project"
 kb_bootstrap topic="Personal KB" mode=personal root="/home/user"
 ```
 
-Creates config.json, templates, raw/, wiki/, meta/. Only needed once per vault.
+Non-destructive — won't overwrite existing vaults. Personal vaults get 7 templates (no artifact).
+Project vaults get all 8.
 
-### `kb_ensure_page`
-
-Create a wiki page with enforced template frontmatter. Templates are always applied.
-
-```text
-kb_ensure_page type=concept title="Async Patterns"
-kb_ensure_page type=entity title="FastAPI" content="## Details\nFastAPI is..."
-kb_ensure_page type=synthesis title="Auth Architecture"
-kb_ensure_page type=analysis title="Performance Bottleneck"
-kb_ensure_page type=source title="React Docs Summary"
-```
-
-Types: `concept`, `entity`, `synthesis`, `analysis`, `source`, `meeting`, `diary`, `artifact`.
-Falls back to `concept` if type is unrecognized. Template is loaded from `.kb/templates/pages/{type}.md`.
-Personal vaults get 7 templates (no `artifact`). Project vaults get all 8.
-
-### `kb_capture`
-
-Capture a file or text into raw/sources/ as an immutable source packet.
-
-```text
-# Capture a file
-kb_capture source="/path/to/file.md" title="Architecture Doc"
-
-# Capture raw text
-kb_capture source="The key insight is..." title="Meeting Notes" type=text
-
-# Auto-detect (file if exists, text otherwise)
-kb_capture source="README.md" title="Project README"
-```
-
-For URLs, use `web-access` first, then capture the result — see Patterns below.
-
-### `kb_ingest`
-
-List uningested sources for the agent to process.
-
-```text
-kb_ingest
-```
-
-Returns pending sources with their `extracted.md` paths. Read each, create wiki pages with
-`kb_ensure_page`, then mark ingested with `kb_mark_ingested`.
-
-### `kb_mark_ingested`
-
-Mark a source packet as processed. Removes it from `kb_ingest` pending lists.
-
-```text
-kb_mark_ingested sourceId="SRC-2026-06-26-001"
-```
-
-### `kb_status`
-
-Show vault health: mode, page counts by type, pending sources, template count.
+#### `kb_status`
+Vault health overview: mode, page counts by type, pending sources, template count.
 
 ```text
 kb_status
 ```
 
-### `kb_recall_context`
+### Capture & Ingest
 
-Search both vaults, **project vault first**. Use at task start for working-memory context.
-
-```text
-kb_recall_context query="auth patterns"
-kb_recall_context query="caching strategy" maxResults=10
-```
-
-### `kb_recall_docs`
-
-Search both vaults, **personal vault first**. Use for documentation and library lookups.
+#### `kb_capture`
+Capture file or text into `raw/sources/` as an immutable source packet.
 
 ```text
-kb_recall_docs query="React useEffect"
-kb_recall_docs query="FastAPI dependency injection" maxResults=10
+kb_capture source="/path/to/file.md" title="Architecture Doc"
+kb_capture source="raw text here" title="Meeting Notes" type=text
+kb_capture source="README.md" title="Project README"    # auto-detect
 ```
 
-### `kb_search_tags`
+Parameters: `source` (path or text), `title` (required), `type` (auto|file|text), `vault` (auto|personal|project).
+After capture, `tool_result` hook auto-ingests and auto-lints (if enabled).
 
-Search wiki pages by frontmatter tags, page type, or workflow stage.
+#### `kb_ingest`
+List uningested sources for processing.
 
 ```text
-kb_search_tags tag="react"
-kb_search_tags type="concept"
-kb_search_tags stage="production"
-kb_search_tags tag="python" type="entity" stage="draft"
-```
-
-Stages: `brainstorm` (default for new pages), `draft`, `review`, `production`.
-
-### `om_recall`
-
-Query observational memory by date. Reads OM session data to answer "what did I do yesterday".
-
-```text
-om_recall date="yesterday"
-om_recall date="today"
-om_recall date="2026-06-25"
-om_recall date="last 3 days"
-```
-
-Returns observations (events & decisions) and reflections (durable facts) from previous Pi
-sessions. Works by reading session JSONL files and extracting `om.observations.recorded`,
-`om.reflections.recorded`, and `om.folded` entries.
-
-Note: Only works with sessions that were compacted (OM folds memory into compaction details).
-Non-compacted sessions may have incomplete data.
-
-## Hooks (automatic behavior)
-
-| Hook | When | What |
-|------|------|------|
-| `session_start` | Pi session starts | Shows vault status in UI if vault exists |
-| `before_agent_start` | Before each agent turn | Injects KB context into system prompt IF prompt contains knowledge keywords (architecture, design, api, etc.) |
-| `tool_result` | After kb tool writes | Rebuilds metadata (registry + backlinks) after `kb_ensure_page` or `kb_capture` |
-| `tool_call` | Before write/edit | Blocks writes to `.kb/raw/` and `.kb/meta/` (immutable) |
-
-## Page templates
-
-All 5 templates enforce frontmatter with these fields:
-
-```yaml
----
-title: "{{title}}"
-type: concept|entity|synthesis|analysis|source
-tags: []
-created: "{{created}}"
-updated: "{{updated}}"
-stage: brainstorm
-sources: []
----
-```
-
-Templates are written to `.kb/templates/pages/` on bootstrap. Edit them to customize page
-structure for your workflow.
-
-## Cross-extension workflows
-
-### URL capture (uses web-access)
-
-```text
-# 1. Fetch the URL as markdown
-web-fetch url="https://example.com/docs/api"
-
-# 2. Save the fetched content to a temp file
-# (web-fetch returns markdown in the response)
-
-# 3. Capture into KB
-kb_capture source="/tmp/fetched-content.md" title="Example API Docs"
-
-# 4. Ingest
 kb_ingest
-# → read extracted.md, create wiki pages with kb_ensure_page
-kb_mark_ingested sourceId="SRC-..."
 ```
 
-For multi-page docs sites, use `web-fetch-docs` first, then capture individual pages:
+Returns pending sources with `extracted.md` paths. Read each, create wiki pages, mark ingested.
+
+#### `kb_mark_ingested`
+Mark a source as processed.
 
 ```text
-web-fetch-docs baseUrl="https://docs.example.com" label=example-docs depth=3
-docs-pages label=example-docs
-# → capture each page with kb_capture
-```
-
-### GitHub repo/issue capture (uses gh)
-
-```text
-# 1. Get repo info
-gh-repo-view owner="vercel" repo="next.js"
-
-# 2. Capture repo description as entity
-kb_ensure_page type=entity title="Next.js" content="Repo: vercel/next.js\n\n..."
-
-# 3. For issues/PRs
-gh-issue-view owner="vercel" repo="next.js" number=12345
-kb_capture source="<issue content>" title="Next.js Issue #12345" type=text
-```
-
-### Session context injection
-
-The `before_agent_start` hook automatically injects relevant KB context when your prompt
-contains knowledge-related keywords (architecture, design, api, library, framework, etc.).
-
-No manual action needed — just ask knowledge-related questions and the KB context appears
-in the system prompt.
-
-## Patterns
-
-### Pattern: bootstrap a project KB
-
-```text
-kb_bootstrap topic="My Awesome Project"
-kb_capture source="README.md" title="Project README"
-kb_ingest
-# → read extracted.md, create wiki pages
-```
-
-### Pattern: daily knowledge capture
-
-```text
-# Capture a meeting note
-kb_capture source="Discussion about auth strategy. Decided: JWT with refresh tokens." title="Auth Decision Meeting" type=text
-
-# Create wiki page from it
-kb_ensure_page type=concept title="Auth Strategy" content="From meeting: JWT with refresh tokens..."
 kb_mark_ingested sourceId="SRC-2026-06-26-001"
 ```
 
-### Pattern: research and synthesize
+### Pages
+
+#### `kb_ensure_page`
+Create or update a wiki page with enforced template frontmatter.
 
 ```text
-# 1. Search and capture sources
-web-search query="React Server Components patterns"
-web-fetch url="<best result>"
-kb_capture source="<fetched content>" title="RSC Patterns"
-
-# 2. Ingest and create wiki pages
-kb_ingest
-kb_ensure_page type=concept title="React Server Components"
-kb_ensure_page type=synthesis title="RSC vs CSR Trade-offs"
-kb_mark_ingested sourceId="SRC-..."
-
-# 3. Link pages with wikilinks in content
-kb_ensure_page type=analysis title="Frontend Architecture Decision"
-# content: "See [[React Server Components]] and [[RSC vs CSR Trade-offs]]"
+kb_ensure_page type=concept title="Async Patterns"
+kb_ensure_page type=entity title="FastAPI"
+kb_ensure_page type=synthesis title="Auth Architecture"
+kb_ensure_page type=artifact title="Sandbox Strategy"
+kb_ensure_page type=meeting title="Sprint Planning 2026-06-29"
 ```
 
-### Pattern: recall at task start
+Types: `concept`, `entity`, `synthesis`, `analysis`, `source`, `meeting`, `diary`, `artifact`.
+Unknown types fall back to `concept`. Template loaded from `.kb/templates/pages/{type}.md`.
+
+### Search
+
+#### `kb_recall_context`
+Project-first search across both vaults. Use at task start.
 
 ```text
-# Context mode (project first) — automatic, or manual:
-kb_recall_context query="current architecture decisions"
-
-# Docs mode (personal first) — for library lookups:
-kb_recall_docs query="FastAPI WebSocket support"
+kb_recall_context query="auth patterns" maxResults=10
 ```
 
-### Pattern: tag-based navigation
+With embeddings enabled, uses hybrid search (lexical + semantic). Falls back to lexical-only when
+embeddings are disabled or unavailable.
+
+#### `kb_recall_docs`
+Personal-first search across both vaults. Use for library/docs lookups.
 
 ```text
-# Find all production-ready pages
-kb_search_tags stage=production
-
-# Find all Python-related concepts
-kb_search_tags tag=python type=concept
-
-# Find all entity pages
-kb_search_tags type=entity
+kb_recall_docs query="FastAPI middleware" maxResults=10
 ```
 
-## Guardrails
+Same hybrid search as `kb_recall_context` when embeddings enabled.
 
-- `.kb/raw/` is immutable — no writes or edits allowed
-- `.kb/meta/` is auto-generated — no manual edits
-- `.kb/wiki/` is the only editable directory
-- Guardrails apply per-vault, resolved from current working directory
+#### `kb_search_tags`
+Filter by frontmatter tags, page type, or workflow stage.
 
-## Environment variables
+```text
+kb_search_tags tag="react"
+kb_search_tags type=concept stage=production
+kb_search_tags tag="python" type=entity stage=draft
+```
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `KB_MODE` | auto-detect | Override vault mode: `project` or `personal` |
-| `KB_HOME` | `~/.kb/` | Override personal vault location |
+Stages: `brainstorm` → `draft` → `review` → `production`.
 
-## Settings (in pi settings.json)
+### Maintenance
+
+#### `kb_lint`
+Wiki health check: orphans, broken wikilinks, empty pages, stale pages.
+
+```text
+kb_lint staleDays=30
+```
+
+Returns structured report with counts (warnings + info) and per-issue details. Broken wikilinks
+are warnings; orphans, empty pages, and stale pages are informational.
+
+#### `kb_rebuild_meta`
+Manually rebuild `meta/registry.json` and `meta/backlinks.json` from wiki pages.
+
+```text
+kb_rebuild_meta
+```
+
+Normally runs automatically via `tool_result` hook. Use this if metadata seems stale.
+
+### Enrichment
+
+#### `kb_observe`
+Capture a mid-session observation — lighter than `kb_capture`, timestamped.
+
+```text
+kb_observe title="Auth Strategy Update"
+           content="JWT refresh tokens can use sliding windows for better UX"
+           relevance=high
+           tags=["auth", "jwt"]
+           sourceContext="Discussed during API design review"
+```
+
+Relevance: `low` | `medium` | `high` | `critical`. Observations are saved to `wiki/sources/`
+with `status: observation`. Use `kb_enrich` to merge into a canonical page later.
+
+#### `kb_enrich`
+Merge an observation into an existing wiki page.
+
+```text
+kb_enrich pageTitle="Auth Strategy"
+           observationTitle="Auth Strategy Update"
+           observationContent="JWT refresh tokens..."
+           sourceContext="Discovered during API design review"
+```
+
+Uses synthesis model to intelligently merge into appropriate section. Falls back to simple
+append. Includes inline user approval UI (Merge / Save as observation / Discard).
+
+#### `kb_retro`
+Atomic insight capture — single markdown file, lightweight, no source packet.
+
+```text
+kb_retro title="JWT Refresh Token Pattern"
+          body="Sliding window refresh avoids..."
+          category=learning
+```
+
+Categories: `decision`, `learning`, `pattern`, `bug`, `todo`.
+
+#### `kb_log_event`
+Append to `meta/events.jsonl` audit trail. Each line is a self-contained JSON object.
+
+```text
+kb_log_event kind=page_create data={pageTitle: "...", type: "concept"}
+```
+
+## Hooks (Automatic)
+
+| Hook | When | What |
+|------|------|------|
+| `session_start` | Session begins | Shows vault status |
+| `before_agent_start` | Before each turn | Injects KB context if prompt contains knowledge keywords |
+| `tool_result` | After kb tool writes | Auto-ingests after `kb_capture`, rebuilds metadata after `kb_ensure_page` |
+
+Guardrails (via guardrails extension API): `.kb/raw/` and `.kb/meta/` are immutable. Only
+`.kb/wiki/` is editable. Registered as dynamic rules, toggleable via `/guardrails on|off`.
+
+## Settings
 
 ```json
 {
   "kb": {
-    "taskModel": "deepseek/deepseek-v4-pro",
-    "recallLinksThreshold": 50,
-    "autoIngest": false
+    "models": {
+      "task": "mimo-v2.5",
+      "taskConfig": { "thinking": "low", "maxTokens": 4096 },
+      "synthesis": "mimo-v2.5-pro",
+      "synthesisConfig": { "thinking": "medium", "maxTokens": 8192 },
+      "embedding": "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+      "embeddingConfig": { "dimensions": 1024 },
+      "embeddingFallback": "qwen3-embedding-8b"
+    },
+    "embeddings": {
+      "enabled": false,
+      "batchSize": 50,
+      "storePath": "meta/embeddings.json"
+    },
+    "recall": {
+      "linksThreshold": 50,
+      "maxResults": 5,
+      "hybridWeight": 0.3
+    },
+    "autoIngest": true,
+    "autoLint": true,
+    "lint": {
+      "staleDays": 30,
+      "warnOnOrphans": true
+    }
   }
 }
 ```
 
-## What this extension does NOT do
+## Guardrails
 
-- **Session logging.** Use `pi-observational-memory` (OM) for session continuity and memory.
-- **Embeddings.** Search uses token-overlap scoring on titles and tags. Upgrade to embeddings
-  when vault hits 1000+ pages.
-- **Git integration.** Use `gh` extension tools for GitHub operations.
-- **URL fetching.** Use `web-access` extension tools for web content.
+- `.kb/raw/` — immutable source packets (blocked)
+- `.kb/meta/` — auto-generated (blocked)
+- `.kb/wiki/` — editable
+
+## Cross-Extension Integration
+
+- **guardrails**: `registerRules()` API — KB registers `kb-immutable` group
+- **_shared/result.ts**: `ok()`/`err()` for all tool results
+- **web-access/lib/markdown.ts**: `approxTokens()` + `splitIntoChunks()` for source chunking
+- **gh**: GitHub URL capture via `gh-repo-view`, `gh-issue-view`, `gh-pr-view`
+
+## Environment
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `KB_MODE` | auto-detect | `project` or `personal` |
+| `KB_HOME` | `~/.kb/` | Personal vault root |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ok, err } from '../result';
+import { err, ok } from '../result';
 
 describe('shared result helpers', () => {
   describe('ok()', () => {
