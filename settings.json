@@ -1,8 +1,8 @@
 {
   "theme": "catppuccin-mocha",
   "lastChangelogVersion": "0.80.2",
-  "defaultProvider": "minimax",
-  "defaultModel": "MiniMax-M3",
+  "defaultProvider": "xiaomi-token-plan-sgp",
+  "defaultModel": "mimo-v2.5-pro",
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "packages": [
