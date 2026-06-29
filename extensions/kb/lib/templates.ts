@@ -42,28 +42,44 @@ const MINIMAL_AGENTS_MD = `# Knowledge Base
 
 | Tool | Purpose |
 |------|---------|
-| \`kb_bootstrap\` | Initialize vault |
-| \`kb_capture\` | Capture file/text into raw/ |
+| \`kb_bootstrap\` | Initialize vault (auto-detects mode) |
+| \`kb_ensure_page\` | Create or update wiki page |
+| \`kb_capture\` | Capture file/text into raw/sources/ |
 | \`kb_ingest\` | List pending sources |
-| \`kb_ensure_page\` | Create wiki page |
-| \`kb_mark_ingested\` | Mark source processed |
-| \`kb_status\` | Vault health |
-| \`kb_recall_context\` | Search (project first) |
-| \`kb_recall_docs\` | Search (docs first) |
-| \`kb_search_tags\` | Search by tag/type/stage |
+| \`kb_mark_ingested\` | Mark source as processed |
+| \`kb_status\` | Vault health overview |
+| \`kb_recall_context\` | Search (project vault first) |
+| \`kb_recall_docs\` | Search (personal vault first) |
+| \`kb_search_tags\` | Filter by tag/type/stage |
+| \`kb_rebuild_meta\` | Manually rebuild registry + backlinks |
+| \`kb_lint\` | Wiki health checks |
+| \`kb_observe\` | Mid-session observation |
+| \`kb_enrich\` | Merge observation into canonical page |
+| \`kb_retro\` | Atomic insight capture |
+| \`kb_log_event\` | Append event to meta/events.jsonl |
 
 ## Page Format
 
 \`\`\`yaml
 ---
 title: "Page Title"
-type: source | entity | concept | synthesis | analysis
+type: concept | entity | synthesis | analysis | source | artifact | meeting | diary
 tags: []
 stage: brainstorm | draft | review | production
 ---
 \`\`\`
 
 Use \`[[PageName]]\` wikilinks to cross-reference.
+
+## Page Directories
+
+\`\`\`
+wiki/
+├── concepts/    entities/    syntheses/    analyses/
+├── sources/     artifacts/   meetings/     diaries/
+\`\`\`
+
+(artifact = project only; meeting, diary = personal only)
 `;
 
 export function writeAgentsMd(paths: VaultPaths, minimal = false): void {

@@ -88,13 +88,34 @@ describe('vault resolution', () => {
 // ─── templates ───────────────────────────────────────────────────
 
 describe('templates', () => {
-  it('writeDefaultTemplates creates all 5 template files', () => {
+  it('writeDefaultTemplates creates all 8 template files (project mode)', () => {
     const paths = setupVault();
-    const types = ['concept', 'entity', 'synthesis', 'analysis', 'source'];
+    const types = [
+      'concept',
+      'entity',
+      'synthesis',
+      'analysis',
+      'source',
+      'meeting',
+      'diary',
+      'artifact',
+    ];
     for (const t of types) {
       expect(existsSync(join(paths.templates, `${t}.md`))).toBe(true);
     }
     cleanup();
+  });
+
+  it('writeDefaultTemplates skips artifact in personal mode', () => {
+    tmpRoot = mkdtempSync(join(tmpdir(), 'kb-test-personal-'));
+    process.env.KB_HOME = tmpRoot;
+    const paths = getVaultPaths(tmpRoot);
+    ensureVaultStructure(paths);
+    writeDefaultTemplates(paths, 'personal');
+    expect(existsSync(join(paths.templates, 'artifact.md'))).toBe(false);
+    expect(existsSync(join(paths.templates, 'concept.md'))).toBe(true);
+    rmSync(tmpRoot, { recursive: true, force: true });
+    delete process.env.KB_HOME;
   });
 
   it('loadTemplate returns disk template when it exists', () => {

@@ -325,8 +325,53 @@
 - [ ] Agent trajectories capture
 - [ ] Skill distillation from trajectories
 
-### Skills
-- [ ] Main `kb` SKILL.md (overview of all KB operations)
+### Skills (all done)
+- [x] Main `kb` SKILL.md (overview of all KB operations)
+- [x] `kb-research`, `kb-capture-url`, `kb-bootstrap`, `kb-update` workflow skills
+
+---
+
+## 7. Skills Refactor Session (07:00 — 08:00)
+
+| Time | User Prompt | Response |
+|------|-------------|----------|
+| 07:00 | "Question: open Obsidian to see all files" | Discussed which subdirectory to read |
+| 07:03 | "Comprehensive review before further execution" | Read all extension code, produced feature map + issue list |
+| 07:04 | "_shared/spawn for background?" | Explained it spawns external binaries, not in-process TS |
+| 07:08 | "Picked tmux over herdr" | Decision: skip herdr, use tmux for sandboxed spawning |
+| 07:13 | "Demonstrated KB workflow for GitHub URLs" | Used gh tools for repo views, kb_capture/ingest/ensure_page/observe |
+| 07:55 | "Just remove SKILL.md instead purpose basis skills" | Deleted kb-ingest/enrich/lint, created kb-research/capture-url/bootstrap/update |
+| 07:55 | "Why did you use om_recall for skill? isn't it already there?" | Clarified: removed stale docs from kb/SKILL.md, om-recall skill is intact at ~/.pi/agent/skills/om-recall/ |
+| 07:55 | "Fix it then" | Verified: zero om_recall references in new kb/SKILL.md |
+
+### Skills Refactor — Decisions
+
+1. **Workflow-based over purpose-based**: skills should compose multiple tools across extensions,
+   not wrap a single tool
+2. **Removed narrow skills**: `kb-ingest`, `kb-enrich`, `kb-lint` each documented only one tool
+3. **Created 4 workflow skills**:
+   - `kb-research` — web-search → web-fetch → kb_capture → kb_ingest → pages
+   - `kb-capture-url` — auto-route GitHub (gh), docs (web-fetch-docs), YouTube (media-transcribe)
+   - `kb-bootstrap` — detect mode → init → seed
+   - `kb-update` — kb_recall_context → kb_observe → ask → kb_enrich
+4. **8 page types everywhere**: Fixed all 5→8 mentions across code, tests, templates, docs
+
+### Code Quality Sweep — Issues Fixed
+
+| File | Issue | Fix |
+|------|-------|-----|
+| `test/extension.test.ts` line 91 | "all 5 template files" test | Renamed → "all 8 template files (project mode)" + added personal-mode test |
+| `extensions/kb/templates/AGENTS.md` | Fake `ingest/query/health/lint` commands | Replaced with all 15 kb tools + workflow skills list |
+| `lib/templates.ts` MINIMAL_AGENTS_MD | Outdated 9-tool table, 5-type enum | All 15 tools, 8-type enum, directories list |
+| `PLAN.md` | Skills section listed deleted files | Replaced with 5 new workflow skills |
+| `PLAN.md` | Phase 7/8 marked Deferred | Updated: Phase 7 implemented, Phase 8 extracted to om-recall skill |
+| `PLAN.md` | "Immediate focus: Phase 3 + Phase 5" | Replaced with completion status |
+| `index.ts` | 3x "Page type: 5 types" descriptions | All → 8 types |
+
+### Tests
+
+- Before sweep: 89 passing
+- After test fix: 90 passing (added `writeDefaultTemplates skips artifact in personal mode`)
 
 ---
 

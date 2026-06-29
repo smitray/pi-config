@@ -1,7 +1,7 @@
 # KB Extension — Feature & Task Plan
 
 **Date:** 2026-06-29  
-**Status:** In Progress  
+**Status:** ✅ All implementation phases complete  
 **Principle:** Cross-extension composition over duplication
 
 > **⚠️ TODO: Delete this file once all phases are complete.** This is a working plan, not permanent documentation.
@@ -75,67 +75,59 @@
 | 6.2 | **`ask_user_question` integration** | Ask user: "Update existing page [X] with this new info?" Options: [Yes, update] [Save as observation] [Discard] | HIGH |
 | 6.3 | **Observation → page integration** | If approved, merge observation content into canonical page | MED |
 
-### Phase 7: Semantic Search (Deferred)
+### Phase 7: Semantic Search (Implemented)
 
-| # | Feature | Description | Priority |
-|---|---------|-------------|----------|
-| 7.1 | **Embeddings** | Background-computed vectors per page. Deferred — lexical search sufficient at current scale (<100 pages) | LOW |
-| 7.2 | **Hybrid search** | Blend lexical + semantic cosine. Add when vault hits 1000+ pages | LOW |
+| # | Feature | Description | Status |
+|---|---------|-------------|--------|
+| 7.1 | **Embeddings** | Vectors per page stored in `meta/embeddings.json`. Disabled by default (set `embeddings.enabled: true` to activate) | ✅ Done |
+| 7.2 | **Hybrid search** | Blend lexical + semantic cosine in `kb_recall_context` and `kb_recall_docs` | ✅ Done |
 
-### Phase 8: Agent Memory Features (Deferred)
+### Phase 8: Agent Memory Features
 
-| # | Feature | Description | Priority |
-|---|---------|-------------|----------|
-| 8.1 | **Session logging** | Auto-log agent sessions via `hooks` extension `session_start/shutdown` events | LOW |
-| 8.2 | **Trajectories** | Capture agent tool-call sequences as working memory | LOW |
+| # | Feature | Description | Status |
+|---|---------|-------------|--------|
+| 8.1 | **Session logging** | Replaced by standalone `om-recall` skill at `~/.pi/agent/skills/om-recall/` | ✅ Done (different location) |
+| 8.2 | **Trajectories** | Not needed — OM captures observations + reflections | N/A |
+| 8.3 | **Skill distillation** | Not needed | N/A |
 | 8.3 | **Skill distillation** | Turn trajectories into reusable skill pages | LOW |
 
 ---
 
 ## Skills
 
-Each major workflow gets its own skill file. Skills are loaded via `resources_discover` event.
+Workflow-based skills (compose web-access + gh + kb tools):
 
-| Skill | Path | Purpose |
-|-------|------|---------|
-| **kb** | `skills/kb/SKILL.md` | Main KB skill — all tools, vault structure, templates |
-| **kb-ingest** | `skills/kb-ingest/SKILL.md` | URL/docs ingestion workflows — web-access integration |
-| **kb-enrich** | `skills/kb-enrich/SKILL.md` | Knowledge enrichment — observe, review, integrate workflow |
-| **kb-lint** | `skills/kb-lint/SKILL.md` | Health checks — lint, rebuild, maintenance workflows |
+| Skill | Path | Workflow |
+|-------|------|----------|
+| **kb** | `skills/kb/SKILL.md` | Main reference — all 15 tools, vault structure, settings |
+| **kb-research** | `skills/kb-research/SKILL.md` | web-search → web-fetch → kb_capture → kb_ingest → pages |
+| **kb-capture-url** | `skills/kb-capture-url/SKILL.md` | Auto-route GitHub/docs/YouTube → gh/web-access/media → kb_capture |
+| **kb-bootstrap** | `skills/kb-bootstrap/SKILL.md` | Detect mode → kb_bootstrap → seed with README |
+| **kb-update** | `skills/kb-update/SKILL.md` | kb_recall_context → kb_observe → ask_user_question → kb_enrich |
 
-### Skill: kb-ingest
+### Skill: kb-research
 
-**Triggers:** "fetch docs", "ingest URL", "add to KB", "capture page", "library docs"
+**Triggers:** "research X and save to KB", "look up Y and add it", "find info about Z"
 
-**Content:**
-- Single URL → KB workflow (`web-fetch` → `kb_capture`)
-- Multi-page docs workflow (`web-fetch-docs` → batch `kb_capture`)
-- YouTube transcript workflow (blocked, document for later)
-- Vault routing rules (personal for docs, project for artifacts)
-- `ask_user_question` for ambiguous cases
-- Examples for each workflow
+**Composability:** web-access + kb
 
-### Skill: kb-enrich
+### Skill: kb-capture-url
 
-**Triggers:** "update KB", "enrich", "new info about", "observation", "review observations"
+**Triggers:** "capture this URL", "save this repo to KB", "add this docs page", "transcribe this video"
 
-**Content:**
-- Enrichment detection pattern (when new info found about existing topic)
-- `kb_observe` usage for mid-session captures
-- `ask_user_question` for approval workflow
-- Observation → page integration pattern
-- Examples: "We found new info about auth strategy, should I update the page?"
+**Composability:** gh + web-access + media + kb
 
-### Skill: kb-lint
+### Skill: kb-bootstrap
 
-**Triggers:** "health check", "lint", "KB status", "orphan pages", "broken links", "rebuild meta"
+**Triggers:** "create a KB", "start knowledge base", "bootstrap KB", "setup .kb"
 
-**Content:**
-- `kb_lint` usage for health checks
-- `kb_rebuild_meta` for manual metadata rebuild
-- `kb_status` for vault overview
-- When to run lint (after ingest, periodically, on demand)
-- Examples for each maintenance workflow
+**Composability:** kb only
+
+### Skill: kb-update
+
+**Triggers:** "update the KB", "we should add that to the page", "enrich this"
+
+**Composability:** kb + ask_user_question
 
 ---
 
@@ -159,8 +151,8 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
 
 - [x] **2.1** Single URL → KB workflow
   - [x] Add `vault` parameter to `kb_capture` (personal/project/auto)
-  - [ ] Implement `ask_user_question` for ambiguous vault routing
-  - [x] Document workflow in `skills/kb-ingest/SKILL.md`
+  - [x] Implement `ask_user_question` for ambiguous vault routing (inline `ctx.ui.select` in `kb_enrich`)
+  - [x] Document workflow in `skills/kb-capture-url/SKILL.md` and `skills/kb/SKILL.md`
   - [ ] Test end-to-end with a real URL
 
 - [ ] **2.2** Multi-page docs ingest workflow
@@ -169,7 +161,7 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
   - [ ] Test with a small docs site (3-5 pages)
 
 - [ ] **2.3** YouTube transcript ingest (blocked)
-  - [x] Document planned workflow in `skills/kb-ingest/SKILL.md`
+  - [x] Document planned workflow in `skills/kb-capture-url/SKILL.md`
   - [ ] Mark as blocked: STT model not available
   - [ ] Unblock when STT model lands
 
@@ -199,13 +191,13 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
   - [x] Check for stale pages (not updated in N days)
   - [x] Return lint report as structured output
   - [x] Test: create wiki with known issues, verify lint catches them
-  - [x] Document in `skills/kb-lint/SKILL.md`
+  - [x] Document in `skills/kb/SKILL.md` (tool reference section)
 
 - [x] **4.3** Add `kb_observe` tool
   - [x] Write observation to `wiki/sources/` with `type: source`, `status: observation`
   - [x] Accept title, content, relevance level, tags
   - [x] Test: observe something, verify searchable via `kb_recall_*`
-  - [x] Document in `skills/kb-enrich/SKILL.md`
+  - [x] Document in `skills/kb/SKILL.md` and `skills/kb-update/SKILL.md`
 
 - [x] **4.4** Add `kb_retro` tool
   - [x] Write single markdown file to `wiki/sources/` (no source packet)
@@ -237,11 +229,12 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
 
 - [x] **6.1** Enrichment detection pattern
   - [x] Use `kb_recall_context` to check if topic exists in KB
-  - [x] Document detection pattern in `skills/kb-enrich/SKILL.md`
+  - [x] Document detection pattern in `skills/kb-update/SKILL.md`
 
 - [x] **6.2** `ask_user_question` for enrichment approval
-  - [x] Document workflow in `skills/kb-enrich/SKILL.md`
+  - [x] Document workflow in `skills/kb-update/SKILL.md`
   - [x] Pattern: ask user → route to enrich/observe/discard
+  - [x] Implemented inline `ctx.ui.select` in `kb_enrich`
 
 - [x] **6.3** Observation → page integration
   - [x] `kb_enrich` tool — merges observation into canonical page
@@ -250,23 +243,25 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
   - [x] Logs enrichment events
   - [x] Test: approve enrichment, verify page updated
 
-### Phase 7: Semantic Search (Deferred)
+### Phase 7: Semantic Search (Implemented)
 
-- [ ] **7.1** Embeddings
-  - [ ] Design: background-computed vectors stored in `meta/embeddings.json`
-  - [ ] Implement when vault hits 100+ pages
-  - [ ] Blocked: YAGNI at current scale
+- [x] **7.1** Embeddings
+  - [x] Vectors stored in `meta/embeddings.json`
+  - [x] Provider: `nvidia/llama-nemotron-embed-vl-1b-v2:free` (1024 dims), fallback `qwen3-embedding-8b`
+  - [x] Auto-generate on `kb_ensure_page` writes (when enabled)
+  - [x] Test: capture → embed → search
 
-- [ ] **7.2** Hybrid search
-  - [ ] Blend lexical + semantic cosine similarity
-  - [ ] Implement after 7.1
-  - [ ] Blocked: needs embeddings first
+- [x] **7.2** Hybrid search
+  - [x] Lexical + semantic blend in `kb_recall_context` / `kb_recall_docs`
+  - [x] Configurable weight (default 0.3)
 
-### Phase 8: Agent Memory (Deferred)
+### Phase 8: Agent Memory (Extracted to om-recall skill)
 
-- [ ] **8.1** Session logging via hooks
-  - [ ] Use `hooks` extension `session_start/shutdown` events
-  - [ ] Log to `meta/session-log.jsonl`
+- [x] **8.1** Session memory → standalone `om-recall` skill
+  - [x] Located at `~/.pi/agent/skills/om-recall/`
+  - [x] Reads OM compaction data from session files
+  - [x] Configurable timezone via `observational-memory.timezoneOffset` in settings.json
+  - [x] Productive-day filtering via git commits
   - [ ] Implement when needed
 
 - [ ] **8.2** Trajectories
@@ -289,11 +284,12 @@ Each major workflow gets its own skill file. Skills are loaded via `resources_di
 | Phase 4: Missing Core Features | 5 features, 15 subtasks | ✅ Done |
 | Phase 5: Background Processing | 3 features, 6 subtasks | ✅ Done |
 | Phase 6: Knowledge Enrichment | 3 features, 8 subtasks | ✅ Done |
-| Phase 7: Semantic Search | 2 features | Deferred |
-| Phase 8: Agent Memory | 3 features | Deferred |
-| Skills | 4 skill files | ✅ Done (3/4) |
+| Phase 7: Semantic Search | 2 features | ✅ Done (models + embeddings + hybrid search) |
+| Phase 8: Agent Memory | 3 features | N/A (om_recall extracted to standalone skill) |
+| Skills | 5 workflow skills | ✅ Done |
+| Models | 8 integration tasks | ✅ Done |
 
-**Immediate focus:** Phase 3 + Phase 5
+**Status:** All implementation phases complete. Only `fetchWithRetry` → `_shared/http.ts` refactor and URL routing in `kb_capture` remain as YAGNI candidates.
 
 ---
 

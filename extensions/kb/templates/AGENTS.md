@@ -2,12 +2,16 @@
 
 This KB is maintained by your coding agent. Read this file first.
 
-## Quick Commands
+## Quick Workflows
 
-- `ingest <file>` → capture source, create wiki pages
-- `query: <question>` → search wiki, synthesize answer
-- `health` → structural checks (fast, no LLM calls)
-- `lint` → content quality checks (uses LLM)
+Use these skills for common tasks (rather than calling tools manually):
+
+- `kb-research` — "research X and save to KB"
+- `kb-capture-url` — "capture this URL"
+- `kb-bootstrap` — "create a KB for this project"
+- `kb-update` — "update the KB with this new info"
+
+Otherwise, the tools are listed below.
 
 ## Directory Layout
 
@@ -15,12 +19,15 @@ This KB is maintained by your coding agent. Read this file first.
 .kb/
 ├── raw/sources/     # Immutable source packets — never modify
 ├── wiki/            # Agent-owned wiki pages
-│   ├── sources/     # One summary per source document
+│   ├── sources/     # Source summaries
 │   ├── entities/    # Tools, people, projects, products
 │   ├── concepts/    # Ideas, frameworks, methods
-│   ├── syntheses/   # Saved query answers
-│   └── analyses/    # Decision records
-├── meta/            # Auto-generated registry + backlinks
+│   ├── syntheses/   # Multi-source summaries
+│   ├── analyses/    # Comparisons, decisions
+│   ├── artifacts/   # WIP, brainstorming (project vault only)
+│   ├── meetings/    # Meeting notes (personal vault only)
+│   └── diaries/     # Daily logs (personal vault only)
+├── meta/            # Auto-generated registry, backlinks, embeddings, events
 └── templates/       # Page templates
 ```
 
@@ -31,7 +38,7 @@ Every page uses frontmatter:
 ```yaml
 ---
 title: "Page Title"
-type: source | entity | concept | synthesis | analysis
+type: concept | entity | synthesis | analysis | source | artifact | meeting | diary
 tags: []
 stage: brainstorm | draft | review | production
 sources: []
@@ -48,12 +55,14 @@ Use `[[PageName]]` wikilinks to cross-reference.
 4. Create wiki pages with `kb_ensure_page`
 5. Mark ingested with `kb_mark_ingested`
 
-## Query Workflow
+After kb_capture the tool_result hook auto-ingests (if `autoIngest` enabled) and rebuilds metadata.
 
-1. `kb_recall_context` or `kb_search_tags` to find pages
-2. Read relevant pages
-3. Synthesize answer with `[[wikilinks]]`
-4. Optionally save as synthesis page
+## Search Workflow
+
+- `kb_recall_context` — project-first search, hybrid (lexical + semantic embeddings when enabled)
+- `kb_recall_docs` — personal-first search, same hybrid behavior
+- `kb_search_tags` — filter by tag, type, or stage
+- `kb_lint` — health check (orphans, broken links, empty, stale pages)
 
 ## Naming Conventions
 
@@ -65,15 +74,21 @@ Use `[[PageName]]` wikilinks to cross-reference.
 
 | Tool | Purpose |
 |------|---------|
-| `kb_bootstrap` | Initialize vault |
-| `kb_capture` | Capture file/text into raw/ |
+| `kb_bootstrap` | Initialize vault (auto-detects project vs personal) |
+| `kb_ensure_page` | Create or update wiki page with template-enforced frontmatter |
+| `kb_capture` | Capture file/text into `raw/sources/` as immutable packet |
 | `kb_ingest` | List pending sources |
-| `kb_ensure_page` | Create wiki page |
-| `kb_mark_ingested` | Mark source processed |
-| `kb_status` | Vault health |
-| `kb_recall_context` | Search (project first) |
-| `kb_recall_docs` | Search (docs first) |
-| `kb_search_tags` | Search by tag/type/stage |
+| `kb_mark_ingested` | Mark source as processed |
+| `kb_status` | Vault health overview |
+| `kb_recall_context` | Search wiki (project vault first) |
+| `kb_recall_docs` | Search wiki (personal vault first) |
+| `kb_search_tags` | Filter by tag/type/stage |
+| `kb_rebuild_meta` | Manually rebuild registry + backlinks |
+| `kb_lint` | Wiki health checks (orphans, broken links, empty, stale) |
+| `kb_observe` | Mid-session observation capture |
+| `kb_enrich` | Merge observation into existing wiki page (with user approval) |
+| `kb_retro` | Atomic insight capture (single markdown file) |
+| `kb_log_event` | Append event to `meta/events.jsonl` audit trail |
 
 ## Page Templates
 
@@ -86,6 +101,12 @@ Edit templates in the extension to update all future KBs. Existing KBs keep thei
 - **synthesis** — Thesis, Evidence, Contradictions, Open Questions
 - **analysis** — Question, Answer, Reasoning, Sources
 - **source** — Summary, Key Entities, Key Concepts, Notes
-- **meeting** — Goal, Key Discussions, Decisions Made, Action Items
-- **diary** — Event Summary, Key Decisions, Energy & Mood, Connections
-- **artifact** — Purpose, Usage, Code, Dependencies
+- **meeting** — Goal, Key Discussions, Decisions Made, Action Items (personal)
+- **diary** — Event Summary, Key Decisions, Energy & Mood, Connections (personal)
+- **artifact** — Problem Statement, Research, Ideas, Tasks, Implementation, Testing, Notes (project)
+
+## Guardrails
+
+- `.kb/raw/` and `.kb/meta/` are blocked from writes
+- Only `.kb/wiki/` is editable
+- Toggle via `/guardrails on|off`
