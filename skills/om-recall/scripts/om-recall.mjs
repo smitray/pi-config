@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-// om-recall: Query observational memory by date
-// Usage: node om-recall.mjs [date] [--verbose]
+// om-recall: Query observational memory by date (productive days only)
+// Usage: node om-recall.mjs [date] [--verbose] [--project /path/to/repo]
 // Date: yesterday, today, last N days, YYYY-MM-DD
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { execSync } from 'node:child_process';
 
 const SESSIONS_BASE = join(homedir(), '.pi', 'agent', 'sessions');
 const SETTINGS_PATH = join(homedir(), '.pi', 'agent', 'settings.json');
@@ -13,7 +14,10 @@ const SETTINGS_PATH = join(homedir(), '.pi', 'agent', 'settings.json');
 // Parse args
 const args = process.argv.slice(2);
 const verbose = args.includes('--verbose');
-const dateArg = args.find(a => !a.startsWith('--')) || 'yesterday';
+const projectIdx = args.indexOf('--project');
+const projectPath = projectIdx >= 0 ? resolve(args[projectIdx + 1]) : process.cwd();
+// Find date arg: first arg that isn't a flag and isn't the value after --project
+const dateArg = args.find((a, i) => !a.startsWith('--') && (projectIdx < 0 || i !== projectIdx + 1)) || 'yesterday';
 
 // Get timezone offset from settings or env
 function getTimezoneOffset() {
@@ -21,7 +25,11 @@ function getTimezoneOffset() {
   if (env) return parseFloat(env);
   try {
     const settings = JSON.parse(readFileSync(SETTINGS_PATH, 'utf-8'));
-    if (typeof settings.om?.timezoneOffset === 'number') return settings.om.timezoneOffset;
+    // Support both om.timezoneOffset and observational-memory.timezoneOffset
+    if (typeof settings['observational-memory']?.timezoneOffset === 'number') 
+      return settings['observational-memory'].timezoneOffset;
+    if (typeof settings.om?.timezoneOffset === 'number') 
+      return settings.om.timezoneOffset;
   } catch {}
   return 0;
 }
@@ -31,7 +39,6 @@ function parseDateQuery(query, offset) {
   const now = new Date();
   const y = now.getFullYear(), m = now.getMonth(), d = now.getDate();
   
-  // UTC timestamp for local midnight
   function localMidnightUTC(year, month, day) {
     return Date.UTC(year, month, day) - offset * 3600000;
   }
@@ -53,31 +60,59 @@ function parseDateQuery(query, offset) {
 
   const startMs = localMidnightUTC(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
   
-  // For "last N days", end is today+1; otherwise start+1 day
   if (/^last\s+\d+\s+days?$/i.test(query)) {
     const endMs = localMidnightUTC(y, m, d + 1);
-    return { startMs, endMs };
+    return { startMs, endMs, startDate, endDate: new Date(y, m, d) };
   }
-  return { startMs, endMs: startMs + 86400000 };
+  return { startMs, endMs: startMs + 86400000, startDate, endDate: startDate };
 }
 
-// Find ALL session directories
-function getSessionDirs() {
+// Check git log for commits on a date range (local time)
+function getGitCommits(repoPath, startDate, endDate) {
+  try {
+    const startStr = startDate.toISOString().split('T')[0];
+    const endStr = new Date(endDate.getTime() + 86400000).toISOString().split('T')[0];
+    const log = execSync(
+      `git log --oneline --after="${startStr}" --before="${endStr}" --format="%h %s"`,
+      { cwd: repoPath, encoding: 'utf-8', timeout: 5000 }
+    ).trim();
+    return log ? log.split('\n') : [];
+  } catch {
+    return [];
+  }
+}
+
+// Map project path to session directory name
+function getSessionDirForProject(projectPath) {
+  // Session dirs are named like --home-debasmitr-.pi-agent--
+  // Convert path: /home/debasmitr/.pi/agent → --home-debasmitr-.pi-agent--
+  const normalized = projectPath.replace(/^\//, '').replace(/\//g, '-');
+  return `--${normalized}--`;
+}
+
+// Find ALL session directories, optionally filtered by project
+function getSessionDirs(projectFilter) {
   if (!existsSync(SESSIONS_BASE)) return [];
-  return readdirSync(SESSIONS_BASE)
-    .filter(d => statSync(join(SESSIONS_BASE, d)).isDirectory())
-    .map(d => join(SESSIONS_BASE, d));
+  const allDirs = readdirSync(SESSIONS_BASE)
+    .filter(d => statSync(join(SESSIONS_BASE, d)).isDirectory());
+  
+  if (projectFilter) {
+    const targetDir = getSessionDirForProject(projectFilter);
+    // Also include home dir sessions (they're cross-project)
+    return allDirs
+      .filter(d => d === targetDir || d === '--home-debasmitr--')
+      .map(d => join(SESSIONS_BASE, d));
+  }
+  return allDirs.map(d => join(SESSIONS_BASE, d));
 }
 
-// Find session files across ALL directories within date range
-function findSessionFiles(startMs, endMs) {
-  const dirs = getSessionDirs();
+// Find session files within date range
+function findSessionFiles(startMs, endMs, dirs) {
   const results = [];
   
   for (const dir of dirs) {
     const files = readdirSync(dir).filter(f => f.endsWith('.jsonl'));
     for (const file of files) {
-      // Parse UTC timestamp from filename: 2026-06-28T23-36-56-447Z_sessionid.jsonl
       const match = file.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2})-(\d{2})-(\d{2})/);
       if (!match) continue;
       
@@ -86,19 +121,17 @@ function findSessionFiles(startMs, endMs) {
         parseInt(match[4]), parseInt(match[5]), parseInt(match[6])
       );
       
-      // Include if session started within range (with 24h buffer for long sessions)
       if (fileMs >= startMs - 86400000 && fileMs < endMs) {
         results.push({ path: join(dir, file), fileMs });
       }
     }
   }
   
-  // Sort by timestamp, newest first
   results.sort((a, b) => b.fileMs - a.fileMs);
   return results.map(r => r.path);
 }
 
-// Extract OM entries from a session file, optionally filtering by time range
+// Extract OM entries from a session file
 function extractEntries(filePath, startMs, endMs) {
   const entries = [];
   const sessionId = filePath.split('/').pop()?.replace('.jsonl', '') || 'unknown';
@@ -108,12 +141,9 @@ function extractEntries(filePath, startMs, endMs) {
     let entry;
     try { entry = JSON.parse(line); } catch { continue; }
     
-    // Check for observation/reflection entries
     if (entry.type === 'custom') {
       const data = entry.data;
       const entryTime = entry.timestamp ? new Date(entry.timestamp).getTime() : 0;
-      
-      // Skip if entry is outside our time range
       if (entryTime && (entryTime < startMs || entryTime >= endMs)) continue;
       
       if (entry.customType === 'om.observations.recorded' && data?.observations) {
@@ -128,7 +158,6 @@ function extractEntries(filePath, startMs, endMs) {
       }
     }
     
-    // Check compaction details
     if (entry.details && typeof entry.details === 'object') {
       const details = entry.details;
       if (details.type === 'om.folded') {
@@ -151,7 +180,6 @@ function extractEntries(filePath, startMs, endMs) {
   return entries;
 }
 
-// Deduplicate entries by content
 function dedup(entries) {
   const seen = new Set();
   return entries.filter(e => {
@@ -164,14 +192,27 @@ function dedup(entries) {
 
 // Main
 const offset = getTimezoneOffset();
-const { startMs, endMs } = parseDateQuery(dateArg, offset);
+const { startMs, endMs, startDate, endDate } = parseDateQuery(dateArg, offset);
 
-const files = findSessionFiles(startMs, endMs);
+// Check git commits first (productive day check)
+const commits = getGitCommits(projectPath, startDate, endDate);
+if (commits.length === 0) {
+  console.log(`No commits found for "${dateArg}" in ${projectPath}`);
+  console.log('Use --verbose to see session data anyway, or --project /path to specify repo.');
+  if (!verbose) process.exit(0);
+  console.log('\n--- Session data (no commits) ---\n');
+}
+
+// Find sessions (project-scoped)
+const dirs = getSessionDirs(projectPath);
+const files = findSessionFiles(startMs, endMs, dirs);
 const allEntries = dedup(files.flatMap(f => extractEntries(f, startMs, endMs)));
 
-if (allEntries.length === 0) {
-  console.log(`No observations found for "${dateArg}".`);
-  process.exit(0);
+// Output
+if (commits.length > 0) {
+  console.log('## Git Activity');
+  commits.forEach(c => console.log(`- ${c}`));
+  console.log();
 }
 
 const reflections = allEntries.filter(e => e.type === 'reflection');
@@ -195,4 +236,8 @@ if (important.length) {
 
 if (!verbose && observations.length > important.length) {
   console.log(`_${important.length} of ${observations.length} observations shown (use --verbose for all)_`);
+}
+
+if (allEntries.length === 0 && commits.length === 0) {
+  console.log(`No activity found for "${dateArg}".`);
 }
