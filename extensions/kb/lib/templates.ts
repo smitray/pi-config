@@ -19,9 +19,9 @@ export type PageType =
 // Extension dir resolved once at import time
 const EXT_DIR = join(import.meta.dirname ?? __dirname, '..');
 
-export function writeDefaultTemplates(paths: VaultPaths): void {
+export function writeDefaultTemplates(paths: VaultPaths, mode?: string): void {
   const pagesDir = join(EXT_DIR, 'templates', 'pages');
-  for (const type of [
+  const types = [
     'concept',
     'entity',
     'synthesis',
@@ -29,8 +29,11 @@ export function writeDefaultTemplates(paths: VaultPaths): void {
     'source',
     'meeting',
     'diary',
-    'artifact',
-  ]) {
+  ];
+  // Artifact template is project-only
+  if (mode !== 'personal') types.push('artifact');
+
+  for (const type of types) {
     const target = join(paths.templates, `${type}.md`);
     if (existsSync(target)) continue;
 

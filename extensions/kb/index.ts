@@ -146,7 +146,7 @@ export default function (pi: ExtensionAPI) {
         version: '1.0',
       });
 
-      writeDefaultTemplates(paths);
+      writeDefaultTemplates(paths, resolvedMode);
       rebuildMetadata(paths);
 
       if (ctx.hasUI) {
