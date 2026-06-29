@@ -5,7 +5,8 @@ import { chunkByHeadings, extractSections, validateMarkdown } from '../lib/markd
 describe('markdown-it utilities', () => {
   describe('extractSections', () => {
     it('extracts heading + content pairs', () => {
-      const markdown = '# Title\n\nPreamble content.\n\n## Section One\n\nContent for one.\n\n### Subsection\n\nDeep content.\n\n## Section Two\n\nContent for two.';
+      const markdown =
+        '# Title\n\nPreamble content.\n\n## Section One\n\nContent for one.\n\n### Subsection\n\nDeep content.\n\n## Section Two\n\nContent for two.';
 
       const sections = extractSections(markdown);
       // First heading becomes preamble, then 3 more sections
@@ -40,7 +41,8 @@ describe('markdown-it utilities', () => {
     });
 
     it('preserves headings in chunks', () => {
-      const markdown = '# First\n\nContent one.\n\n## Second\n\nContent two.\n\n### Third\n\nContent three.';
+      const markdown =
+        '# First\n\nContent one.\n\n## Second\n\nContent two.\n\n### Third\n\nContent three.';
 
       const chunks = chunkByHeadings(markdown, 500);
       for (const chunk of chunks) {
@@ -59,7 +61,7 @@ describe('markdown-it utilities', () => {
 
   describe('validateMarkdown', () => {
     it('returns empty array for valid markdown', () => {
-      const valid = '# Title\n\nContent here.\n\n## Section\n\n```js\nconsole.log(\'ok\');\n```\n';
+      const valid = "# Title\n\nContent here.\n\n## Section\n\n```js\nconsole.log('ok');\n```\n";
       expect(validateMarkdown(valid)).toEqual([]);
     });
 

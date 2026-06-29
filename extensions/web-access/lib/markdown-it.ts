@@ -58,12 +58,22 @@ export function extractSections(markdown: string): Array<{ heading: string; cont
       } else {
         currentContent.push(token.content);
       }
-    } else if (token.type === 'fence' || token.type === 'html_block') {
-      // Code blocks, HTML blocks
+    } else if (token.type === 'fence') {
+      // Preserve fenced code blocks with their language hint
+      const lang = token.info?.trim() ?? '';
+      const code = `\`\`\`${lang}\n${token.content}\n\`\`\``;
       if (currentHeading === null) {
-        sections.push({ heading: '', content: token.content.trim() });
+        sections.push({ heading: '', content: code });
       } else {
-        currentContent.push(token.content);
+        currentContent.push(code);
+      }
+    } else if (token.type === 'code_block' || token.type === 'html_block') {
+      // Indented code blocks and HTML blocks
+      const code = `\`\`\`\n${token.content}\n\`\`\``;
+      if (currentHeading === null) {
+        sections.push({ heading: '', content: code });
+      } else {
+        currentContent.push(code);
       }
     }
   }
@@ -79,14 +89,17 @@ export function extractSections(markdown: string): Array<{ heading: string; cont
 export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
   const sections = extractSections(markdown);
   const chunks: string[] = [];
-  const approxTokens = (text: string) => Math.ceil(text.trim().split(/\s+/).filter(Boolean).length * 1.3);
+  const approxTokens = (text: string) =>
+    Math.ceil(text.trim().split(/\s+/).filter(Boolean).length * 1.3);
 
   function needsChunking(text: string): boolean {
     return approxTokens(text) > maxTokens;
   }
 
   for (const section of sections) {
-    const sectionText = section.heading ? `# ${section.heading}\n\n${section.content}` : section.content;
+    const sectionText = section.heading
+      ? `# ${section.heading}\n\n${section.content}`
+      : section.content;
     const sectionTokens = approxTokens(sectionText);
 
     if (sectionTokens <= maxTokens) {
@@ -94,7 +107,7 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
     } else if (section.heading) {
       // Section with heading is too large — split by paragraphs
       let paragraphs = section.content.split(/\n\n+/);
-      
+
       // If only one "paragraph" (no newlines), split by word blocks or chars
       if (paragraphs.length === 1 && approxTokens(section.content) > maxTokens) {
         const words = section.content.trim().split(/\s+/).filter(Boolean);
@@ -109,7 +122,17 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
           paragraphs = words;
         }
       }
-      
+
+      // Apply char-splitting if paragraphs are still too large (single block of text)
+      if (paragraphs.length === 1 && approxTokens(paragraphs[0]) > maxTokens) {
+        const chunkSize = Math.ceil(maxTokens / 1.3);
+        const finalParas: string[] = [];
+        for (let i = 0; i < paragraphs[0].length; i += chunkSize) {
+          finalParas.push(paragraphs[0].slice(i, i + chunkSize));
+        }
+        paragraphs = finalParas;
+      }
+
       let chunk = `# ${section.heading}\n\n`;
       let chunkTokens = approxTokens(chunk);
 

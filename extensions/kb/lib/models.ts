@@ -44,9 +44,24 @@ export interface EmbeddingsConfig {
   storePath: string;
 }
 
+export interface KBLintConfig {
+  staleDays: number;
+  warnOnOrphans: boolean;
+}
+
+export interface KBRecallConfig {
+  linksThreshold: number;
+  maxResults: number;
+  hybridWeight: number;
+}
+
 export interface KBConfig {
   models: KBModelsConfig;
   embeddings: EmbeddingsConfig;
+  recall: KBRecallConfig;
+  autoIngest: boolean;
+  autoLint: boolean;
+  lint: KBLintConfig;
 }
 
 // ponytail: cache config at module level, reload on settings.json change
@@ -78,6 +93,17 @@ const DEFAULTS: KBConfig = {
     batchSize: 50,
     storePath: 'meta/embeddings.json',
   },
+  recall: {
+    linksThreshold: 50,
+    maxResults: 5,
+    hybridWeight: 0.3,
+  },
+  autoIngest: true,
+  autoLint: true,
+  lint: {
+    staleDays: 30,
+    warnOnOrphans: true,
+  },
 };
 
 /**
@@ -107,6 +133,16 @@ export function loadKBConfig(): KBConfig {
       embeddings: {
         ...DEFAULTS.embeddings,
         ...kb.embeddings,
+      },
+      recall: {
+        ...DEFAULTS.recall,
+        ...kb.recall,
+      },
+      autoIngest: kb.autoIngest ?? DEFAULTS.autoIngest,
+      autoLint: kb.autoLint ?? DEFAULTS.autoLint,
+      lint: {
+        ...DEFAULTS.lint,
+        ...kb.lint,
       },
     };
 

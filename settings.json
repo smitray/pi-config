@@ -1,8 +1,8 @@
 {
   "theme": "catppuccin-mocha",
   "lastChangelogVersion": "0.80.2",
-  "defaultProvider": "openrouter",
-  "defaultModel": "qwen/qwen3.5-35b-a3b",
+  "defaultProvider": "minimax",
+  "defaultModel": "MiniMax-M3",
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "packages": [

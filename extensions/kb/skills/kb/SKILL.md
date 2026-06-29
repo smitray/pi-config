@@ -25,9 +25,9 @@ For common tasks, use the workflow skills — they compose multiple tools across
 | `kb-research` | "research X and save to KB" | web-search → web-fetch → kb_capture → kb_ingest → kb_ensure_page |
 | `kb-capture-url` | "capture this URL" | Auto-routes GitHub → gh tools, docs → web-fetch-docs, YouTube → media-transcribe |
 | `kb-bootstrap` | "create a KB for this project" | Detect mode → kb_bootstrap → seed with README |
-| `kb-update` | "update the KB with this" | kb_recall_context → kb_observe → ask_user_question → kb_enrich |
+| `kb-update` | "update the KB with this" | kb_recall_context → kb_observe → kb_enrich (inline approval) |
 
-This file documents all 14 KB tools individually. Use this as reference, not as workflow
+This file documents all 15 KB tools individually. Use this as reference, not as workflow
 instructions.
 
 ## Vault Structure
@@ -71,7 +71,7 @@ instructions.
 - **Personal mode:** fallback → `~/.kb/` (or `KB_HOME` env var)
 - Override: `KB_MODE=project` or `KB_MODE=personal`
 
-## Tools (14 total)
+## Tools (15 total)
 
 ### Lifecycle
 
