@@ -97,6 +97,100 @@ gh/
 └── test/
 ```
 
+## Examples
+
+### View a repository
+
+```bash
+gh-repo-view owner=earendil-works repo=pi
+gh-repo-view owner=facebook repo=react
+```
+
+### Clone a repository
+
+```bash
+gh-repo-clone owner=earendil-works repo=pi dir=~/workspace/pi
+```
+
+### List and view PRs
+
+```bash
+# List open PRs
+gh-pr-list owner=smitray repo=pi-config state=open limit=10
+
+# List merged PRs
+gh-pr-list owner=smitray repo=pi-config state=merged limit=5
+
+# View a specific PR
+gh-pr-view owner=smitray repo=pi-config number=3
+```
+
+### Create a PR
+
+```bash
+gh-pr-create owner=smitray repo=pi-config title="feat(kb): add new tools" body="Adds 5 new tools" base=main
+gh-pr-create owner=smitray repo=pi-config title="fix: bug" base=main draft=true
+```
+
+### Manage issues
+
+```bash
+# List issues
+gh-issue-list owner=smitray repo=pi-config state=open limit=20
+
+# View an issue
+gh-issue-view owner=smitray repo=pi-config number=42
+
+# Create an issue
+gh-issue-create owner=smitray repo=pi-config title="Add pagination" body="Need pagination for large repos" label=["enhancement"]
+```
+
+### Search GitHub
+
+```bash
+# Search repositories
+gh-search-repos query="pinia vue3" limit=5
+
+# Search code
+gh-search-code query="useCounterStore extension:ts" limit=10
+gh-search-code query="import React from 'react'" limit=5
+
+# Search issues
+gh-search-issues query="bug label:priority" limit=10
+
+# Search PRs
+gh-search-prs query="is:merged author:nixos" limit=5
+```
+
+### Gists
+
+```bash
+# List your gists
+gh-gist-list limit=20
+
+# View a gist
+gh-gist-view id=abc123
+
+# Create a public gist
+gh-gist-create filename=example.ts content="export const x = 1" description="Example snippet" public=true
+
+# Create a private gist
+gh-gist-create filename=secret.ts content="const key = 'xxx'" public=false
+```
+
+### Workflows and CI
+
+```bash
+# List workflows
+gh-workflow-list owner=smitray repo=pi-config
+
+# List recent runs
+gh-run-list owner=smitray repo=pi-config limit=10
+
+# List runs for a specific workflow
+gh-run-list owner=smitray repo=pi-config workflow=ci.yml limit=5
+```
+
 ## Testing
 
 ```bash

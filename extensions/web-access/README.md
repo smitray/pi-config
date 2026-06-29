@@ -91,6 +91,88 @@ curl -X POST "${PI_CRAWL4AI_HOST}:${PI_CRAWL4AI_PORT}/md" \
   -d '{"url":"https://example.com"}'
 ```
 
+## Examples
+
+### Web search
+
+```bash
+# Basic search
+web-search query="pinia vue3 state management"
+
+# Search with language and time filter
+web-search query="hyprland scrolling layout" language=en time_range=week limit=5
+
+# Search in a specific engine
+web-search query="react hooks" language=en limit=10
+```
+
+### Fetch a single page
+
+```bash
+# Fetch as markdown
+web-fetch url="https://pinia.vuejs.org/introduction.html"
+
+# Fetch with BM25 filter
+web-fetch url="https://example.com/long-page" q="specific topic" f=bm25
+
+# Fetch with LLM filter
+web-fetch url="https://example.com/docs" q="how to configure" f=llm
+```
+
+### Crawl and persist a docs site
+
+```bash
+# One-shot capture of an entire docs site
+web-fetch-docs baseUrl="https://pinia.vuejs.org/introduction.html" label=pinia depth=3
+
+# Capture with KB integration (writes source packets)
+web-fetch-docs baseUrl="https://wiki.hypr.land" label=hyprland depth=2 kbRoot=~/.kb/
+
+# Re-crawl an existing docs set
+web-fetch-docs baseUrl="https://pinia.vuejs.org" label=pinia refresh=true
+
+# Read from persisted docs
+docs-list
+docs-pages label=pinia
+docs-search label=pinia query="getters with parameters"
+docs-pages label=pinia url="https://pinia.vuejs.org/core-concepts/"
+```
+
+### Media download
+
+```bash
+# Get metadata
+media-fetch url="https://youtube.com/watch?v=xxx" mode=metadata
+
+# Get subtitles
+media-fetch url="https://youtube.com/watch?v=xxx" mode=subtitles
+
+# Download audio
+media-fetch url="https://youtube.com/watch?v=xxx" mode=audio
+
+# Download video
+media-fetch url="https://youtube.com/watch?v=xxx" mode=video
+
+# Transcribe (subtitles first, whisper fallback)
+media-transcribe url="https://youtube.com/watch?v=xxx" lang=en
+```
+
+### KB integration workflow
+
+```bash
+# 1. Crawl docs site into KB source packets
+web-fetch-docs baseUrl="https://docs.example.com" label=example-docs depth=3 kbRoot=~/.kb/
+
+# 2. List pending sources
+kb_ingest
+
+# 3. Create wiki pages from sources
+kb_ensure_page type=concept title="Example API" content="## Overview\n\n..."
+
+# 4. Mark ingested
+kb_mark_ingested sourceId=SRC-2026-06-29-001
+```
+
 ## Testing
 
 ```bash

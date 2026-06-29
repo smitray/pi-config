@@ -113,6 +113,77 @@ Token matching (same as guardrails):
 - `?` — exactly one token
 - `{npm,bun}` — alternatives
 
+## Examples
+
+### Check status
+
+```bash
+/hooks on      # enable
+/hooks off     # disable
+/hooks         # show status
+```
+
+### Auto-typecheck on TypeScript save
+
+```json
+[
+  {
+    "group": "typescript",
+    "pattern": "*",
+    "hooks": [
+      {
+        "event": "tool_result",
+        "context": "file_name",
+        "pattern": "\\.(ts|tsx)$",
+        "command": "npm run typecheck 2>&1 | head -20",
+        "timeout": 60000,
+        "notify": true
+      }
+    ]
+  }
+]
+```
+
+### Block dangerous commands
+
+```json
+[
+  {
+    "group": "safety",
+    "pattern": "*",
+    "hooks": [
+      {
+        "event": "tool_call",
+        "context": "command",
+        "pattern": "rm -rf / *",
+        "command": "echo '{\"decision\":\"block\",\"reason\":\"Recursive root delete\"}'"
+      }
+    ]
+  }
+]
+```
+
+### Run tests after git commit
+
+```json
+[
+  {
+    "group": "ci",
+    "pattern": "*",
+    "hooks": [
+      {
+        "event": "tool_result",
+        "context": "command",
+        "pattern": "git commit *",
+        "command": "npm test",
+        "timeout": 120000,
+        "notify": true
+      }
+    ]
+  }
+]
+```
+
 ## Architecture
 
 ```

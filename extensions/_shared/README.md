@@ -22,6 +22,39 @@ package if:
 | File | Purpose | Used by |
 |------|---------|---------|
 | `spawn.ts` | Async child-process wrapper with timeout + SIGKILL escalation | `gh`, `hooks`, `web-access` |
+| `result.ts` | `ok()/err()` tool-result formatting helpers | `gh`, `web-access`, `kb` |
+
+## Examples
+
+### spawn.ts
+
+```typescript
+import { runCommand } from "../_shared/spawn";
+
+const result = await runCommand("gh", ["api", "repos/owner/repo"], {
+  timeout: 10000,
+});
+
+if (result.ok) {
+  console.log(result.stdout);
+} else {
+  console.error(result.stderr);
+}
+```
+
+### result.ts
+
+```typescript
+import { ok, err } from "../_shared/result";
+
+// Success
+return ok({ data: "some result" });
+// Returns: { content: [{ type: "text", text: "✅ Success" }], details: { data: "some result" } }
+
+// Error
+return err("NOT_FOUND", "Resource not found");
+// Returns: { content: [{ type: "text", text: "❌ NOT_FOUND: Resource not found" }], details: { error: "NOT_FOUND" }, isError: true }
+```
 
 ## Adding a new shared file
 

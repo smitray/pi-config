@@ -99,11 +99,99 @@ interface GuardrailsRule {
 }
 ```
 
+## Examples
+
+### Check status
+
+```bash
+# Enable guardrails
+/guardrails on
+
+# Disable guardrails
+/guardrails off
+
+# Show current status
+/guardrails
+```
+
+### Custom rules in defaults.ts
+
+```typescript
+{
+  group: "custom-rules",
+  pattern: "*",
+  rules: [
+    {
+      context: "command",
+      pattern: "rm -rf *",
+      action: "confirm",
+      reason: "Recursive delete — are you sure?",
+    },
+    {
+      context: "command",
+      pattern: "sudo *",
+      action: "confirm",
+      reason: "Sudo command detected",
+    },
+    {
+      context: "file_name",
+      pattern: "\.env$",
+      action: "confirm",
+      reason: "Environment file — do not commit secrets",
+    },
+  ],
+}
+```
+
+### KB vault protection (registered programmatically)
+
+```typescript
+// From kb/lib/guardrails.ts — uses registerRules() API
+registerRules({
+  group: "kb-immutable",
+  pattern: "*",
+  rules: [
+    {
+      context: "file_name",
+      pattern: "\.kb/raw/.*",
+      action: "block",
+      reason: "KB raw sources are immutable — cannot overwrite",
+    },
+    {
+      context: "file_name",
+      pattern: "\.kb/meta/.*",
+      action: "block",
+      reason: "KB meta is auto-generated — use kb_rebuild_meta instead",
+    },
+  ],
+});
+```
+
+### Register rules from another extension
+
+```typescript
+import { registerRules } from "../guardrails/api";
+
+registerRules({
+  group: "my-extension-rules",
+  pattern: "*",
+  rules: [
+    {
+      context: "command",
+      pattern: "dangerous-cmd *",
+      action: "block",
+      reason: "This command is not allowed",
+    },
+  ],
+});
+```
+
 ## Architecture
 
 ```
 guardrails/
 ├── index.ts       # entry + /guardrails command
+├── api.ts         # registerRules() API for other extensions
 ├── types.ts       # TypeScript types
 ├── matcher.ts     # token-based command matching
 ├── gate.ts        # tool_call hook (block/confirm)
