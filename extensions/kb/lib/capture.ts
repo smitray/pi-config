@@ -7,6 +7,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { basename, join } from 'node:path';
+import { approxTokens, splitIntoChunks } from '../../web-access/lib/markdown';
 import type { VaultPaths } from './vault';
 import { fmtDate, writeJson } from './vault';
 
@@ -71,6 +72,13 @@ export function captureFile(
   return { sourceId, packetDir };
 }
 
+/**
+ * Maximum tokens before chunking extracted content.
+ * ponytail: 4000 tokens ≈ 3000 words. Enough for most sources.
+ * Upgrade to configurable if users hit this limit often.
+ */
+const MAX_EXTRACTED_TOKENS = 4000;
+
 export function captureText(
   text: string,
   title: string,
@@ -82,8 +90,17 @@ export function captureText(
 
   // Store original text
   writeFileSync(join(packetDir, 'original', 'content.txt'), text, 'utf-8');
+
+  // Chunk large content
+  const tokens = approxTokens(text);
+  let extracted = text;
+  if (tokens > MAX_EXTRACTED_TOKENS) {
+    const chunks = splitIntoChunks(text, MAX_EXTRACTED_TOKENS);
+    extracted = chunks.join('\n\n---\n\n');
+  }
+
   // Extracted markdown (as-is for now; future: LLM markdownification)
-  writeFileSync(join(packetDir, 'extracted.md'), text, 'utf-8');
+  writeFileSync(join(packetDir, 'extracted.md'), extracted, 'utf-8');
 
   const manifest = {
     sourceId,
@@ -91,6 +108,8 @@ export function captureText(
     title,
     captured: new Date().toISOString(),
     status: 'pending' as const,
+    tokens,
+    chunked: tokens > MAX_EXTRACTED_TOKENS,
   };
   writeJson(join(packetDir, 'manifest.json'), manifest);
 

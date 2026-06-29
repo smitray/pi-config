@@ -104,3 +104,26 @@ export function slugify(text: string): string {
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
 }
+
+/**
+ * Get vault paths for an explicitly selected vault.
+ * Use when the caller specifies 'personal' or 'project' instead of auto-detect.
+ */
+export function getExplicitVaultPaths(vault: 'personal' | 'project', cwd: string): VaultPaths {
+  if (vault === 'personal') {
+    const home = process.env.KB_HOME || homedir();
+    return getVaultPaths(home);
+  }
+  // Project vault: walk up from cwd to find project root
+  let current = cwd;
+  while (true) {
+    if (existsSync(join(current, '.git')) || existsSync(join(current, 'package.json'))) {
+      return getVaultPaths(current);
+    }
+    const parent = dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  // Fallback: use cwd as project root
+  return getVaultPaths(cwd);
+}

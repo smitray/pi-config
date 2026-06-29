@@ -3,16 +3,24 @@ import { homedir } from 'node:os';
 import { join, resolve as resolvePath } from 'node:path';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
+import { err, ok } from '../_shared/result';
 import { captureFile, captureText } from './lib/capture';
+import { formatEnrichmentResult, mergeObservationIntoPage } from './lib/enrich';
+import { logEvent } from './lib/events';
 import { installGuardrails } from './lib/guardrails';
 import { getUningestedSources, markSourceIngested } from './lib/ingest';
+import { formatLintReport, lintWiki } from './lib/lint';
 import { rebuildMetadata } from './lib/metadata';
+import { formatObservationResult, saveObservation } from './lib/observe';
 import { formatOmEntries, queryOmMemory } from './lib/om';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
+import { formatRetroResult, saveInsight } from './lib/retro';
 import { buildPage, writeAgentsMd, writeDefaultTemplates } from './lib/templates';
+import type { VaultPaths } from './lib/vault';
 import {
   ensureVaultStructure,
   fmtDate,
+  getExplicitVaultPaths,
   getVaultPaths,
   readJson,
   resolveVaultContext,
@@ -78,7 +86,7 @@ function isKnowledgePrompt(prompt: string): boolean {
 
 export default function (pi: ExtensionAPI) {
   // ─── Guardrails (vault path resolved per-event) ─────────────────
-  installGuardrails(pi);
+  installGuardrails();
 
   // ─── kb_bootstrap ──────────────────────────────────────────────
 
@@ -233,14 +241,19 @@ export default function (pi: ExtensionAPI) {
       const paths = getVaultPaths(root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return {
-          content: [{ type: 'text', text: '❌ No KB vault found. Run `kb_bootstrap` first.' }],
-          details: {},
-          isError: true,
-        };
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
       }
 
-      const validTypes = ['concept', 'entity', 'synthesis', 'analysis', 'source', 'meeting', 'diary', 'artifact'];
+      const validTypes = [
+        'concept',
+        'entity',
+        'synthesis',
+        'analysis',
+        'source',
+        'meeting',
+        'diary',
+        'artifact',
+      ];
       const pageType = validTypes.includes(params.type) ? params.type : 'concept';
 
       const { content, filename } = buildPage(
@@ -302,18 +315,27 @@ export default function (pi: ExtensionAPI) {
           description: 'Source type: file or text (auto-detected if omitted)',
         })
       ),
+      vault: Type.Optional(
+        Type.String({
+          description: 'Target vault: personal, project, or auto (default: auto)',
+        })
+      ),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
       const cwd = ctx.cwd ?? process.cwd();
-      const { root } = resolveVaultContext(cwd);
-      const paths = getVaultPaths(root);
+
+      // Determine vault based on explicit selection or auto-detect
+      let paths: VaultPaths;
+      const vaultChoice = params.vault || 'auto';
+      if (vaultChoice === 'personal' || vaultChoice === 'project') {
+        paths = getExplicitVaultPaths(vaultChoice, cwd);
+      } else {
+        const { root } = resolveVaultContext(cwd);
+        paths = getVaultPaths(root);
+      }
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return {
-          content: [{ type: 'text', text: '❌ No KB vault found. Run `kb_bootstrap` first.' }],
-          details: {},
-          isError: true,
-        };
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
       }
 
       const sourceType = params.type || 'auto';
@@ -326,11 +348,7 @@ export default function (pi: ExtensionAPI) {
         if (existsSync(resolvedPath)) {
           result = captureFile(resolvedPath, params.title, paths);
         } else if (sourceType === 'file') {
-          return {
-            content: [{ type: 'text', text: `❌ File not found: ${resolvedPath}` }],
-            details: {},
-            isError: true,
-          };
+          return err('FILE_NOT_FOUND', `File not found: ${resolvedPath}`);
         } else {
           result = captureText(params.source, params.title, paths);
         }
@@ -375,11 +393,7 @@ export default function (pi: ExtensionAPI) {
       const paths = getVaultPaths(root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return {
-          content: [{ type: 'text', text: '❌ No KB vault found. Run `kb_bootstrap` first.' }],
-          details: {},
-          isError: true,
-        };
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
       }
 
       const sources = getUningestedSources(paths);
@@ -508,25 +522,18 @@ export default function (pi: ExtensionAPI) {
       const paths = getVaultPaths(root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return {
-          content: [{ type: 'text', text: '❌ No KB vault found. Run `kb_bootstrap` first.' }],
-          details: {},
-          isError: true,
-        };
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
       }
 
-      const ok = markSourceIngested(params.sourceId, paths);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: ok
-              ? `✅ Source \`${params.sourceId}\` marked as ingested.`
-              : `❌ Source \`${params.sourceId}\` not found.`,
-          },
-        ],
-        details: { sourceId: params.sourceId, ingested: ok },
-      };
+      const ingested = markSourceIngested(params.sourceId, paths);
+      return ingested
+        ? ok(`Source \`${params.sourceId}\` marked as ingested.`, {
+            sourceId: params.sourceId,
+            ingested: true,
+          })
+        : err('SOURCE_NOT_FOUND', `Source \`${params.sourceId}\` not found.`, {
+            sourceId: params.sourceId,
+          });
     },
   });
 
@@ -546,11 +553,7 @@ export default function (pi: ExtensionAPI) {
       const paths = getVaultPaths(ctx2.root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return {
-          content: [{ type: 'text', text: '❌ No KB vault found at this location.' }],
-          details: {},
-          isError: true,
-        };
+        return err('NO_VAULT', 'No KB vault found at this location.');
       }
 
       const config = readJson<{ topic: string; mode: string; created: string }>(
@@ -566,7 +569,10 @@ export default function (pi: ExtensionAPI) {
         if (type === 'entities') {
           const entitysDir = join(paths.wiki, 'entitys');
           // Use entitys/ if it has .md files, otherwise use entities/
-          if (existsSync(entitysDir) && readdirSync(entitysDir).some((f: string) => f.endsWith('.md'))) {
+          if (
+            existsSync(entitysDir) &&
+            readdirSync(entitysDir).some((f: string) => f.endsWith('.md'))
+          ) {
             typeDir = entitysDir;
           }
         }
@@ -665,6 +671,251 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
+  // ─── kb_rebuild_meta ─────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'kb_rebuild_meta',
+    label: 'KB Rebuild Meta',
+    description:
+      'Manually trigger metadata rebuild (registry + backlinks). ' +
+      'Normally auto-triggered after wiki edits via hooks. ' +
+      'Use this when metadata seems stale or after manual wiki edits.',
+    promptSnippet: 'Manually rebuild KB metadata',
+    promptGuidelines: [
+      'Use kb_rebuild_meta when metadata seems stale or after manual wiki edits outside of kb tools.',
+    ],
+    parameters: Type.Object({}),
+    async execute(_id, _params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const { root } = resolveVaultContext(cwd);
+      const paths = getVaultPaths(root);
+
+      if (!existsSync(join(paths.dotKb, 'config.json'))) {
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+      }
+
+      rebuildMetadata(paths);
+
+      return ok('✅ Metadata rebuilt — registry and backlinks updated.', { root: paths.dotKb });
+    },
+  });
+
+  // ─── kb_lint ───────────────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'kb_lint',
+    label: 'KB Lint',
+    description:
+      'Health check for the wiki: orphan pages, broken wikilinks, empty pages, stale pages. ' +
+      'Returns a structured lint report.',
+    promptSnippet: 'Run KB health check',
+    promptGuidelines: ['Use kb_lint to check wiki health. Run after ingest or periodically.'],
+    parameters: Type.Object({
+      staleDays: Type.Optional(
+        Type.Number({
+          description: 'Days before a page is considered stale (default: 30)',
+        })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const { root } = resolveVaultContext(cwd);
+      const paths = getVaultPaths(root);
+
+      if (!existsSync(join(paths.dotKb, 'config.json'))) {
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+      }
+
+      const report = lintWiki(paths, params.staleDays ?? 30);
+      const formatted = formatLintReport(report);
+
+      return ok(formatted, { summary: report.summary });
+    },
+  });
+
+  // ─── kb_observe ───────────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'kb_observe',
+    label: 'KB Observe',
+    description:
+      'Mid-session observation capture. Lightweight write to wiki/sources/ with status: observation. ' +
+      'Use for capturing insights during discussion that can later be integrated into canonical pages.',
+    promptSnippet: 'Capture an observation during discussion',
+    promptGuidelines: [
+      'Use kb_observe when you find new information about an existing KB topic during discussion. ' +
+        'Observations are searchable via kb_recall_* and can be integrated later.',
+    ],
+    parameters: Type.Object({
+      title: Type.String({ description: 'Short descriptive title (≤80 chars)' }),
+      content: Type.String({ description: 'The observation content' }),
+      relevance: Type.String({
+        description: 'Relevance level: low, medium, high, critical',
+      }),
+      tags: Type.Optional(
+        Type.Array(Type.String(), {
+          description: 'Tags for categorization',
+        })
+      ),
+      sourceContext: Type.Optional(
+        Type.String({
+          description: 'Context: what was being worked on when this was observed',
+        })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const { root } = resolveVaultContext(cwd);
+      const paths = getVaultPaths(root);
+
+      if (!existsSync(join(paths.dotKb, 'config.json'))) {
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+      }
+
+      const result = saveObservation(paths, {
+        title: params.title,
+        content: params.content,
+        relevance: params.relevance as 'low' | 'medium' | 'high' | 'critical',
+        tags: params.tags,
+        sourceContext: params.sourceContext,
+      });
+
+      const formatted = formatObservationResult(result, params.title);
+      return ok(formatted, { sourceId: result.sourceId });
+    },
+  });
+
+  // ─── kb_enrich ────────────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'kb_enrich',
+    label: 'KB Enrich',
+    description:
+      'Merge an observation into an existing wiki page. ' +
+      'Adds a new section with the observation content, preserving the original as a reference.',
+    promptSnippet: 'Merge observation into existing page',
+    promptGuidelines: [
+      'Use kb_enrich when user approves updating an existing page with new information. ' +
+        'First use kb_recall_context to find the page, then kb_observe to capture the info, ' +
+        'then ask user, then kb_enrich to merge.',
+    ],
+    parameters: Type.Object({
+      pageTitle: Type.String({ description: 'Title of the existing page to enrich' }),
+      observationTitle: Type.String({ description: 'Title for the enrichment section' }),
+      observationContent: Type.String({ description: 'Content to add to the page' }),
+      sourceContext: Type.Optional(
+        Type.String({
+          description: 'Context: what was being worked on when this was observed',
+        })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const { root } = resolveVaultContext(cwd);
+      const paths = getVaultPaths(root);
+
+      if (!existsSync(join(paths.dotKb, 'config.json'))) {
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+      }
+
+      const result = mergeObservationIntoPage(
+        paths,
+        params.pageTitle,
+        params.observationTitle,
+        params.observationContent,
+        params.sourceContext
+      );
+
+      if (result.merged) {
+        rebuildMetadata(paths);
+        logEvent(paths, {
+          kind: 'enrichment',
+          data: { page: params.pageTitle, observation: params.observationTitle },
+        });
+      }
+
+      const formatted = formatEnrichmentResult(result);
+      return ok(formatted, { merged: result.merged, pagePath: result.pagePath });
+    },
+  });
+
+  // ─── kb_retro ─────────────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'kb_retro',
+    label: 'KB Retro',
+    description:
+      'Atomic insight capture at task end. Single markdown file, no source packet overhead. ' +
+      'Use for saving quick insights, decisions, or learnings.',
+    promptSnippet: 'Save an insight at task end',
+    promptGuidelines: [
+      'Use kb_retro to save atomic insights at task end. ' +
+        'Lighter than kb_capture — single file, no source packet.',
+    ],
+    parameters: Type.Object({
+      title: Type.String({ description: 'Insight title' }),
+      body: Type.String({ description: 'Insight content' }),
+      category: Type.Optional(
+        Type.String({
+          description: 'Category for grouping (e.g. decision, learning, pattern)',
+        })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const { root } = resolveVaultContext(cwd);
+      const paths = getVaultPaths(root);
+
+      if (!existsSync(join(paths.dotKb, 'config.json'))) {
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+      }
+
+      const result = saveInsight(paths, {
+        title: params.title,
+        body: params.body,
+        category: params.category,
+      });
+
+      const formatted = formatRetroResult(result, params.title);
+      return ok(formatted, { slug: result.slug });
+    },
+  });
+
+  // ─── kb_log_event ─────────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'kb_log_event',
+    label: 'KB Log Event',
+    description:
+      'Append an event to meta/events.jsonl for audit trail. ' +
+      'Each line is a self-contained JSON object.',
+    promptSnippet: 'Log an event to KB audit trail',
+    promptGuidelines: [
+      'Use kb_log_event to record significant events: ingestions, page creations, etc.',
+    ],
+    parameters: Type.Object({
+      kind: Type.String({ description: 'Event kind (e.g. ingest, page_create, lint)' }),
+      data: Type.Optional(
+        Type.Record(Type.String(), Type.Unknown(), {
+          description: 'Additional event data',
+        })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const { root } = resolveVaultContext(cwd);
+      const paths = getVaultPaths(root);
+
+      if (!existsSync(join(paths.dotKb, 'config.json'))) {
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+      }
+
+      logEvent(paths, { kind: params.kind, data: params.data as Record<string, unknown> });
+
+      return ok(`✅ Event logged: ${params.kind}`, { kind: params.kind });
+    },
+  });
+
   // ─── om_recall ────────────────────────────────────────────────
 
   pi.registerTool({
@@ -743,8 +994,8 @@ export default function (pi: ExtensionAPI) {
   });
 
   // Rebuild metadata after wiki edits (only when kb tools were used)
+  // Auto-ingest after kb_capture, auto-lint after ingest
   pi.on('tool_result', async (event, ctx) => {
-    // Only trigger when a kb tool was the source of the write
     const kbTools = ['kb_ensure_page', 'kb_capture'];
     if (!kbTools.includes(event.toolName)) return;
 
@@ -753,6 +1004,38 @@ export default function (pi: ExtensionAPI) {
     const paths = getVaultPaths(root);
 
     if (!existsSync(join(paths.dotKb, 'config.json'))) return;
+
+    // Auto-ingest after kb_capture
+    if (event.toolName === 'kb_capture') {
+      const pending = getUningestedSources(paths);
+      for (const source of pending) {
+        if (!existsSync(source.extractedPath)) continue;
+
+        const { readFileSync } = await import('node:fs');
+        const extracted = readFileSync(source.extractedPath, 'utf-8');
+        const { content, filename } = buildPage('source', source.title, paths, {
+          tags: ['auto-ingested'],
+        });
+        const pagePath = join(paths.wiki, 'sources', filename);
+        mkdirSync(join(paths.wiki, 'sources'), { recursive: true });
+        writeFileSync(pagePath, content.replace('{{content}}', extracted), 'utf-8');
+        markSourceIngested(source.sourceId, paths);
+        logEvent(paths, {
+          kind: 'auto_ingest',
+          data: { sourceId: source.sourceId, title: source.title },
+        });
+      }
+
+      // Auto-lint after ingest
+      if (pending.length > 0) {
+        const report = lintWiki(paths);
+        if (report.summary.warnings > 0) {
+          logEvent(paths, { kind: 'lint_warnings', data: { warnings: report.summary.warnings } });
+        }
+      }
+    }
+
+    // Rebuild metadata
     rebuildMetadata(paths);
   });
 }
