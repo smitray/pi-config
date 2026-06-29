@@ -569,7 +569,7 @@ export default function (pi: ExtensionAPI) {
       const wikiPages: Record<string, number> = {};
       let totalWiki = 0;
       // ponytail: handle typo dirs from earlier versions (entitys, synthesiss)
-      const typeNames = ['sources', 'entities', 'concepts', 'syntheses', 'analyses'];
+      const typeNames = ['sources', 'entities', 'concepts', 'syntheses', 'analyses', 'artifacts', 'meetings', 'diaries'];
       const typoAliases: Record<string, string> = {
         entities: 'entitys',
         syntheses: 'synthesiss',
