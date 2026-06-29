@@ -5,7 +5,7 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { err, ok } from '../_shared/result';
 import { captureFile, captureText } from './lib/capture';
-import { formatEnrichmentResult, mergeObservationIntoPage } from './lib/enrich';
+import { findPageByTitle, formatEnrichmentResult, mergeObservationIntoPage } from './lib/enrich';
 import { logEvent } from './lib/events';
 import { installGuardrails } from './lib/guardrails';
 import { getUningestedSources, markSourceIngested } from './lib/ingest';
@@ -273,7 +273,13 @@ export default function (pi: ExtensionAPI) {
 
       const fullContent = params.content ? `${content}\n${params.content}` : content;
 
-      const typeDir = join(paths.wiki, pageType === 'entity' ? 'entities' : `${pageType}s`);
+      const dirNames: Record<string, string> = {
+        entity: 'entities',
+        synthesis: 'syntheses',
+        analysis: 'analyses',
+        diary: 'diaries',
+      };
+      const typeDir = join(paths.wiki, dirNames[pageType] ?? `${pageType}s`);
       if (!existsSync(typeDir)) mkdirSync(typeDir, { recursive: true });
 
       writeFileSync(join(typeDir, filename), fullContent, 'utf-8');
@@ -562,18 +568,22 @@ export default function (pi: ExtensionAPI) {
       // Count wiki pages by type
       const wikiPages: Record<string, number> = {};
       let totalWiki = 0;
-      for (const type of ['sources', 'entities', 'concepts', 'syntheses', 'analyses']) {
-        // ponytail: entity→entitys typo from early bootstrap, check both
+      // ponytail: handle typo dirs from earlier versions (entitys, synthesiss)
+      const typeNames = ['sources', 'entities', 'concepts', 'syntheses', 'analyses'];
+      const typoAliases: Record<string, string> = {
+        entities: 'entitys',
+        syntheses: 'synthesiss',
+        analyses: 'analysiss',
+      };
+      for (const type of typeNames) {
         let typeDir = join(paths.wiki, type);
-        if (type === 'entities') {
-          const entitysDir = join(paths.wiki, 'entitys');
-          // Use entitys/ if it has .md files, otherwise use entities/
-          if (
-            existsSync(entitysDir) &&
-            readdirSync(entitysDir).some((f: string) => f.endsWith('.md'))
-          ) {
-            typeDir = entitysDir;
-          }
+        const aliasDir = typoAliases[type] ? join(paths.wiki, typoAliases[type]) : null;
+        if (
+          aliasDir &&
+          existsSync(aliasDir) &&
+          readdirSync(aliasDir).some((f: string) => f.endsWith('.md'))
+        ) {
+          typeDir = aliasDir;
         }
         if (existsSync(typeDir)) {
           const files = readdirSync(typeDir).filter((f: string) => f.endsWith('.md'));
@@ -625,7 +635,7 @@ export default function (pi: ExtensionAPI) {
     label: 'KB Search Tags',
     description:
       'Search KB wiki pages by frontmatter tags, page type, or workflow stage. ' +
-      'Tags: arbitrary labels. Types: concept, entity, synthesis, analysis, source. ' +
+      'Tags: arbitrary labels. Types: concept, entity, synthesis, analysis, source, meeting, diary, artifact. ' +
       'Stages: brainstorm, draft, review, production.',
     promptSnippet: 'Search KB pages by tag, type, or workflow stage',
     promptGuidelines: [
@@ -790,13 +800,12 @@ export default function (pi: ExtensionAPI) {
     name: 'kb_enrich',
     label: 'KB Enrich',
     description:
-      'Merge an observation into an existing wiki page. ' +
-      'Adds a new section with the observation content, preserving the original as a reference.',
+      'Merge an observation into an existing wiki page with user approval. ' +
+      'Finds the page, previews the merge, asks user to approve, then integrates.',
     promptSnippet: 'Merge observation into existing page',
     promptGuidelines: [
-      'Use kb_enrich when user approves updating an existing page with new information. ' +
-        'First use kb_recall_context to find the page, then kb_observe to capture the info, ' +
-        'then ask user, then kb_enrich to merge.',
+      'Use kb_enrich when new info should be added to an existing KB page. ' +
+        'The tool finds the page, previews the merge, and asks user to approve before integrating.',
     ],
     parameters: Type.Object({
       pageTitle: Type.String({ description: 'Title of the existing page to enrich' }),
@@ -817,6 +826,46 @@ export default function (pi: ExtensionAPI) {
         return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
       }
 
+      // Find the page first
+      const pagePath = findPageByTitle(paths, params.pageTitle);
+      if (!pagePath) {
+        return err('PAGE_NOT_FOUND', `Page not found: ${params.pageTitle}`);
+      }
+
+      // Ask user for approval if UI is available
+      if (ctx.hasUI) {
+        const choice = await ctx.ui.select(
+          `Merge "${params.observationTitle}" into "${params.pageTitle}"?`,
+          [
+            'yes — merge observation into page',
+            'observe — save as separate observation for now',
+            "discard — this info isn't relevant",
+          ]
+        );
+
+        if (!choice) {
+          return ok('No choice made — observation saved for later.');
+        }
+
+        if (choice.startsWith('observe')) {
+          // Save as observation instead
+          saveObservation(paths, {
+            title: params.observationTitle,
+            content: params.observationContent,
+            relevance: 'medium',
+            tags: [],
+            sourceContext: params.sourceContext,
+          });
+          rebuildMetadata(paths);
+          return ok(`Saved as observation: ${params.observationTitle}`);
+        }
+
+        if (choice.startsWith('discard')) {
+          return ok('Discarded — no changes made.');
+        }
+      }
+
+      // Merge
       const result = mergeObservationIntoPage(
         paths,
         params.pageTitle,

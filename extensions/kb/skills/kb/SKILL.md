@@ -20,12 +20,15 @@ pages with wikilinks), meta (auto-generated registry and backlinks), and config 
 ```text
 .kb/
 ├── config.json                    # topic, mode, created, version
-├── templates/pages/               # 5 page templates (auto-written on bootstrap)
+├── templates/pages/               # 8 page templates (5 core + 3 personal)
 │   ├── concept.md
 │   ├── entity.md
 │   ├── synthesis.md
 │   ├── analysis.md
-│   └── source.md
+│   ├── source.md
+│   ├── meeting.md                 # personal vault only
+│   ├── diary.md                   # personal vault only
+│   └── artifact.md                # project vault only
 ├── raw/sources/SRC-YYYY-MM-DD-NNN/
 │   ├── manifest.json              # sourceId, type, title, status, captured
 │   ├── original/                  # original file or content.txt
@@ -75,8 +78,9 @@ kb_ensure_page type=analysis title="Performance Bottleneck"
 kb_ensure_page type=source title="React Docs Summary"
 ```
 
-Types: `concept`, `entity`, `synthesis`, `analysis`, `source`. Falls back to `concept` if
-type is unrecognized. Template is loaded from `.kb/templates/pages/{type}.md`.
+Types: `concept`, `entity`, `synthesis`, `analysis`, `source`, `meeting`, `diary`, `artifact`.
+Falls back to `concept` if type is unrecognized. Template is loaded from `.kb/templates/pages/{type}.md`.
+Personal vaults get 7 templates (no `artifact`). Project vaults get all 8.
 
 ### `kb_capture`
 
