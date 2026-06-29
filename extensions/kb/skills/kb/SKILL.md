@@ -35,7 +35,7 @@ instructions.
 ```text
 .kb/
 ├── config.json                    # topic, mode, created, version
-├── AGENTS.md                      # KB usage instructions
+├── AGENTS.md                      # minimal pointer to skills (optional)
 ├── templates/pages/               # 8 page templates
 │   ├── concept.md                 #   abstract idea, pattern, technique
 │   ├── entity.md                  #   concrete thing (library, tool, person, project)

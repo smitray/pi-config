@@ -120,23 +120,18 @@ export default function (pi: ExtensionAPI) {
 
       ensureVaultStructure(paths);
 
-      // Ask user what to include in AGENTS.md
-      let agentsSections = 'all';
+      // Ask user whether to include AGENTS.md
+      let writeAgentsFile = true;
       if (ctx.hasUI) {
-        const choice = await ctx.ui.select('AGENTS.md sections:', [
-          'all — workflows, tools, templates, naming',
-          'minimal — tools + page format only',
-          'skip — no AGENTS.md',
+        const choice = await ctx.ui.select('Write .kb/AGENTS.md?', [
+          'yes \u2014 include minimal AGENTS.md (pointer to skills)',
+          'skip \u2014 no AGENTS.md (skills only)',
         ]);
-        agentsSections = choice?.startsWith('skip')
-          ? 'skip'
-          : choice?.startsWith('minimal')
-            ? 'minimal'
-            : 'all';
+        writeAgentsFile = !choice?.startsWith('skip');
       }
 
-      if (agentsSections !== 'skip') {
-        writeAgentsMd(paths, agentsSections === 'minimal');
+      if (writeAgentsFile) {
+        writeAgentsMd(paths, true);
       }
 
       writeJson(join(paths.dotKb, 'config.json'), {

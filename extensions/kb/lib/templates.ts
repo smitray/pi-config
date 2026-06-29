@@ -38,48 +38,29 @@ export function writeDefaultTemplates(paths: VaultPaths, mode?: string): void {
 
 const MINIMAL_AGENTS_MD = `# Knowledge Base
 
-## Tools
+This \`.kb/\` directory is a Karpathy-style LLM Wiki maintained by the \`kb\` pi extension.
 
-| Tool | Purpose |
-|------|---------|
-| \`kb_bootstrap\` | Initialize vault (auto-detects mode) |
-| \`kb_ensure_page\` | Create or update wiki page |
-| \`kb_capture\` | Capture file/text into raw/sources/ |
-| \`kb_ingest\` | List pending sources |
-| \`kb_mark_ingested\` | Mark source as processed |
-| \`kb_status\` | Vault health overview |
-| \`kb_recall_context\` | Search (project vault first) |
-| \`kb_recall_docs\` | Search (personal vault first) |
-| \`kb_search_tags\` | Filter by tag/type/stage |
-| \`kb_rebuild_meta\` | Manually rebuild registry + backlinks |
-| \`kb_lint\` | Wiki health checks |
-| \`kb_observe\` | Mid-session observation |
-| \`kb_enrich\` | Merge observation into canonical page |
-| \`kb_retro\` | Atomic insight capture |
-| \`kb_log_event\` | Append event to meta/events.jsonl |
+## Skills (auto-loaded when KB extension is active)
 
-## Page Format
+- \`kb\` \u2014 full tool reference
+- \`kb-research\` \u2014 research & save to KB
+- \`kb-capture-url\` \u2014 capture GitHub/docs/YouTube
+- \`kb-bootstrap\` \u2014 init a new vault
+- \`kb-update\` \u2014 update existing pages
 
-\`\`\`yaml
----
-title: "Page Title"
-type: concept | entity | synthesis | analysis | source | artifact | meeting | diary
-tags: []
-stage: brainstorm | draft | review | production
----
-\`\`\`
-
-Use \`[[PageName]]\` wikilinks to cross-reference.
-
-## Page Directories
+## Layout
 
 \`\`\`
-wiki/
-├── concepts/    entities/    syntheses/    analyses/
-├── sources/     artifacts/   meetings/     diaries/
+.kb/
+\u251c\u2500\u2500 raw/sources/    # immutable source packets
+\u251c\u2500\u2500 wiki/           # agent-owned pages (concepts/entities/syntheses/analyses/...)
+\u251c\u2500\u2500 meta/           # auto-generated registry, backlinks, embeddings, events
+\u2514\u2500\u2500 templates/      # page templates
 \`\`\`
 
-(artifact = project only; meeting, diary = personal only)
+## Per-vault notes
+
+<!-- Add your project-specific conventions below this line -->
 `;
 
 export function writeAgentsMd(paths: VaultPaths, minimal = false): void {
