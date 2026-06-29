@@ -104,9 +104,10 @@ describe('writePagesAsKbPackets', () => {
     expect(packets[0].skipped).toBeFalsy();
     const manifest = JSON.parse(readFileSync(join(packets[0].packetDir, 'manifest.json'), 'utf-8'));
     expect(manifest.chunked).toBe(true);
-    // extracted.md should now contain chunk separators ----
+    // extracted.md should now contain chunk separators ---
     const extracted = readFileSync(join(packets[0].packetDir, 'extracted.md'), 'utf-8');
-    const sepCount = (extracted.match(/^---$/gm) || []).length;
+    // Separator is \n\n---\n\n between chunks
+    const sepCount = (extracted.match(/\n\n---\n\n/g) || []).length;
     expect(sepCount).toBeGreaterThan(0);
   });
 });

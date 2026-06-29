@@ -19,10 +19,12 @@ Research a topic, capture web sources, create wiki pages — all in one flow.
 1. web-search(query)           → ranked results
 2. web-fetch(best 1-3 URLs)    → markdown content
 3. kb_capture(each, vault)     → source packets
-4. kb_ingest()                 → list pending
+4. kb_ingest vault=personal    → list pending
 5. kb_ensure_page(type, title) → wiki pages
-6. kb_mark_ingested(each)      → done
+6. kb_mark_ingested vault=personal each → done
 ```
+
+For docs sites with kbRoot: `web-fetch-docs kbRoot=...` writes source packets directly, then `kb_ingest vault=personal`.
 
 ## Vault Routing
 

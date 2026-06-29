@@ -1,8 +1,10 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { approxTokens, splitIntoChunks } from './markdown';
+import { approxTokens, splitIntoChunks } from './markdown'; // paragraph-based chunking (mature)
+import { validateMarkdown } from './markdown-it'; // AST-based validation
 
-export { approxTokens, splitIntoChunks };
+// ponytail: keep kb-packets simple — use proven paragraph splitter. markdown-it.ts available
+// for future AST-based features (heading detection, etc.).
 
 /**
  * KB source-packet shape written to `{kbRoot}/raw/sources/SRC-YYYY-MM-DD-NNN/`:

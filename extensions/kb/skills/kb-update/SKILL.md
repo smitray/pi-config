@@ -45,25 +45,9 @@ kb_observe title="<topic> update"
 
 Relevance levels: `low` (minor detail), `medium` (useful context), `high` (significant insight), `critical` (breaking change).
 
-### Step 3: Review
+### Step 3: Integrate (Inline Approval)
 
-Ask user for approval:
-
-```text
-ask_user_question questions=[{
-  question: "Update the existing KB page '<page title>' with this new info?",
-  header: "KB Update",
-  options: [
-    { label: "Yes, update page", description: "Merge into canonical page" },
-    { label: "Save as observation", description: "Keep as separate observation" },
-    { label: "Discard", description: "Not relevant enough" }
-  ]
-}]
-```
-
-### Step 4: Integrate
-
-If user approves:
+Use `kb_enrich` — it automatically presents inline approval options:
 
 ```text
 kb_enrich pageTitle="<existing page>"
@@ -72,9 +56,16 @@ kb_enrich pageTitle="<existing page>"
            sourceContext="<context>"
 ```
 
-The tool merges observation content into the appropriate section of the existing page. Falls back to simple append if model is unavailable.
+**What happens next**: kb_enrich presents UI options (if available):
+- **Merge** → integrates observation into the page
+- **Observe** → saves as separate observation
+- **Discard** → does nothing
 
-### Step 5: Verify
+No separate `ask_user_question` call needed — the approval is built into kb_enrich.
+
+If no UI available (e.g., in script mode), kb_enrich defaults to merge.
+
+### Step 4: Verify
 
 ```text
 kb_recall_context query="<topic>"     # verify page is updated

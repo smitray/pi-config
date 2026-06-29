@@ -17,5 +17,8 @@
     "typebox": "^1.2.9",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
+  },
+  "dependencies": {
+    "markdown-it": "^14.2.0"
   }
 }

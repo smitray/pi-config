@@ -44,12 +44,12 @@ One command for all URL types — auto-routes to the right tool chain.
 
 ### Documentation Site (with KB integration)
 ```
-1. web-fetch-docs baseUrl="..." depth=3 label="site-name" kbRoot="<vault>/raw/sources/.."
-   // OR pass kbRoot pointing to project root: kbRoot="/path/to/project"
-   // (auto-resolves to {projectRoot}/.kb/raw/sources/)
+1. web-fetch-docs baseUrl="..." depth=3 label="site-name" kbRoot="<vault>"
+   // kbRoot can be: "personal", "project", or absolute path
+   // (auto-resolves to project root's .kb/ or ~/.kb/)
    // Each page becomes its own source packet SRC-YYYY-MM-DD-NNN
-2. kb_ingest  → returns pending sources
-3. Read each extracted.md, kb_ensure_page with appropriate type, kb_mark_ingested
+2. kb_ingest vault=personal  → returns pending sources
+3. Read each extracted.md, kb_ensure_page with appropriate type, kb_mark_ingested vault=personal
 4. Create entity page for the docs site, concept pages for key ideas
 
 ### Documentation Site (pure search, no KB)
@@ -62,14 +62,14 @@ One command for all URL types — auto-routes to the right tool chain.
 ```
 1. web-fetch url="..."                   → markdown
 2. kb_capture source="<markdown>" title="<page title>" vault=personal
-3. kb_ingest → kb_ensure_page → kb_mark_ingested
+3. kb_ingest vault=personal → kb_ensure_page → kb_mark_ingested vault=personal
 ```
 
 ### YouTube Video
 ```
 1. media-transcribe url="..."            → transcript text
 2. kb_capture source="<transcript>" title="<video title>" vault=personal
-3. kb_ensure_page type=source title="Video: <title>"
+3. kb_ingest vault=personal → kb_ensure_page type=source title="Video: <title>"
 ```
 
 ## Vault Routing
