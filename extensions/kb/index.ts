@@ -387,14 +387,25 @@ export default function (pi: ExtensionAPI) {
       'Use kb_ingest to find sources that need to be synthesized into wiki pages. ' +
         "After kb_ingest, read each source's extracted.md, then create pages with kb_ensure_page.",
     ],
-    parameters: Type.Object({}),
-    async execute(_id, _params, _signal, _onUpdate, ctx) {
+    parameters: Type.Object({
+      vault: Type.Optional(
+        Type.String({
+          description: 'Target vault: personal, project, or auto (default: auto)',
+        })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
       const cwd = ctx.cwd ?? process.cwd();
-      const { root } = resolveVaultContext(cwd);
-      const paths = getVaultPaths(root);
+      const vaultChoice = (params as { vault?: string }).vault || 'auto';
+      const paths =
+        vaultChoice === 'personal' || vaultChoice === 'project'
+          ? getExplicitVaultPaths(vaultChoice, cwd)
+          : getVaultPaths(resolveVaultContext(cwd).root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.', {
+          vault: vaultChoice,
+        });
       }
 
       const sources = getUningestedSources(paths);
@@ -516,25 +527,41 @@ export default function (pi: ExtensionAPI) {
     ],
     parameters: Type.Object({
       sourceId: Type.String({ description: 'Source ID (e.g. SRC-2026-06-26-001)' }),
+      vault: Type.Optional(
+        Type.String({
+          description: 'Target vault: personal, project, or auto (default: auto)',
+        })
+      ),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
       const cwd = ctx.cwd ?? process.cwd();
-      const { root } = resolveVaultContext(cwd);
-      const paths = getVaultPaths(root);
+      const vaultChoice = params.vault || 'auto';
+      const paths =
+        vaultChoice === 'personal' || vaultChoice === 'project'
+          ? getExplicitVaultPaths(vaultChoice, cwd)
+          : getVaultPaths(resolveVaultContext(cwd).root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.', {
+          vault: vaultChoice,
+        });
       }
 
       const ingested = markSourceIngested(params.sourceId, paths);
       return ingested
         ? ok(`Source \`${params.sourceId}\` marked as ingested.`, {
             sourceId: params.sourceId,
+            vault: vaultChoice,
             ingested: true,
           })
-        : err('SOURCE_NOT_FOUND', `Source \`${params.sourceId}\` not found.`, {
-            sourceId: params.sourceId,
-          });
+        : err(
+            'SOURCE_NOT_FOUND',
+            `Source \`${params.sourceId}\` not found in ${vaultChoice} vault.`,
+            {
+              sourceId: params.sourceId,
+              vault: vaultChoice,
+            }
+          );
     },
   });
 
