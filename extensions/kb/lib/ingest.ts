@@ -1,5 +1,6 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { complete, getModelConfig, type Message } from './models';
 import type { VaultPaths } from './vault';
 import { readJson, writeJson } from './vault';
 
@@ -55,4 +56,46 @@ export function markSourceIngested(sourceId: string, paths: VaultPaths): boolean
   if (!manifest) return false;
   writeJson(manifestPath, { ...manifest, status: 'ingested' });
   return true;
+}
+
+export interface SynthesisResult {
+  title: string;
+  content: string;
+  type: 'source' | 'concept' | 'entity';
+  tags: string[];
+}
+
+/**
+ * AI-powered synthesis: generate wiki page content from source.
+ * Returns null if model unavailable or synthesis fails.
+ */
+export async function synthesizeWithAI(
+  source: SourcePacket,
+  extractedContent: string
+): Promise<SynthesisResult | null> {
+  try {
+    const config = getModelConfig('task');
+    const messages: Message[] = [
+      {
+        role: 'system',
+        content: `You are a knowledge base assistant. Synthesize source material into a wiki page.\n\nReturn JSON with:\n- title: concise page title\n- type: "source" | "concept" | "entity"\n- tags: array of relevant tags\n- content: markdown content with proper headings\n\nRules:\n- Keep it concise but comprehensive\n- Use wiki links [[PageName]] for cross-references\n- Include key facts, decisions, and context\n- Structure with clear headings`,
+      },
+      {
+        role: 'user',
+        content: `Source: ${source.title} (${source.type})\n\nContent:\n${extractedContent}`,
+      },
+    ];
+
+    const result = await complete(config, messages, { maxTokens: 4096 });
+    const parsed = JSON.parse(result.content);
+
+    return {
+      title: parsed.title ?? source.title,
+      content: parsed.content ?? extractedContent,
+      type: parsed.type ?? 'source',
+      tags: parsed.tags ?? [],
+    };
+  } catch {
+    return null;
+  }
 }

@@ -1,5 +1,5 @@
-import { describe, expect, it, beforeEach } from 'vitest';
-import { registerRules, getDynamicGroups } from '../api';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { getDynamicGroups, registerRules } from '../api';
 import type { GuardrailsGroup } from '../types';
 
 // Reset dynamic groups between tests

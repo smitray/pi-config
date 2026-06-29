@@ -6,14 +6,26 @@ import { fmtDate } from './vault';
 // Templates live in extensions/kb/templates/pages/ as single source of truth.
 // Copied to vault on bootstrap. kb_ensure_page reads from vault or extension.
 
-export type PageType = 'concept' | 'entity' | 'synthesis' | 'analysis' | 'source' | 'meeting' | 'diary' | 'artifact';
+export type PageType =
+  | 'concept'
+  | 'entity'
+  | 'synthesis'
+  | 'analysis'
+  | 'source'
+  | 'meeting'
+  | 'diary'
+  | 'artifact';
 
 // Extension dir resolved once at import time
 const EXT_DIR = join(import.meta.dirname ?? __dirname, '..');
 
-export function writeDefaultTemplates(paths: VaultPaths): void {
+export function writeDefaultTemplates(paths: VaultPaths, mode?: string): void {
   const pagesDir = join(EXT_DIR, 'templates', 'pages');
-  for (const type of ['concept', 'entity', 'synthesis', 'analysis', 'source', 'meeting', 'diary', 'artifact']) {
+  const types = ['concept', 'entity', 'synthesis', 'analysis', 'source', 'meeting', 'diary'];
+  // Artifact template is project-only
+  if (mode !== 'personal') types.push('artifact');
+
+  for (const type of types) {
     const target = join(paths.templates, `${type}.md`);
     if (existsSync(target)) continue;
 
@@ -26,32 +38,29 @@ export function writeDefaultTemplates(paths: VaultPaths): void {
 
 const MINIMAL_AGENTS_MD = `# Knowledge Base
 
-## Tools
+This \`.kb/\` directory is a Karpathy-style LLM Wiki maintained by the \`kb\` pi extension.
 
-| Tool | Purpose |
-|------|---------|
-| \`kb_bootstrap\` | Initialize vault |
-| \`kb_capture\` | Capture file/text into raw/ |
-| \`kb_ingest\` | List pending sources |
-| \`kb_ensure_page\` | Create wiki page |
-| \`kb_mark_ingested\` | Mark source processed |
-| \`kb_status\` | Vault health |
-| \`kb_recall_context\` | Search (project first) |
-| \`kb_recall_docs\` | Search (docs first) |
-| \`kb_search_tags\` | Search by tag/type/stage |
+## Skills (auto-loaded when KB extension is active)
 
-## Page Format
+- \`kb\` \u2014 full tool reference
+- \`kb-research\` \u2014 research & save to KB
+- \`kb-capture-url\` \u2014 capture GitHub/docs/YouTube
+- \`kb-bootstrap\` \u2014 init a new vault
+- \`kb-update\` \u2014 update existing pages
 
-\`\`\`yaml
----
-title: "Page Title"
-type: source | entity | concept | synthesis | analysis
-tags: []
-stage: brainstorm | draft | review | production
----
+## Layout
+
+\`\`\`
+.kb/
+\u251c\u2500\u2500 raw/sources/    # immutable source packets
+\u251c\u2500\u2500 wiki/           # agent-owned pages (concepts/entities/syntheses/analyses/...)
+\u251c\u2500\u2500 meta/           # auto-generated registry, backlinks, embeddings, events
+\u2514\u2500\u2500 templates/      # page templates
 \`\`\`
 
-Use \`[[PageName]]\` wikilinks to cross-reference.
+## Per-vault notes
+
+<!-- Add your project-specific conventions below this line -->
 `;
 
 export function writeAgentsMd(paths: VaultPaths, minimal = false): void {
@@ -95,7 +104,18 @@ export function populateTemplate(template: string, vars: Record<string, string>)
 }
 
 // Artifact prefixes: feat/fix/wip/docs/refactor/test/chore/revert/perf/ci/build
-export type ArtifactPrefix = 'feat' | 'fix' | 'wip' | 'docs' | 'refactor' | 'test' | 'chore' | 'revert' | 'perf' | 'ci' | 'build';
+export type ArtifactPrefix =
+  | 'feat'
+  | 'fix'
+  | 'wip'
+  | 'docs'
+  | 'refactor'
+  | 'test'
+  | 'chore'
+  | 'revert'
+  | 'perf'
+  | 'ci'
+  | 'build';
 
 export function buildPage(
   type: PageType,
@@ -109,8 +129,11 @@ export function buildPage(
   // Format tags as YAML array
   const formatTags = (input: string | string[] | undefined): string => {
     if (!input) return '';
-    const arr = Array.isArray(input) ? input : input.split(',').map(t => t.trim());
-    return arr.filter(Boolean).map(t => `"${t}"`).join(', ');
+    const arr = Array.isArray(input) ? input : input.split(',').map((t) => t.trim());
+    return arr
+      .filter(Boolean)
+      .map((t) => `"${t}"`)
+      .join(', ');
   };
 
   // Build template vars — spread extraVars first, then override with formatted tags

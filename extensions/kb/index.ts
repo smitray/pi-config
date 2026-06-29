@@ -5,14 +5,13 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { err, ok } from '../_shared/result';
 import { captureFile, captureText } from './lib/capture';
-import { formatEnrichmentResult, mergeObservationIntoPage } from './lib/enrich';
+import { findPageByTitle, formatEnrichmentResult, mergeObservationIntoPage } from './lib/enrich';
 import { logEvent } from './lib/events';
 import { installGuardrails } from './lib/guardrails';
 import { getUningestedSources, markSourceIngested } from './lib/ingest';
 import { formatLintReport, lintWiki } from './lib/lint';
 import { rebuildMetadata } from './lib/metadata';
 import { formatObservationResult, saveObservation } from './lib/observe';
-import { formatOmEntries, queryOmMemory } from './lib/om';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
 import { formatRetroResult, saveInsight } from './lib/retro';
 import { buildPage, writeAgentsMd, writeDefaultTemplates } from './lib/templates';
@@ -121,23 +120,18 @@ export default function (pi: ExtensionAPI) {
 
       ensureVaultStructure(paths);
 
-      // Ask user what to include in AGENTS.md
-      let agentsSections = 'all';
+      // Ask user whether to include AGENTS.md
+      let writeAgentsFile = true;
       if (ctx.hasUI) {
-        const choice = await ctx.ui.select('AGENTS.md sections:', [
-          'all — workflows, tools, templates, naming',
-          'minimal — tools + page format only',
-          'skip — no AGENTS.md',
+        const choice = await ctx.ui.select('Write .kb/AGENTS.md?', [
+          'yes \u2014 include minimal AGENTS.md (pointer to skills)',
+          'skip \u2014 no AGENTS.md (skills only)',
         ]);
-        agentsSections = choice?.startsWith('skip')
-          ? 'skip'
-          : choice?.startsWith('minimal')
-            ? 'minimal'
-            : 'all';
+        writeAgentsFile = !choice?.startsWith('skip');
       }
 
-      if (agentsSections !== 'skip') {
-        writeAgentsMd(paths, agentsSections === 'minimal');
+      if (writeAgentsFile) {
+        writeAgentsMd(paths, true);
       }
 
       writeJson(join(paths.dotKb, 'config.json'), {
@@ -147,7 +141,7 @@ export default function (pi: ExtensionAPI) {
         version: '1.0',
       });
 
-      writeDefaultTemplates(paths);
+      writeDefaultTemplates(paths, resolvedMode);
       rebuildMetadata(paths);
 
       if (ctx.hasUI) {
@@ -178,7 +172,7 @@ export default function (pi: ExtensionAPI) {
     label: 'KB Ensure Page',
     description:
       'Create or update a wiki page with enforced template frontmatter. ' +
-      'Page types: concept, entity, synthesis, analysis, source. ' +
+      'Page types: concept, entity, synthesis, analysis, source, artifact, meeting, diary. ' +
       'Templates are loaded from .kb/templates/pages/{type}.md and always applied.',
     promptSnippet: 'Create a KB wiki page from a template',
     promptGuidelines: [
@@ -186,7 +180,8 @@ export default function (pi: ExtensionAPI) {
     ],
     parameters: Type.Object({
       type: Type.String({
-        description: 'Page type: concept, entity, synthesis, analysis, source',
+        description:
+          'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary',
       }),
       title: Type.String({ description: 'Page title' }),
       content: Type.Optional(
@@ -274,7 +269,13 @@ export default function (pi: ExtensionAPI) {
 
       const fullContent = params.content ? `${content}\n${params.content}` : content;
 
-      const typeDir = join(paths.wiki, pageType === 'entity' ? 'entities' : `${pageType}s`);
+      const dirNames: Record<string, string> = {
+        entity: 'entities',
+        synthesis: 'syntheses',
+        analysis: 'analyses',
+        diary: 'diaries',
+      };
+      const typeDir = join(paths.wiki, dirNames[pageType] ?? `${pageType}s`);
       if (!existsSync(typeDir)) mkdirSync(typeDir, { recursive: true });
 
       writeFileSync(join(typeDir, filename), fullContent, 'utf-8');
@@ -386,14 +387,25 @@ export default function (pi: ExtensionAPI) {
       'Use kb_ingest to find sources that need to be synthesized into wiki pages. ' +
         "After kb_ingest, read each source's extracted.md, then create pages with kb_ensure_page.",
     ],
-    parameters: Type.Object({}),
-    async execute(_id, _params, _signal, _onUpdate, ctx) {
+    parameters: Type.Object({
+      vault: Type.Optional(
+        Type.String({
+          description: 'Target vault: personal, project, or auto (default: auto)',
+        })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
       const cwd = ctx.cwd ?? process.cwd();
-      const { root } = resolveVaultContext(cwd);
-      const paths = getVaultPaths(root);
+      const vaultChoice = (params as { vault?: string }).vault || 'auto';
+      const paths =
+        vaultChoice === 'personal' || vaultChoice === 'project'
+          ? getExplicitVaultPaths(vaultChoice, cwd)
+          : getVaultPaths(resolveVaultContext(cwd).root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.', {
+          vault: vaultChoice,
+        });
       }
 
       const sources = getUningestedSources(paths);
@@ -515,25 +527,41 @@ export default function (pi: ExtensionAPI) {
     ],
     parameters: Type.Object({
       sourceId: Type.String({ description: 'Source ID (e.g. SRC-2026-06-26-001)' }),
+      vault: Type.Optional(
+        Type.String({
+          description: 'Target vault: personal, project, or auto (default: auto)',
+        })
+      ),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
       const cwd = ctx.cwd ?? process.cwd();
-      const { root } = resolveVaultContext(cwd);
-      const paths = getVaultPaths(root);
+      const vaultChoice = params.vault || 'auto';
+      const paths =
+        vaultChoice === 'personal' || vaultChoice === 'project'
+          ? getExplicitVaultPaths(vaultChoice, cwd)
+          : getVaultPaths(resolveVaultContext(cwd).root);
 
       if (!existsSync(join(paths.dotKb, 'config.json'))) {
-        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
+        return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.', {
+          vault: vaultChoice,
+        });
       }
 
       const ingested = markSourceIngested(params.sourceId, paths);
       return ingested
         ? ok(`Source \`${params.sourceId}\` marked as ingested.`, {
             sourceId: params.sourceId,
+            vault: vaultChoice,
             ingested: true,
           })
-        : err('SOURCE_NOT_FOUND', `Source \`${params.sourceId}\` not found.`, {
-            sourceId: params.sourceId,
-          });
+        : err(
+            'SOURCE_NOT_FOUND',
+            `Source \`${params.sourceId}\` not found in ${vaultChoice} vault.`,
+            {
+              sourceId: params.sourceId,
+              vault: vaultChoice,
+            }
+          );
     },
   });
 
@@ -563,18 +591,31 @@ export default function (pi: ExtensionAPI) {
       // Count wiki pages by type
       const wikiPages: Record<string, number> = {};
       let totalWiki = 0;
-      for (const type of ['sources', 'entities', 'concepts', 'syntheses', 'analyses']) {
-        // ponytail: entity→entitys typo from early bootstrap, check both
+      // ponytail: handle typo dirs from earlier versions (entitys, synthesiss)
+      const typeNames = [
+        'sources',
+        'entities',
+        'concepts',
+        'syntheses',
+        'analyses',
+        'artifacts',
+        'meetings',
+        'diaries',
+      ];
+      const typoAliases: Record<string, string> = {
+        entities: 'entitys',
+        syntheses: 'synthesiss',
+        analyses: 'analysiss',
+      };
+      for (const type of typeNames) {
         let typeDir = join(paths.wiki, type);
-        if (type === 'entities') {
-          const entitysDir = join(paths.wiki, 'entitys');
-          // Use entitys/ if it has .md files, otherwise use entities/
-          if (
-            existsSync(entitysDir) &&
-            readdirSync(entitysDir).some((f: string) => f.endsWith('.md'))
-          ) {
-            typeDir = entitysDir;
-          }
+        const aliasDir = typoAliases[type] ? join(paths.wiki, typoAliases[type]) : null;
+        if (
+          aliasDir &&
+          existsSync(aliasDir) &&
+          readdirSync(aliasDir).some((f: string) => f.endsWith('.md'))
+        ) {
+          typeDir = aliasDir;
         }
         if (existsSync(typeDir)) {
           const files = readdirSync(typeDir).filter((f: string) => f.endsWith('.md'));
@@ -626,7 +667,7 @@ export default function (pi: ExtensionAPI) {
     label: 'KB Search Tags',
     description:
       'Search KB wiki pages by frontmatter tags, page type, or workflow stage. ' +
-      'Tags: arbitrary labels. Types: concept, entity, synthesis, analysis, source. ' +
+      'Tags: arbitrary labels. Types: concept, entity, synthesis, analysis, source, meeting, diary, artifact. ' +
       'Stages: brainstorm, draft, review, production.',
     promptSnippet: 'Search KB pages by tag, type, or workflow stage',
     promptGuidelines: [
@@ -637,7 +678,8 @@ export default function (pi: ExtensionAPI) {
       tag: Type.Optional(Type.String({ description: 'Frontmatter tag to search for' })),
       type: Type.Optional(
         Type.String({
-          description: 'Page type: concept, entity, synthesis, analysis, source',
+          description:
+            'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary',
         })
       ),
       stage: Type.Optional(
@@ -791,13 +833,12 @@ export default function (pi: ExtensionAPI) {
     name: 'kb_enrich',
     label: 'KB Enrich',
     description:
-      'Merge an observation into an existing wiki page. ' +
-      'Adds a new section with the observation content, preserving the original as a reference.',
+      'Merge an observation into an existing wiki page with user approval. ' +
+      'Finds the page, previews the merge, asks user to approve, then integrates.',
     promptSnippet: 'Merge observation into existing page',
     promptGuidelines: [
-      'Use kb_enrich when user approves updating an existing page with new information. ' +
-        'First use kb_recall_context to find the page, then kb_observe to capture the info, ' +
-        'then ask user, then kb_enrich to merge.',
+      'Use kb_enrich when new info should be added to an existing KB page. ' +
+        'The tool finds the page, previews the merge, and asks user to approve before integrating.',
     ],
     parameters: Type.Object({
       pageTitle: Type.String({ description: 'Title of the existing page to enrich' }),
@@ -818,6 +859,46 @@ export default function (pi: ExtensionAPI) {
         return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
       }
 
+      // Find the page first
+      const pagePath = findPageByTitle(paths, params.pageTitle);
+      if (!pagePath) {
+        return err('PAGE_NOT_FOUND', `Page not found: ${params.pageTitle}`);
+      }
+
+      // Ask user for approval if UI is available
+      if (ctx.hasUI) {
+        const choice = await ctx.ui.select(
+          `Merge "${params.observationTitle}" into "${params.pageTitle}"?`,
+          [
+            'yes — merge observation into page',
+            'observe — save as separate observation for now',
+            "discard — this info isn't relevant",
+          ]
+        );
+
+        if (!choice) {
+          return ok('No choice made — observation saved for later.');
+        }
+
+        if (choice.startsWith('observe')) {
+          // Save as observation instead
+          saveObservation(paths, {
+            title: params.observationTitle,
+            content: params.observationContent,
+            relevance: 'medium',
+            tags: [],
+            sourceContext: params.sourceContext,
+          });
+          rebuildMetadata(paths);
+          return ok(`Saved as observation: ${params.observationTitle}`);
+        }
+
+        if (choice.startsWith('discard')) {
+          return ok('Discarded — no changes made.');
+        }
+      }
+
+      // Merge
       const result = mergeObservationIntoPage(
         paths,
         params.pageTitle,
@@ -913,54 +994,6 @@ export default function (pi: ExtensionAPI) {
       logEvent(paths, { kind: params.kind, data: params.data as Record<string, unknown> });
 
       return ok(`✅ Event logged: ${params.kind}`, { kind: params.kind });
-    },
-  });
-
-  // ─── om_recall ────────────────────────────────────────────────
-
-  pi.registerTool({
-    name: 'om_recall',
-    label: 'OM Recall',
-    description:
-      'Query observational memory by date. Returns observations and reflections from ' +
-      'previous Pi sessions. Use for: "what did I do yesterday", "what happened on Monday".',
-    promptSnippet: 'Query OM memory by date',
-    promptGuidelines: [
-      'Use om_recall when the user asks about past work: "what did I do yesterday", "what happened on Monday", etc.',
-    ],
-    parameters: Type.Object({
-      date: Type.String({
-        description: 'Date query: "yesterday", "today", "last 3 days", or YYYY-MM-DD',
-      }),
-    }),
-    async execute(_id, params, _signal, _onUpdate, _ctx) {
-      const entries = queryOmMemory(params.date);
-
-      if (entries.length === 0) {
-        return {
-          content: [
-            {
-              type: 'text',
-              text:
-                `No observational memory found for "${params.date}". ` +
-                'This could mean: no sessions on that date, or sessions were not compacted.',
-            },
-          ],
-          details: { date: params.date, count: 0 },
-        };
-      }
-
-      const formatted = formatOmEntries(entries);
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `# Observational Memory — ${params.date}\n\n${formatted}`,
-          },
-        ],
-        details: { date: params.date, count: entries.length },
-      };
     },
   });
 

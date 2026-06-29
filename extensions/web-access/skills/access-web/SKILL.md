@@ -103,6 +103,7 @@ web-fetch-docs label=pinia chunkIndex=5
 | `depth` | 1–5, default 3 |
 | `chunkIndex` | 0-indexed; details include `totalChunks` and `pages[]` |
 | `refresh` | Force re-crawl, ignore on-disk copy |
+| `kbRoot` | Optional. If set, writes each crawled page as a KB source packet to `{kbRoot}/raw/sources/SRC-.../`. Dedup by URL. Use when integrating with the `kb` extension. |
 
 Respects `robots.txt` (returns `CRAWL_FAILED` if `Disallow: /` for `*`). Uses parallel fetches bounded by `PI_ACCESS_CRAWL_CONCURRENCY` with a polite delay between batches.
 
