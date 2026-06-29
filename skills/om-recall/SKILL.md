@@ -13,22 +13,27 @@ description: "Query observational memory from previous Pi sessions by date. Use 
 
 ## Usage
 
-Run the script:
-
 ```bash
-node scripts/om-recall.mjs [date] [--verbose]
+node scripts/om-recall.mjs [date] [--verbose] [--project /path/to/repo]
 ```
 
 Date formats: `yesterday`, `today`, `last 3 days`, `YYYY-MM-DD`
 
+## Behavior
+
+**Productive days only**: Shows git commits first. If no commits, exits early (use `--verbose` to see session data anyway).
+
+**Project-scoped**: Filters sessions by workspace directory. Use `--project` to specify repo (defaults to cwd).
+
 ## Output
 
-- **Reflections** — Durable facts (stable, long-lived)
-- **Key Events** — High/critical relevance only (default)
+- **Git Activity** — commits for that day
+- **Reflections** — durable facts from OM
+- **Key Events** — high/critical relevance observations (filtered by default)
 
 Use `--verbose` to see all observations.
 
 ## Timezone
 
-Set in `settings.json` under `om.timezoneOffset` (e.g., `5.5` for IST).
+Set in `settings.json` under `observational-memory.timezoneOffset` (e.g., `5.5` for IST).
 Override: `OM_TIMEZONE_OFFSET=5.5`
