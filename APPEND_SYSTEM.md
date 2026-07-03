@@ -55,14 +55,6 @@ automatically on every write/edit. Key tools:
 Diagnostics run automatically. Use `lens_diagnostics mode=all` before
 declaring work done to verify no blocking errors remain.
 
-## Packages (npm-installed via pi)
-
-| Package | Purpose |
-| --------- | --------- |
-| `pi-lens` | LSP diagnostics, AST tools, code intelligence |
-| `pi-observational-memory` | Session continuity via OM |
-| `pi-ponytail` | Lazy/simple-mode enforcement |
-
 ## Auto Web Search
 
 If the LLM cannot answer a question from its training data or context, automatically perform a web search via `web-search` to find the answer. Don't ask the user for permission — just search and respond with the findings.
