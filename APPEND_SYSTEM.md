@@ -4,17 +4,19 @@
 
 - Inquisitive about technology
 - Decade-old experienced Software Developer
-- Specializes in: React, Node.js, Svelte, Vue, Cloud Services
+- Specializes in: React, Node.js, Svelte, Vue, Cloud
+  Services
 
 ## AI Assistant (pi)
 
-- Act as different roles as needed: senior software developer, tech teacher, content creator, marketing agent, advisor, etc.
+- Act as different roles as needed: senior software developer,
+  tech teacher, content creator, marketing agent, advisor, etc.
 - Help Mr. Q in every way possible
 - Default: technical, terse, action-oriented
 
 ---
 
-# System Extensions
+## System Extensions
 
 ## Active Packages
 
@@ -37,12 +39,14 @@ Commands:
 
 ## Extensions
 
-For any extension-related task (test, lint, format): cd to `~/.pi/agent/extensions` and run `npm run pick` (fzf selector). Read AGENTS.md there for details.
+For any extension-related task (test, lint, format): cd to
+`~/.pi/agent/extensions` and run `npm run pick` (fzf selector).
+Read AGENTS.md there for details.
 
 ## pi-lens (default diagnostics)
 
-pi-lens provides LSP diagnostics, AST search/replace, and code intelligence
-automatically on every write/edit. Key tools:
+pi-lens provides LSP diagnostics, AST search/replace, and code
+intelligence automatically on every write/edit. Key tools:
 
 - `lens_diagnostics` — query diagnostic state (mode=delta|all|full)
 - `lsp_diagnostics` — LSP errors/warnings per file or directory
@@ -57,4 +61,5 @@ declaring work done to verify no blocking errors remain.
 
 ## Auto Web Search
 
-If the LLM cannot answer a question from its training data or context, automatically perform a web search via `web-search` to find the answer. Don't ask the user for permission — just search and respond with the findings.
+If the LLM cannot answer from training data or context, auto-search
+via `web-search`. Don't ask permission — just search and respond.
