@@ -4,13 +4,13 @@ Custom extensions for [pi coding agent](https://github.com/earendil-works/pi).
 
 ## Extensions
 
-| Extension | Description | Docs |
-| ----------- | ------------- | ------ |
-| [gh](./gh/) | GitHub integration via `gh` CLI | [README](./gh/README.md) |
-| [guardrails](./guardrails/) | Security rules blocking risky tool calls | [README](./guardrails/README.md) |
-| [hooks](./hooks/) | Shell hooks on lifecycle events | [README](./hooks/README.md) |
-| [kb](./kb/) | Knowledge Base — persistent wiki vaults | [README](./kb/README.md) |
-| [web-access](./web-access/) | Web search, fetch/crawl, persisted docs, media download | [README](./web-access/README.md) |
+| Extension | Description |
+| ----------- | ------------- |
+| [gh](./gh/) | GitHub integration via `gh` CLI |
+| [guardrails](./guardrails/) | Security rules blocking risky tool calls |
+| [hooks](./hooks/) | Shell hooks on lifecycle events |
+| [kb](./kb/) | Knowledge Base — persistent wiki vaults |
+| [web-access](./web-access/) | Web search, fetch/crawl, persisted docs, media download |
 
 Internal helpers shared between extensions live in [`_shared/`](./_shared/) — not a pi extension itself.
 
@@ -18,7 +18,8 @@ Extension planning docs and code reviews are in [`docs/`](./docs/).
 
 ## Setup
 
-Extensions auto-discovered from `~/.pi/agent/extensions/*/index.ts` (anything not starting with `_`). No settings.json config needed.
+Extensions auto-discovered from `~/.pi/agent/extensions/*/index.ts`
+(anything not starting with `_`). No settings.json config needed.
 
 ```bash
 # Install dependencies
@@ -37,7 +38,7 @@ npm install
 
 ### Structure
 
-```
+```text
 extensions/
 ├── AGENTS.md            # agent-facing docs
 ├── biome.json           # lint/format config
