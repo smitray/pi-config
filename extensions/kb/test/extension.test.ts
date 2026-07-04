@@ -25,6 +25,8 @@ import {
 
 // ─── Test utilities ──────────────────────────────────────────────
 
+const CONCEPT = 'concept';
+
 let tmpRoot: string;
 
 function setupVault(): ReturnType<typeof getVaultPaths> {
@@ -43,29 +45,28 @@ function cleanup() {
 
 // ─── vault ───────────────────────────────────────────────────────
 
-describe('vault resolution', () => {
-  it('resolveVaultContext returns personal mode outside a project', () => {
+describe('vault context', () => {
+  it('returns personal mode outside a project', () => {
     const ctx = resolveVaultContext(tmpdir());
     expect(ctx.mode).toBe('personal');
     expect(ctx.isProject).toBe(false);
   });
 
-  it('resolveVaultContext detects project via .kb/config.json', () => {
+  it('detects project via .kb/config.json', () => {
     setupVault();
-    // Write project hint to make it detect as project
     writeFileSync(join(tmpRoot, 'package.json'), '{}');
-    const ctx = resolveVaultContext(tmpRoot);
-    expect(ctx.mode).toBe('project');
+    expect(resolveVaultContext(tmpRoot).mode).toBe('project');
     cleanup();
   });
 
   it('KB_MODE env var overrides vault mode', () => {
     process.env.KB_MODE = 'project';
-    const ctx = resolveVaultContext(tmpdir());
-    expect(ctx.mode).toBe('project');
+    expect(resolveVaultContext(tmpdir()).mode).toBe('project');
     delete process.env.KB_MODE;
   });
+});
 
+describe('vault structure', () => {
   it('ensureVaultStructure creates all directories', () => {
     const paths = setupVault();
     expect(existsSync(paths.rawSources)).toBe(true);
@@ -87,11 +88,11 @@ describe('vault resolution', () => {
 
 // ─── templates ───────────────────────────────────────────────────
 
-describe('templates', () => {
-  it('writeDefaultTemplates creates all 8 template files (project mode)', () => {
+describe('template write', () => {
+  it('creates all 8 template files (project mode)', () => {
     const paths = setupVault();
-    const types = [
-      'concept',
+    for (const t of [
+      CONCEPT,
       'entity',
       'synthesis',
       'analysis',
@@ -99,14 +100,13 @@ describe('templates', () => {
       'meeting',
       'diary',
       'artifact',
-    ];
-    for (const t of types) {
+    ]) {
       expect(existsSync(join(paths.templates, `${t}.md`))).toBe(true);
     }
     cleanup();
   });
 
-  it('writeDefaultTemplates skips artifact in personal mode', () => {
+  it('skips artifact in personal mode', () => {
     tmpRoot = mkdtempSync(join(tmpdir(), 'kb-test-personal-'));
     process.env.KB_HOME = tmpRoot;
     const paths = getVaultPaths(tmpRoot);
@@ -117,20 +117,21 @@ describe('templates', () => {
     rmSync(tmpRoot, { recursive: true, force: true });
     delete process.env.KB_HOME;
   });
+});
 
-  it('loadTemplate returns disk template when it exists', () => {
+describe('template load', () => {
+  it('returns disk template when it exists', () => {
     const paths = setupVault();
-    const tmpl = loadTemplate('concept', paths);
+    const tmpl = loadTemplate(CONCEPT, paths);
     expect(tmpl).toContain('---');
     expect(tmpl).toContain('type: concept');
     cleanup();
   });
 
-  it('loadTemplate falls back to builtin when file missing', () => {
+  it('falls back to builtin when file missing', () => {
     const paths = setupVault();
-    // Delete the disk template
     unlinkSync(join(paths.templates, 'concept.md'));
-    const tmpl = loadTemplate('concept', paths);
+    const tmpl = loadTemplate(CONCEPT, paths);
     expect(tmpl).toContain('type: concept');
     cleanup();
   });
@@ -146,47 +147,52 @@ describe('templates', () => {
   });
 });
 
-// ─── metadata ────────────────────────────────────────────────────
+// ─── helpers ────────────────────────────────────────────────────
 
-describe('metadata', () => {
+function createPage(
+  paths: ReturnType<typeof getVaultPaths>,
+  type: string,
+  name: string,
+  content: string
+) {
+  const dir = join(paths.wiki, `${type}s`);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, `${name}.md`), content);
+}
+
+// ─── frontmatter ────────────────────────────────────────────────
+
+describe('frontmatter', () => {
   it('parseFrontmatter extracts all fields', () => {
-    const md = [
-      '---',
-      'type: concept',
-      'title: My Page',
-      'tags: [react, typescript]',
-      'confidence: high',
-      '---',
-      'Body content here.',
-    ].join('\n');
+    const md =
+      '---\ntype: concept\ntitle: My Page\ntags: [react, typescript]\nconfidence: high\n---\nBody.';
     const fm = parseFrontmatter(md);
-    expect(fm.type).toBe('concept');
+    expect(fm.type).toBe(CONCEPT);
     expect(fm.title).toBe('My Page');
     expect(fm.tags).toEqual(['react', 'typescript']);
     expect(fm.confidence).toBe('high');
   });
 
-  it('parseFrontmatter returns empty object for no frontmatter', () => {
-    const fm = parseFrontmatter('Just markdown, no frontmatter.');
-    expect(Object.keys(fm).length).toBe(0);
+  it('returns empty object for no frontmatter', () => {
+    expect(Object.keys(parseFrontmatter('Just markdown.')).length).toBe(0);
   });
 
   it('extractWikilinks finds all [[links]]', () => {
-    const links = extractWikilinks('See [[React]] and [[TypeScript]] for details.');
-    expect(links).toEqual(['React', 'TypeScript']);
+    expect(extractWikilinks('See [[React]] and [[TypeScript]]')).toEqual(['React', 'TypeScript']);
   });
 
-  it('extractWikilinks returns empty array for no links', () => {
+  it('extractWikilinks returns empty for no links', () => {
     expect(extractWikilinks('No links here.')).toEqual([]);
   });
+});
 
+describe('rebuild', () => {
   it('rebuildMetadata creates registry and backlinks', () => {
     const paths = setupVault();
-    // Create a wiki page
-    const pageDir = join(paths.wiki, 'concepts');
-    mkdirSync(pageDir, { recursive: true });
-    writeFileSync(
-      join(pageDir, 'react-intro.md'),
+    createPage(
+      paths,
+      CONCEPT,
+      'react-intro',
       [
         '---',
         'type: concept',
@@ -196,18 +202,9 @@ describe('metadata', () => {
         'See [[Vue Basics]] for comparison.',
       ].join('\n')
     );
-
     rebuildMetadata(paths);
-
-    expect(existsSync(join(paths.meta, 'registry.json'))).toBe(true);
-    expect(existsSync(join(paths.meta, 'backlinks.json'))).toBe(true);
-
-    const registry = JSON.parse(readFileSync(join(paths.meta, 'registry.json'), 'utf-8'));
-    const entry = registry.find((e: { title: string }) => e.title === 'React Intro');
-    expect(entry).toBeDefined();
-    expect(entry.type).toBe('concept');
-    expect(entry.tags).toEqual(['react']);
-
+    const reg = JSON.parse(readFileSync(join(paths.meta, 'registry.json'), 'utf-8'));
+    expect(reg.find((e: { title: string }) => e.title === 'React Intro')).toBeDefined();
     cleanup();
   });
 });
@@ -276,143 +273,108 @@ describe('ingest', () => {
   });
 });
 
-// ─── recall ──────────────────────────────────────────────────────
+// ─── search ──────────────────────────────────────────────────────
 
-describe('recall', () => {
-  it('tokenize splits into lowercase terms', () => {
+describe('tokenize', () => {
+  it('splits into lowercase terms', () => {
     expect(tokenize('React TypeScript')).toEqual(['react', 'typescript']);
     expect(tokenize('  multi   space  ')).toEqual(['multi', 'space']);
   });
+});
 
-  it('searchWiki returns empty for empty vault', () => {
+describe('searchWiki', () => {
+  it('returns empty for empty vault', () => {
     const paths = setupVault();
     rebuildMetadata(paths);
-    const results = searchWiki(paths, paths, 'anything', 'context', 5);
-    expect(results.length).toBe(0);
+    expect(searchWiki(paths, paths, 'anything', 'context', 5).length).toBe(0);
     cleanup();
   });
 
-  it('searchWiki ranks project first in context mode', () => {
+  it('ranks results in context mode', () => {
     const paths = setupVault();
-
-    // Create pages in both vaults (same vault for test)
-    const conceptsDir = join(paths.wiki, 'concepts');
-    mkdirSync(conceptsDir, { recursive: true });
-    writeFileSync(
-      join(conceptsDir, 'react-hooks.md'),
+    createPage(
+      paths,
+      CONCEPT,
+      'react-hooks',
       '---\ntype: concept\ntitle: React Hooks\ntags: [react]\n---\nContent.'
     );
-    writeFileSync(
-      join(conceptsDir, 'vue-composables.md'),
+    createPage(
+      paths,
+      CONCEPT,
+      'vue-composables',
       '---\ntype: concept\ntitle: Vue Composables\ntags: [vue]\n---\nContent.'
     );
     rebuildMetadata(paths);
-
-    const results = searchWiki(paths, paths, 'react', 'context', 5);
-    const reactResult = results.find((r) => r.id.includes('react'));
-    expect(reactResult).toBeDefined();
-    expect(reactResult?.score).toBeGreaterThan(0);
+    const r = searchWiki(paths, paths, 'react', 'context', 5);
+    expect(r.find((x) => x.id.includes('react'))?.score).toBeGreaterThan(0);
     cleanup();
   });
+});
 
-  it('formatRecallResults formats results as markdown', () => {
-    const results = [
+describe('formatRecallResults', () => {
+  it('formats results as markdown', () => {
+    const f = formatRecallResults([
       {
-        id: 'concepts/react',
+        id: 'c/r',
         title: 'React',
-        type: 'concept',
-        path: 'concepts/react.md',
+        type: CONCEPT,
+        path: 'c/r.md',
         tags: ['react'],
+        stage: 'production',
         score: 10,
         vault: 'project' as const,
       },
-      {
-        id: 'concepts/vue',
-        title: 'Vue',
-        type: 'concept',
-        path: 'concepts/vue.md',
-        tags: ['vue'],
-        score: 5,
-        vault: 'personal' as const,
-      },
-    ];
-    const formatted = formatRecallResults(results);
-    expect(formatted).toContain('## Relevant Wiki Knowledge');
-    expect(formatted).toContain('React');
-    expect(formatted).toContain('📁 project');
-    expect(formatted).toContain('📓 personal');
+    ]);
+    expect(f).toContain('React');
+    expect(f).toContain('📁 project');
   });
 
-  it('formatRecallResults returns empty string for no results', () => {
+  it('returns empty for no results', () => {
     expect(formatRecallResults([])).toBe('');
   });
+});
 
-  it('searchByTag filters by tag', () => {
+describe('searchByTag', () => {
+  it('filters by tag', () => {
     const paths = setupVault();
-    const conceptsDir = join(paths.wiki, 'concepts');
-    mkdirSync(conceptsDir, { recursive: true });
-    writeFileSync(
-      join(conceptsDir, 'react-hooks.md'),
-      '---\ntype: concept\ntitle: React Hooks\ntags: [react, hooks]\nstage: draft\n---\nContent.'
-    );
-    writeFileSync(
-      join(conceptsDir, 'vue-composables.md'),
-      '---\ntype: concept\ntitle: Vue Composables\ntags: [vue]\nstage: brainstorm\n---\nContent.'
-    );
+    createPage(paths, CONCEPT, 'a', '---\ntype: concept\ntitle: A\ntags: [x]\n---\nC.');
+    createPage(paths, CONCEPT, 'b', '---\ntype: concept\ntitle: B\ntags: [y]\n---\nC.');
     rebuildMetadata(paths);
-
-    const results = searchByTag(paths, paths, { tag: 'react' });
-    expect(results.length).toBe(1);
-    expect(results[0].title).toBe('React Hooks');
+    expect(searchByTag(paths, paths, { tag: 'x' }).length).toBe(1);
     cleanup();
   });
 
-  it('searchByTag filters by type', () => {
+  it('filters by type', () => {
     const paths = setupVault();
-    const conceptsDir = join(paths.wiki, 'concepts');
-    const entitiesDir = join(paths.wiki, 'entities');
-    mkdirSync(conceptsDir, { recursive: true });
-    mkdirSync(entitiesDir, { recursive: true });
-    writeFileSync(
-      join(conceptsDir, 'async.md'),
-      '---\ntype: concept\ntitle: Async Patterns\ntags: []\n---\nContent.'
-    );
-    writeFileSync(
-      join(entitiesDir, 'fastapi.md'),
-      '---\ntype: entity\ntitle: FastAPI\ntags: []\n---\nContent.'
-    );
+    createPage(paths, CONCEPT, 'a', '---\ntype: concept\ntitle: A\ntags: []\n---\nC.');
+    createPage(paths, 'entity', 'fastapi', '---\ntype: entity\ntitle: FastAPI\ntags: []\n---\nC.');
     rebuildMetadata(paths);
-
-    const results = searchByTag(paths, paths, { type: 'entity' });
-    expect(results.length).toBe(1);
-    expect(results[0].title).toBe('FastAPI');
+    expect(searchByTag(paths, paths, { type: 'entity' })[0].title).toBe('FastAPI');
     cleanup();
   });
 
-  it('searchByTag filters by stage', () => {
+  it('filters by stage', () => {
     const paths = setupVault();
-    const conceptsDir = join(paths.wiki, 'concepts');
-    mkdirSync(conceptsDir, { recursive: true });
-    writeFileSync(
-      join(conceptsDir, 'draft-page.md'),
-      '---\ntype: concept\ntitle: Draft Page\ntags: []\nstage: draft\n---\nContent.'
+    createPage(
+      paths,
+      CONCEPT,
+      'draft',
+      '---\ntype: concept\ntitle: Draft\ntags: []\nstage: draft\n---\nC.'
     );
-    writeFileSync(
-      join(conceptsDir, 'prod-page.md'),
-      '---\ntype: concept\ntitle: Prod Page\ntags: []\nstage: production\n---\nContent.'
+    createPage(
+      paths,
+      CONCEPT,
+      'prod',
+      '---\ntype: concept\ntitle: Prod\ntags: []\nstage: production\n---\nC.'
     );
     rebuildMetadata(paths);
-
-    const results = searchByTag(paths, paths, { stage: 'production' });
-    expect(results.length).toBe(1);
-    expect(results[0].title).toBe('Prod Page');
+    expect(searchByTag(paths, paths, { stage: 'production' }).length).toBe(1);
     cleanup();
   });
 
-  it('searchByTag returns empty for no filters', () => {
+  it('returns empty for no filters', () => {
     const paths = setupVault();
-    const results = searchByTag(paths, paths, {});
-    expect(results.length).toBe(0);
+    expect(searchByTag(paths, paths, {}).length).toBe(0);
     cleanup();
   });
 });

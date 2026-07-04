@@ -1,8 +1,8 @@
 {
   "theme": "catppuccin-mocha",
-  "lastChangelogVersion": "0.80.2",
-  "defaultProvider": "xiaomi-token-plan-sgp",
-  "defaultModel": "mimo-v2.5-pro",
+  "lastChangelogVersion": "0.80.3",
+  "defaultProvider": "deepseek",
+  "defaultModel": "deepseek-v4-flash",
   "defaultThinkingLevel": "high",
   "hideThinkingBlock": false,
   "packages": [
