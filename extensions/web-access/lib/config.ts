@@ -33,7 +33,9 @@ export function loadConfig(): AccessConfig {
     timeout: intOrDefault(process.env.PI_ACCESS_TIMEOUT, '30000'),
     maxDepth: intOrDefault(process.env.PI_ACCESS_MAX_DEPTH, '3'),
     chunkTokens: intOrDefault(process.env.PI_ACCESS_CHUNK_TOKENS, '4000'),
-    maxPages: intOrDefault(process.env.PI_ACCESS_MAX_PAGES, '50'),
+    // ponytail: 50 was too tight for most real wikis; 200 covers large sites
+    // while still bounding resource usage. Bump via PI_ACCESS_MAX_PAGES if needed.
+    maxPages: intOrDefault(process.env.PI_ACCESS_MAX_PAGES, '200'),
     crawlConcurrency: intOrDefault(process.env.PI_ACCESS_CRAWL_CONCURRENCY, '4'),
     crawlDelayMs: intOrDefault(process.env.PI_ACCESS_CRAWL_DELAY_MS, '200'),
     ytdlpBin: process.env.PI_ACCESS_YTDLP_BIN || 'yt-dlp',
