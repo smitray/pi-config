@@ -4,18 +4,22 @@ Custom extensions for [pi coding agent](https://github.com/earendil-works/pi).
 
 ## Extensions
 
-| Extension | Description | Docs |
-|-----------|-------------|------|
-| [gh](./gh/) | GitHub integration via `gh` CLI | [README](./gh/README.md) |
-| [guardrails](./guardrails/) | Security rules blocking risky tool calls | [README](./guardrails/README.md) |
-| [hooks](./hooks/) | Shell hooks on lifecycle events | [README](./hooks/README.md) |
-| [web-access](./web-access/) | Web search, fetch/crawl, persisted docs, media download | [README](./web-access/README.md) |
+| Extension | Description |
+| ----------- | ------------- |
+| [gh](./gh/) | GitHub integration via `gh` CLI |
+| [guardrails](./guardrails/) | Security rules blocking risky tool calls |
+| [hooks](./hooks/) | Shell hooks on lifecycle events |
+| [kb](./kb/) | Knowledge Base — persistent wiki vaults |
+| [web-access](./web-access/) | Web search, fetch/crawl, persisted docs, media download |
 
 Internal helpers shared between extensions live in [`_shared/`](./_shared/) — not a pi extension itself.
 
+Extension planning docs and code reviews are in [`docs/`](./docs/).
+
 ## Setup
 
-Extensions auto-discovered from `~/.pi/agent/extensions/*/index.ts` (anything not starting with `_`). No settings.json config needed.
+Extensions auto-discovered from `~/.pi/agent/extensions/*/index.ts`
+(anything not starting with `_`). No settings.json config needed.
 
 ```bash
 # Install dependencies
@@ -34,17 +38,19 @@ npm install
 
 ### Structure
 
-```
+```text
 extensions/
 ├── AGENTS.md            # agent-facing docs
 ├── biome.json           # lint/format config
 ├── tsconfig.json        # TypeScript config
 ├── package.json         # shared dependencies + scripts
-├── _shared/             # internal helpers (spawn wrapper, etc.) — not a pi extension
-├── guardrails/          # security rules extension
+├── _shared/             # internal helpers (spawn wrapper, result helpers)
 ├── gh/                  # GitHub CLI wrapper extension
+├── guardrails/          # security rules extension
 ├── hooks/               # lifecycle shell hooks extension
+├── kb/                  # Knowledge Base extension
 ├── web-access/          # web search / docs / media extension
+├── docs/                # planning docs + code reviews
 └── README.md            # you are here
 ```
 
@@ -54,7 +60,7 @@ extensions/
 # Tests
 npm test                    # all tests
 npm run test:watch          # watch mode
-vitest run <ext>            # single extension (gh, hooks, guardrails)
+vitest run <ext>            # single extension (gh, hooks, guardrails, kb, web-access)
 
 # Lint & Format
 npm run lint                # biome check
