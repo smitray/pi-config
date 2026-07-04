@@ -17,11 +17,7 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function fetchJson<T>(
-  url: string,
-  init: RequestInit,
-  config: AccessConfig
-): Promise<T> {
+async function doFetch(url: string, init: RequestInit, config: AccessConfig): Promise<Response> {
   const maxRetries = 2;
   let lastError: Error | undefined;
 
@@ -31,7 +27,7 @@ export async function fetchJson<T>(
     try {
       const response = await fetch(url, { ...init, signal: controller.signal });
       if (response.ok) {
-        return (await response.json()) as T;
+        return response;
       }
       if (TRANSIENT_STATUS.has(response.status) && attempt < maxRetries) {
         lastError = new HttpError(response.status, `${response.status} ${response.statusText}`);
@@ -42,7 +38,6 @@ export async function fetchJson<T>(
     } catch (err) {
       if (err instanceof HttpError) throw err;
       lastError = err instanceof Error ? err : new Error(String(err));
-      // Timeouts abort cleanly; don't retry what we already gave up on.
       if (lastError.name === 'AbortError' || attempt === maxRetries) throw lastError;
       await sleep(200 * (attempt + 1));
     } finally {
@@ -50,4 +45,22 @@ export async function fetchJson<T>(
     }
   }
   throw lastError ?? new Error('fetch failed');
+}
+
+export async function fetchJson<T>(
+  url: string,
+  init: RequestInit,
+  config: AccessConfig
+): Promise<T> {
+  const response = await doFetch(url, init, config);
+  return (await response.json()) as T;
+}
+
+export async function fetchText(
+  url: string,
+  init: RequestInit,
+  config: AccessConfig
+): Promise<string> {
+  const response = await doFetch(url, init, config);
+  return await response.text();
 }
