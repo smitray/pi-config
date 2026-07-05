@@ -92,10 +92,6 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
   const approxTokens = (text: string) =>
     Math.ceil(text.trim().split(/\s+/).filter(Boolean).length * 1.3);
 
-  function needsChunking(text: string): boolean {
-    return approxTokens(text) > maxTokens;
-  }
-
   for (const section of sections) {
     const sectionText = section.heading
       ? `# ${section.heading}\n\n${section.content}`

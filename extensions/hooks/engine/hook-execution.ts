@@ -50,6 +50,7 @@ function matchesPattern(context: string | undefined, value: string, pattern: str
   try {
     // nosemgrep: user-configured patterns, safe by policy
     // nosemgrep
+    // pi-lens-ignore: unsafe-regex
     const regex = new RegExp(pattern, 'i');
     return regex.test(value);
   } catch {

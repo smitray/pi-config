@@ -1,8 +1,8 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
+import { err, ok } from '../../_shared/result';
 import type { AccessConfig } from '../lib/config';
 import { chunkPages, listLabels, loadManifest, readPage, searchDocs } from '../lib/docs-store';
-import { err, ok } from '../lib/result';
 
 // In-memory chunk cache, cleared on session shutdown via the extension.
 const chunksCache = new Map<string, ReturnType<typeof chunkPages>>();

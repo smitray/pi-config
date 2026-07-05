@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { err, ok } from '../lib/result'; // re-exports from _shared/result.ts
+import { err, ok } from '../../_shared/result';
 
 describe('ok', () => {
   it('returns success-shaped result with isError false', () => {

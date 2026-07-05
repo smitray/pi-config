@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
+import { err, ok } from '../../_shared/result';
 import type { AccessConfig } from '../lib/config';
 import {
   type DocsManifest,
@@ -13,7 +14,6 @@ import {
 import { fetchJson, fetchText } from '../lib/http';
 import { writePagesAsKbPackets } from '../lib/kb-packets';
 import { approxTokens, extractLinks, extractTitle, splitIntoChunks } from '../lib/markdown';
-import { err, ok } from '../lib/result';
 
 // Re-export pure helpers so existing imports keep working.
 export { approxTokens, extractLinks, extractTitle, splitIntoChunks };
