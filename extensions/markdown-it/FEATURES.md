@@ -16,6 +16,10 @@ AST-based markdown parsing for chunking, structure extraction, and validation.
 | kb | (planned) | Markdown frontmatter + content parsing |
 | OCR pipeline | (planned) | OCR → markdown-it → KB/agent |
 
+## Related
+
+- [markitdown](../markitdown/) — Microsoft MarkItDown (file-to-markdown conversion, complementary tool)
+
 ## Dependencies
 
 - `markdown-it@^14.2.0` (npm — project-level dep)
