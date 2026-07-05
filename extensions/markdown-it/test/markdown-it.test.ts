@@ -9,7 +9,6 @@ describe('markdown-it utilities', () => {
         '# Title\n\nPreamble content.\n\n## Section One\n\nContent for one.\n\n### Subsection\n\nDeep content.\n\n## Section Two\n\nContent for two.';
 
       const sections = extractSections(markdown);
-      // First heading becomes preamble, then 3 more sections
       expect(sections).toHaveLength(4);
       expect(sections[0].heading).toBe('Title');
       expect(sections[0].content).toBe('Preamble content.');
@@ -36,7 +35,6 @@ describe('markdown-it utilities', () => {
       const markdown = '# Section\n\nFirst paragraph.\n\nSecond paragraph.\n\nThird paragraph.';
 
       const chunks = chunkByHeadings(markdown, 200);
-      // Should split into multiple chunks based on paragraph boundaries
       expect(chunks.length).toBeGreaterThanOrEqual(1);
     });
 
