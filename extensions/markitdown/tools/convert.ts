@@ -1,5 +1,4 @@
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { runCommand } from '../../_shared/spawn';
 
@@ -20,7 +19,7 @@ interface MarkitdownConvertArgs {
   timeoutMs?: number;
 }
 
-async function markitdownConvert(args: MarkitdownConvertArgs): Promise<{
+async function handleMarkitdownConvert(args: MarkitdownConvertArgs): Promise<{
   ok: boolean;
   content?: string;
   error?: string;
@@ -96,7 +95,7 @@ const markitdownConvert = {
       required: false,
     },
   ],
-  handler: markitdownConvert,
+  handler: handleMarkitdownConvert,
 };
 
 export { markitdownConvert };

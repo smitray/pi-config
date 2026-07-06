@@ -18,9 +18,7 @@ const md = new MarkdownIt({
  * Extract structured sections from markdown using AST.
  * Returns [{ heading, content }[]] ordered by depth.
  */
-export function extractSections(
-  markdown: string,
-): Array<{ heading: string; content: string }> {
+export function extractSections(markdown: string): Array<{ heading: string; content: string }> {
   const tokens = md.parse(markdown, {});
   const sections: Array<{ heading: string; content: string }> = [];
   let currentHeading: string | null = null;
@@ -102,10 +100,7 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
     } else if (section.heading) {
       let paragraphs = section.content.split(/\n\n+/);
 
-      if (
-        paragraphs.length === 1 &&
-        approxTokens(section.content) > maxTokens
-      ) {
+      if (paragraphs.length === 1 && approxTokens(section.content) > maxTokens) {
         const words = section.content.trim().split(/\s+/).filter(Boolean);
         if (words.length === 1) {
           const chunkSize = Math.ceil(maxTokens / 1.3);
@@ -118,10 +113,7 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
         }
       }
 
-      if (
-        paragraphs.length === 1 &&
-        approxTokens(paragraphs[0]) > maxTokens
-      ) {
+      if (paragraphs.length === 1 && approxTokens(paragraphs[0]) > maxTokens) {
         const chunkSize = Math.ceil(maxTokens / 1.3);
         const finalParas: string[] = [];
         for (let i = 0; i < paragraphs[0].length; i += chunkSize) {
@@ -135,10 +127,7 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
 
       for (const para of paragraphs) {
         const paraTokens = approxTokens(para);
-        if (
-          chunkTokens + paraTokens > maxTokens &&
-          chunk.length > approxTokens(section.heading)
-        ) {
+        if (chunkTokens + paraTokens > maxTokens && chunk.length > approxTokens(section.heading)) {
           chunks.push(chunk.trim());
           chunk = `# ${section.heading}\n\n${para}`;
           chunkTokens = approxTokens(chunk);
@@ -186,17 +175,13 @@ export function validateMarkdown(markdown: string): string[] {
   const openBrackets = (markdown.match(/\[/g) || []).length;
   const closeBrackets = (markdown.match(/\]/g) || []).length;
   if (openBrackets !== closeBrackets) {
-    errors.push(
-      `Unmatched brackets: ${openBrackets} open, ${closeBrackets} close`,
-    );
+    errors.push(`Unmatched brackets: ${openBrackets} open, ${closeBrackets} close`);
   }
 
   const openParens = (markdown.match(/\(/g) || []).length;
   const closeParens = (markdown.match(/\)/g) || []).length;
   if (openParens !== closeParens) {
-    errors.push(
-      `Unmatched parens: ${openParens} open, ${closeParens} close`,
-    );
+    errors.push(`Unmatched parens: ${openParens} open, ${closeParens} close`);
   }
 
   return errors;
