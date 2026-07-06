@@ -1,9 +1,9 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
+import { loadConfig } from './engine/config';
 import { registerCommands } from './commands/register';
 import { registerEventHandlers } from './engine/events';
-import type { HooksConfig } from './types/schema';
 
 const skillsDir = join(dirname(fileURLToPath(import.meta.url)), 'skills');
 
@@ -21,15 +21,15 @@ const skillsDir = join(dirname(fileURLToPath(import.meta.url)), 'skills');
  *   %tool%    — tool name
  *   %cwd%     — current working directory
  *
- * Edit the `config` array below to add hooks. Restart the session to pick up
- * changes. (Loading from a JSON file is a future enhancement; see README.)
+ * Config file: `hooks.json` in the hooks extension directory.
+ * Create it with a HooksGroup[] array. Restart the session to pick up changes.
+ * If no hooks.json exists, no hooks run (empty config).
  */
 export default function hooksExtension(pi: ExtensionAPI): void {
   let enabled = true;
 
-  // ponytail: empty default config — user adds hooks they actually want. Drop in
-  // a HooksGroup[] here, save, restart the session.
-  const config: HooksConfig = [];
+  // Load hooks from hooks.json, falling back to empty config.
+  const config = loadConfig();
 
   registerEventHandlers(
     pi,

@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
+import { err, ok } from '../../_shared/result';
 import { ghRepo, spawnErrorMessage } from '../api/gh';
-import { err, ok } from '../lib/result';
 
 export function registerWorkflowTools(pi: ExtensionAPI) {
   pi.registerTool({

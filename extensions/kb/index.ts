@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve as resolvePath } from 'node:path';
+import { dirname, join, resolve as resolvePath } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { err, ok } from '../_shared/result';
@@ -87,6 +88,11 @@ function isKnowledgePrompt(prompt: string): boolean {
 export default function (pi: ExtensionAPI) {
   // ─── Guardrails (vault path resolved per-event) ─────────────────
   installGuardrails();
+
+  // ─── Register skills with pi ─────────────────────────────
+
+  const skillsDir = join(dirname(fileURLToPath(import.meta.url)), 'skills');
+  pi.on('resources_discover', () => ({ skillPaths: [skillsDir] }));
 
   // ─── kb_bootstrap ──────────────────────────────────────────────
 

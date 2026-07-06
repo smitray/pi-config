@@ -2,9 +2,9 @@ import { mkdirSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { extname, join } from 'node:path';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
+import { err, ok } from '../../_shared/result';
 import { runCommand } from '../../_shared/spawn';
 import type { AccessConfig } from '../lib/config';
-import { err, ok } from '../lib/result';
 import type { ToolResult } from '../lib/types';
 
 type MediaMode = 'metadata' | 'subtitles' | 'audio' | 'video';

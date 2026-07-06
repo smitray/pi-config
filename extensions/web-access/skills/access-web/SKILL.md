@@ -26,7 +26,7 @@ This skill wraps the eight tools registered by the `access-web` extension.
 | `PI_CRAWL4AI_HOST` / `PI_CRAWL4AI_PORT` | `localhost:11234` | Crawl4AI location |
 | `PI_ACCESS_TIMEOUT` | `30000` | HTTP/spawn timeout (ms) |
 | `PI_ACCESS_MAX_DEPTH` | `3` | Default crawl depth for `web-fetch-docs` |
-| `PI_ACCESS_MAX_PAGES` | `50` | Cap on pages crawled per docs label |
+| `PI_ACCESS_MAX_PAGES` | `200` | Cap on pages crawled per docs label |
 | `PI_ACCESS_CRAWL_CONCURRENCY` | `4` | Parallel fetches during a docs crawl |
 | `PI_ACCESS_CRAWL_DELAY_MS` | `200` | Delay between fetch batches (politeness) |
 | `PI_ACCESS_CHUNK_TOKENS` | `4000` | Target tokens per chunk |

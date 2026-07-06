@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
+import { err, ok } from '../../_shared/result';
 import { gh, spawnErrorMessage } from '../api/gh';
-import { err, ok } from '../lib/result';
 
 export function registerRepoTools(pi: ExtensionAPI) {
   pi.registerTool({

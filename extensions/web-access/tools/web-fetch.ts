@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
+import { err, ok } from '../../_shared/result';
 import type { AccessConfig } from '../lib/config';
 import {
   type DocsManifest,
@@ -10,10 +11,9 @@ import {
   saveManifest,
   savePage,
 } from '../lib/docs-store';
-import { fetchJson } from '../lib/http';
+import { fetchJson, fetchText } from '../lib/http';
 import { writePagesAsKbPackets } from '../lib/kb-packets';
 import { approxTokens, extractLinks, extractTitle, splitIntoChunks } from '../lib/markdown';
-import { err, ok } from '../lib/result';
 
 // Re-export pure helpers so existing imports keep working.
 export { approxTokens, extractLinks, extractTitle, splitIntoChunks };
@@ -37,6 +37,37 @@ function sleep(ms: number): Promise<void> {
 
 // ponytail: naive robots.txt parser — only blocks explicit "User-agent: *" +
 // "Disallow: /". Upgrade to a real parser if path-specific rules matter.
+// Inline XML parser: extracts <loc> from sitemap XML. No JSX/SAX dep needed.
+function parseSitemapLocs(xml: string, baseHost: string): string[] {
+  const urls: string[] = [];
+  const locRe = /<loc[^>]*>([^<]+)<\/loc>/gi;
+  let match: RegExpExecArray | null = locRe.exec(xml);
+  while (match !== null) {
+    try {
+      const u = new URL(match[1].trim());
+      if (u.hostname === baseHost) {
+        u.hash = '';
+        urls.push(u.href);
+      }
+    } catch {
+      // malformed URL in sitemap, skip
+    }
+    match = locRe.exec(xml);
+  }
+  return urls;
+}
+
+async function fetchSitemapUrls(baseUrl: string, config: AccessConfig): Promise<string[]> {
+  const base = new URL(baseUrl);
+  const sitemapUrl = `${base.protocol}//${base.host}/sitemap.xml`;
+  try {
+    const xml = await fetchText(sitemapUrl, { method: 'GET' }, config);
+    return parseSitemapLocs(xml, base.hostname);
+  } catch {
+    return []; // sitemap missing/unreachable, fall back to link-following
+  }
+}
+
 async function checkRobotsTxt(
   baseUrl: string,
   config: AccessConfig
@@ -112,6 +143,17 @@ export async function crawlDocs(
   const pages: RawPage[] = [];
   const seen = new Set<string>([baseUrl]);
   const queue: Array<{ url: string; depth: number }> = [{ url: baseUrl, depth: 0 }];
+
+  // ponytail: sitemap discovery — adds all sitemap URLs at depth 0 so the crawler
+  // sees pages that might not be linked from any reachable page.
+  // Ceiling: sitemap can add thousands of URLs; maxPages cap still applies.
+  const sitemapUrls = await fetchSitemapUrls(baseUrl, config);
+  for (const url of sitemapUrls) {
+    if (!seen.has(url)) {
+      seen.add(url);
+      queue.push({ url, depth: 0 });
+    }
+  }
 
   while (queue.length > 0 && pages.length < config.maxPages) {
     const batchSize = Math.min(config.crawlConcurrency, queue.length);

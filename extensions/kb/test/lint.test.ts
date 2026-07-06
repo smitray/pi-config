@@ -8,8 +8,10 @@ const TEST_DIR = join(import.meta.dirname, '.tmp-lint-test');
 
 function makePaths(): VaultPaths {
   return {
+    root: TEST_DIR,
     dotKb: TEST_DIR,
     raw: join(TEST_DIR, 'raw'),
+    rawSources: join(TEST_DIR, 'raw', 'sources'),
     wiki: join(TEST_DIR, 'wiki'),
     meta: join(TEST_DIR, 'meta'),
     templates: join(TEST_DIR, 'templates', 'pages'),
