@@ -1,0 +1,26 @@
+{
+  "project": "pi-config",
+  "version": "0.80.3",
+  "extensions": [
+    {
+      "name": "gh",
+      "description": "GitHub integration via gh CLI",
+      "tests": 8
+    },
+    {
+      "name": "guardrails",
+      "description": "Security rules blocking risky tool calls",
+      "tests": 20
+    },
+    {
+      "name": "kb",
+      "description": "Knowledge Base with persistent wiki vaults",
+      "tests": 93
+    }
+  ],
+  "config": {
+    "autoIngest": true,
+    "autoLint": true,
+    "staleDays": 30
+  }
+}

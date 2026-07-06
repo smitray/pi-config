@@ -1,13 +1,12 @@
 /**
- * Markdown-it integration for web-access.
- * Provides AST-based parsing for better chunking and structure extraction.
+ * Markdown-it integration — AST-based parsing for chunking and structure extraction.
+ *
+ * Uses the markdown-it npm package for accurate heading detection, section extraction,
+ * and chunking by token budgets. Safe to use across extensions (web-access, kb, OCR).
  */
+
 import MarkdownIt from 'markdown-it';
 
-/**
- * Tokenizer that preserves headings as chunk boundaries.
- * Uses markdown-it AST for accurate #, ##, ### detection.
- */
 const md = new MarkdownIt({
   html: false,
   breaks: false,
@@ -17,7 +16,7 @@ const md = new MarkdownIt({
 
 /**
  * Extract structured sections from markdown using AST.
- * Returns [{ heading: string, content: string }[]] ordered by depth.
+ * Returns [{ heading, content }[]] ordered by depth.
  */
 export function extractSections(markdown: string): Array<{ heading: string; content: string }> {
   const tokens = md.parse(markdown, {});
@@ -27,7 +26,10 @@ export function extractSections(markdown: string): Array<{ heading: string; cont
 
   function flushSection(): void {
     if (currentHeading !== null) {
-      sections.push({ heading: currentHeading, content: currentContent.join('\n\n') });
+      sections.push({
+        heading: currentHeading,
+        content: currentContent.join('\n\n'),
+      });
     }
     currentHeading = null;
     currentContent = [];
@@ -37,29 +39,23 @@ export function extractSections(markdown: string): Array<{ heading: string; cont
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
     if (token.type === 'heading_open') {
-      // Save previous section
       flushSection();
-
-      // Get heading text from next token
       headingTokenIndex = i + 1;
       const nextToken = tokens[i + 1];
       if (nextToken && nextToken.type === 'inline') {
         currentHeading = nextToken.content;
       }
     } else if (token.type === 'heading_close') {
-      // Just a closing tag, skip
+      // skip
     } else if (i === headingTokenIndex) {
-      // This is the inline token with the heading text, skip it
+      // inline token with heading text, skip
     } else if (token.type === 'inline') {
-      // Content belongs to current section or preamble
       if (currentHeading === null) {
-        // Preamble before first heading
         sections.push({ heading: '', content: token.content.trim() });
       } else {
         currentContent.push(token.content);
       }
     } else if (token.type === 'fence') {
-      // Preserve fenced code blocks with their language hint
       const lang = token.info?.trim() ?? '';
       const code = `\`\`\`${lang}\n${token.content}\n\`\`\``;
       if (currentHeading === null) {
@@ -68,7 +64,6 @@ export function extractSections(markdown: string): Array<{ heading: string; cont
         currentContent.push(code);
       }
     } else if (token.type === 'code_block' || token.type === 'html_block') {
-      // Indented code blocks and HTML blocks
       const code = `\`\`\`\n${token.content}\n\`\`\``;
       if (currentHeading === null) {
         sections.push({ heading: '', content: code });
@@ -82,6 +77,10 @@ export function extractSections(markdown: string): Array<{ heading: string; cont
   return sections;
 }
 
+function approxTokens(text: string): number {
+  return Math.ceil(text.trim().split(/\s+/).filter(Boolean).length * 1.3);
+}
+
 /**
  * Chunk markdown by headings, respecting maxTokens per section.
  * Falls back to paragraph split if section exceeds maxTokens.
@@ -89,8 +88,6 @@ export function extractSections(markdown: string): Array<{ heading: string; cont
 export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
   const sections = extractSections(markdown);
   const chunks: string[] = [];
-  const approxTokens = (text: string) =>
-    Math.ceil(text.trim().split(/\s+/).filter(Boolean).length * 1.3);
 
   for (const section of sections) {
     const sectionText = section.heading
@@ -101,15 +98,12 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
     if (sectionTokens <= maxTokens) {
       chunks.push(sectionText);
     } else if (section.heading) {
-      // Section with heading is too large — split by paragraphs
       let paragraphs = section.content.split(/\n\n+/);
 
-      // If only one "paragraph" (no newlines), split by word blocks or chars
       if (paragraphs.length === 1 && approxTokens(section.content) > maxTokens) {
         const words = section.content.trim().split(/\s+/).filter(Boolean);
         if (words.length === 1) {
-          // No spaces — split into fixed-size chunks
-          const chunkSize = Math.ceil(maxTokens / 1.3); // chars per chunk
+          const chunkSize = Math.ceil(maxTokens / 1.3);
           paragraphs = [];
           for (let i = 0; i < section.content.length; i += chunkSize) {
             paragraphs.push(section.content.slice(i, i + chunkSize));
@@ -119,7 +113,6 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
         }
       }
 
-      // Apply char-splitting if paragraphs are still too large (single block of text)
       if (paragraphs.length === 1 && approxTokens(paragraphs[0]) > maxTokens) {
         const chunkSize = Math.ceil(maxTokens / 1.3);
         const finalParas: string[] = [];
@@ -135,7 +128,6 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
       for (const para of paragraphs) {
         const paraTokens = approxTokens(para);
         if (chunkTokens + paraTokens > maxTokens && chunk.length > approxTokens(section.heading)) {
-          // Flush current chunk
           chunks.push(chunk.trim());
           chunk = `# ${section.heading}\n\n${para}`;
           chunkTokens = approxTokens(chunk);
@@ -146,7 +138,6 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
       }
       chunks.push(chunk.trim());
     } else {
-      // No heading, content-only section — paragraph split
       const paragraphs = section.content.split(/\n\n+/);
       let chunk = '';
       let chunkTokens = 0;
@@ -176,13 +167,11 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
 export function validateMarkdown(markdown: string): string[] {
   const errors: string[] = [];
   try {
-    // Try to parse — throws on severe syntax errors
     md.parse(markdown, {});
   } catch (err) {
     errors.push(`Parse error: ${(err as Error).message}`);
   }
 
-  // Check for unmatched brackets
   const openBrackets = (markdown.match(/\[/g) || []).length;
   const closeBrackets = (markdown.match(/\]/g) || []).length;
   if (openBrackets !== closeBrackets) {
