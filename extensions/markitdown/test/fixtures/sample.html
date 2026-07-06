@@ -1,0 +1,39 @@
+<html lang="en">
+<head><title>Sample Document</title></head>
+<body>
+<h1>Architecture Overview</h1>
+<p>This is a <strong>sample document</strong> for testing MarkItDown conversion.</p>
+
+<h2>Components</h2>
+<ul>
+<li><strong>API Gateway</strong> — routes incoming requests</li>
+<li><strong>Auth Service</strong> — validates JWT tokens</li>
+<li><strong>Data Layer</strong> — PostgreSQL with connection pooling</li>
+</ul>
+
+<h2>Configuration</h2>
+<pre><code class="language-yaml">
+server:
+  port: 8080
+  host: 0.0.0.0
+database:
+  url: postgres://localhost:5432/app
+  pool_size: 10
+</code></pre>
+
+<h2>API Endpoints</h2>
+<table>
+<tr><th>Method</th><th>Path</th><th>Description</th></tr>
+<tr><td>GET</td><td>/api/users</td><td>List all users</td></tr>
+<tr><td>POST</td><td>/api/users</td><td>Create a user</td></tr>
+<tr><td>GET</td><td>/api/users/:id</td><td>Get user by ID</td></tr>
+</table>
+
+<h2>Notes</h2>
+<ol>
+<li>Authentication is required for all endpoints</li>
+<li>Rate limiting: 100 requests per minute</li>
+<li>CORS enabled for <code>https://app.example.com</code></li>
+</ol>
+</body>
+</html>
