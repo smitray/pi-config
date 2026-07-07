@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
-import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
+import { Type } from '@earendil-works/pi-ai';
+import { defineTool, type ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { runCommand } from '../../_shared/spawn';
 
 /**
@@ -77,25 +78,28 @@ async function handleMarkitdownConvert(args: MarkitdownConvertArgs): Promise<{
 }
 
 // Tool metadata for pi registration
-const markitdownConvert = {
+const markitdownConvert = defineTool({
   name: 'markitdown-convert',
+  label: 'MarkItDown Convert',
   description:
     'Convert a local file (PDF, DOCX, PPTX, XLSX, images, audio, HTML, CSV, JSON, XML, EPUB) to Markdown using Microsoft MarkItDown.',
-  args: [
-    {
-      name: 'path',
-      type: 'string' as const,
+  parameters: Type.Object({
+    path: Type.String({
       description: 'Path to the local file to convert',
-      required: true,
-    },
-    {
-      name: 'timeoutMs',
-      type: 'number' as const,
-      description: 'Timeout in ms (default 60000). Increase for large PDFs or OCR-heavy images.',
-      required: false,
-    },
-  ],
-  handler: handleMarkitdownConvert,
-};
+    }),
+    timeoutMs: Type.Optional(
+      Type.Number({
+        description: 'Timeout in ms (default 60000). Increase for large PDFs or OCR-heavy images.',
+      }),
+    ),
+  }),
+  async execute(_toolCallId, params) {
+    const result = await handleMarkitdownConvert(params as MarkitdownConvertArgs);
+    return {
+      content: [{ type: 'text' as const, text: result.ok ? result.content ?? '' : result.error ?? 'markitdown failed' }],
+      details: result,
+    };
+  },
+});
 
 export { markitdownConvert };

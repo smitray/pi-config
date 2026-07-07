@@ -70,19 +70,19 @@ let cachedConfig: KBConfig | null = null;
 const DEFAULTS: KBConfig = {
   models: {
     task: {
-      provider: 'xiaomi-token-plan-sgp',
+      provider: 'mimo-plan',
       id: 'mimo-v2.5',
       thinking: 'low',
       maxTokens: 4096,
     },
     synthesis: {
-      provider: 'xiaomi-token-plan-sgp',
+      provider: 'mimo-plan',
       id: 'mimo-v2.5-pro',
       thinking: 'medium',
       maxTokens: 8192,
     },
     embedding: {
-      provider: 'openrouter',
+      provider: 'curated',
       id: 'nvidia/llama-nemotron-embed-vl-1b-v2:free',
       dimensions: 1024,
       fallback: 'qwen/qwen3-embedding-8b',
@@ -202,9 +202,9 @@ export function resolveApiKey(provider: string): string | undefined {
  */
 export function getProviderBaseUrl(provider: string): string {
   const urls: Record<string, string> = {
-    openrouter: 'https://openrouter.ai/api/v1',
-    'xiaomi-token-plan-sgp': 'https://token-plan-sgp.xiaomimimo.com/v1',
-    'minimax-token-plan': 'https://api.minimax.io/anthropic',
+    'curated': 'https://openrouter.ai/api/v1',
+    'mimo-plan': 'https://token-plan-sgp.xiaomimimo.com/v1',
+    'minimax': 'https://api.minimax.io/v1',
   };
   return urls[provider] ?? '';
 }
