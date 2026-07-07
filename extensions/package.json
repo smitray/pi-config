@@ -9,12 +9,15 @@
     "lint:fix": "biome check --write .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:kb": "vitest run --coverage kb/",
     "typecheck": "tsc --noEmit --project tsconfig.json"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
     "@earendil-works/pi-coding-agent": "latest",
     "@types/markdown-it": "^14.1.2",
+    "@vitest/coverage-v8": "^4.1.10",
     "typebox": "^1.2.9",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"

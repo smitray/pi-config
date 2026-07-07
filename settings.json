@@ -17,7 +17,7 @@
     "observationsPoolTargetTokens": 10000,
     "agentMaxTurns": 16,
     "model": {
-      "provider": "xiaomi-token-plan-sgp",
+      "provider": "mimo-plan",
       "id": "mimo-v2.5",
       "thinking": "low"
     },

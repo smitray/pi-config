@@ -30,19 +30,19 @@ describe('loadKBConfig', () => {
 describe('getModelConfig', () => {
   it('returns task model config', () => {
     const config = getModelConfig('task');
-    expect(config.provider).toBe('xiaomi-token-plan-sgp');
+    expect(config.provider).toBe('mimo-plan');
     expect(config.id).toBe('mimo-v2.5');
   });
 
   it('returns synthesis model config', () => {
     const config = getModelConfig('synthesis');
-    expect(config.provider).toBe('xiaomi-token-plan-sgp');
+    expect(config.provider).toBe('mimo-plan');
     expect(config.id).toBe('mimo-v2.5-pro');
   });
 
   it('returns embedding model config', () => {
     const config = getModelConfig('embedding');
-    expect(config.provider).toBe('openrouter');
+    expect(config.provider).toBe('curated');
     expect(config.id).toBe('nvidia/llama-nemotron-embed-vl-1b-v2:free');
     expect(config.dimensions).toBe(1024);
   });
@@ -72,19 +72,19 @@ describe('resolveApiKey', () => {
 
   it('resolves xiaomi key', () => {
     process.env.MIMO_API_KEY = 'test-key';
-    const key = resolveApiKey('xiaomi-token-plan-sgp');
+    const key = resolveApiKey('mimo-plan');
     expect(key).toBe('test-key');
     delete process.env.MIMO_API_KEY;
   });
 });
 
 describe('getProviderBaseUrl', () => {
-  it('returns openrouter url', () => {
-    expect(getProviderBaseUrl('openrouter')).toBe('https://openrouter.ai/api/v1');
+  it('returns curated url', () => {
+    expect(getProviderBaseUrl('curated')).toBe('https://openrouter.ai/api/v1');
   });
 
-  it('returns xiaomi url', () => {
-    expect(getProviderBaseUrl('xiaomi-token-plan-sgp')).toBe(
+  it('returns mimo-plan url', () => {
+    expect(getProviderBaseUrl('mimo-plan')).toBe(
       'https://token-plan-sgp.xiaomimimo.com/v1'
     );
   });
