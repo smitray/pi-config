@@ -204,7 +204,7 @@ export function getProviderBaseUrl(provider: string): string {
   const urls: Record<string, string> = {
     openrouter: 'https://openrouter.ai/api/v1',
     'xiaomi-token-plan-sgp': 'https://token-plan-sgp.xiaomimimo.com/v1',
-    'minimax-token-plan': 'https://api.minimax.io/anthropic',
+    'minimax': 'https://api.minimax.io/v1',
   };
   return urls[provider] ?? '';
 }

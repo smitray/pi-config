@@ -1,9 +1,7 @@
 {
   "theme": "catppuccin-mocha",
   "lastChangelogVersion": "0.80.3",
-  "defaultProvider": "deepseek",
-  "defaultModel": "deepseek-v4-flash",
-  "defaultThinkingLevel": "high",
+  "defaultProvider": "minimax",
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-observational-memory",
@@ -46,5 +44,6 @@
   },
   "terminal": {
     "showTerminalProgress": false
-  }
+  },
+  "defaultModel": "MiniMax-M3"
 }
