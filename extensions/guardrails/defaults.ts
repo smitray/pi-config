@@ -120,6 +120,31 @@ const defaults: GuardrailsGroup[] = [
       },
     ],
   },
+  // Block commands that expose environment variables
+  {
+    group: 'sensitive-commands',
+    pattern: '*',
+    rules: [
+      {
+        context: 'command',
+        pattern: 'printenv',
+        action: 'block',
+        reason: 'Exposes environment variables — blocked',
+      },
+      {
+        context: 'command',
+        pattern: 'printenv *',
+        action: 'block',
+        reason: 'Exposes environment variables — blocked',
+      },
+      {
+        context: 'command',
+        pattern: 'env',
+        action: 'block',
+        reason: 'Exposes environment variables — blocked',
+      },
+    ],
+  },
 ];
 
 export default defaults;
