@@ -1,7 +1,7 @@
 {
   "theme": "catppuccin-mocha",
   "lastChangelogVersion": "0.80.3",
-  "defaultProvider": "minimax",
+  "defaultProvider": "curated",
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-observational-memory",
@@ -45,5 +45,6 @@
   "terminal": {
     "showTerminalProgress": false
   },
-  "defaultModel": "MiniMax-M3"
+  "defaultModel": "cohere/north-mini-code:free",
+  "defaultThinkingLevel": "high"
 }
