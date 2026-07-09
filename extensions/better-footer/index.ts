@@ -378,11 +378,21 @@ function renderSingleLine(
 // ────────────────────────────────────────────────────────────────────────────
 
 // Factory for setFooter - reused by both session_start auto-install and /footer toggle.
-// Outer state (config, thinkingLevel) is captured via closure.
-function makeFooterFactory(getConfig: () => FooterConfig, getThinkingLevel: () => string, getSessionStartTime: () => number, getProcessStartTime: () => number) {
+// Outer state (config, thinkingLevel, requestRender) is captured via closure.
+function makeFooterFactory(
+  getConfig: () => FooterConfig,
+  getThinkingLevel: () => string,
+  getSessionStartTime: () => number,
+  getProcessStartTime: () => number,
+  setRequestRender: (fn: () => void) => void,
+) {
   return (ctx: any) => {
     ctx.ui.setFooter((tui: any, theme: any, footerData: any) => {
-      const unsubBranch = footerData.onBranchChange(() => tui.requestRender());
+      // Surface tui.requestRender so /think and /model updates redraw
+      // immediately rather than waiting for a branch change.
+      const requestRender = () => tui.requestRender?.();
+      setRequestRender(requestRender);
+      const unsubBranch = footerData.onBranchChange(() => requestRender());
       return {
         dispose: () => unsubBranch(),
         invalidate() {},
@@ -425,10 +435,16 @@ export default function (pi: ExtensionAPI) {
     thinkingLevel: 'off' as string, // synced from pi on session_start (can't call getThinkingLevel during load)
     sessionStartTime: 0,
     processStartTime: Date.now(),
+    requestRender: () => {}, // populated by the footer renderer on mount
   };
 
   pi.on('thinking_level_select', (event: ThinkingLevelSelectEvent) => {
     state.thinkingLevel = event.level;
+    state.requestRender();
+  });
+
+  pi.on('model_select', () => {
+    state.requestRender();
   });
 
   // Watch config file for changes; debounce 200ms
@@ -449,7 +465,10 @@ export default function (pi: ExtensionAPI) {
     () => state.config,
     () => state.thinkingLevel,
     () => state.sessionStartTime,
-    () => state.processStartTime
+    () => state.processStartTime,
+    (fn) => {
+      state.requestRender = fn;
+    },
   );
 
   // Auto-install on session start if config says enabled.
