@@ -231,7 +231,7 @@ function renderSingleLine(
 
   // Thinking level — same ⚡ icon, color from theme's thinking* slot
   segments.push(
-    theme.getThinkingColor(data.thinkingLevel)(
+    theme.getThinkingBorderColor(data.thinkingLevel)(
       `${THINKING_ICON}${THINKING_BARS[data.thinkingLevel] ?? ''} ${data.thinkingLevel}`
     )
   );
