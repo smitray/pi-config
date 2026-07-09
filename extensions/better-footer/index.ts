@@ -290,7 +290,7 @@ function renderSingleLine(
       parts.push(theme.fg('success', `${ICON_SESSION_TURNS} ${data.sessionTurnCount}`));
     }
     // Uptime
-    parts.push(theme.fg('dim', `${ICON_SESSION_UPTIME} ${(data.toolUptime / 3600).toFixed(1)}h`));
+    parts.push(theme.fg('muted', `${ICON_SESSION_UPTIME} ${(data.toolUptime / 3600).toFixed(1)}h`));
     if (parts.length) segments.push(parts.join('  '));
   }
 
