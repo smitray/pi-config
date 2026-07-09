@@ -19,18 +19,21 @@ import betterFooter from '../index.ts';
 
 // Catppuccin Mocha colors used by the footer (subset of themes/catppuccin-mocha.json)
 const FG_RGB: Record<string, [number, number, number]> = {
-  accent: [203, 166, 247],        // mauve
-  success: [166, 227, 161],       // green
-  warning: [249, 226, 175],       // yellow
-  error: [243, 139, 168],         // red
-  dim: [108, 112, 134],           // overlay0
-  muted: [127, 132, 156],         // overlay1
-  thinkingOff: [108, 112, 134],   // overlay0
+  accent: [203, 166, 247], // mauve
+  success: [166, 227, 161], // green
+  warning: [249, 226, 175], // yellow
+  error: [243, 139, 168], // red
+  dim: [108, 112, 134], // overlay0
+  muted: [127, 132, 156], // overlay1
+  thinkingOff: [108, 112, 134], // overlay0
   thinkingMinimal: [88, 91, 112], // overlay2
-  thinkingLow: [137, 180, 250],   // blue
+  thinkingLow: [137, 180, 250], // blue
   thinkingMedium: [116, 199, 236], // sapphire
-  thinkingHigh: [203, 166, 247],  // mauve
+  thinkingHigh: [203, 166, 247], // mauve
   thinkingXhigh: [245, 194, 231], // pink
+  mdLinkUrl: [166, 173, 200], // subtext0 — model icon
+  mdListBullet: [180, 190, 254], // lavender — model provider
+  text: [205, 214, 244], // default fg — uptime
 };
 
 function makeTheme(bgHex = '#313244') {
@@ -52,7 +55,7 @@ function makeTheme(bgHex = '#313244') {
       throw new Error(`Unknown bg: ${name}`);
     },
     fg,
-    getThinkingColor: (level: string) => (text: string) =>
+    getThinkingBorderColor: (level: string) => (text: string) =>
       fg(`thinking${titleCase(level)}`, text),
   };
 }
@@ -104,27 +107,26 @@ async function setupFooter(ctxObj: any, thinkingLevel: string) {
 }
 
 describe('better-footer render', () => {
-  it('uses theme userMessageBg as background', async () => {
+  it('renders without background fill', async () => {
     const { ctx } = makeCtx();
     const renderCallback = await setupFooter(ctx, 'high');
-    const component = renderCallback({} as any, makeTheme('#3a3a4f'), makeFooterData());
+    const component = renderCallback({} as any, makeTheme(), makeFooterData());
     const line = component.render(120)[0];
-    expect(line).toContain('\x1b[48;2;58;58;79m');
+    expect(line).not.toContain('\x1b[48;');
   });
 
-  it('falls back to surface0 hex when theme lacks userMessageBg', async () => {
+  it('renders all widget segments', async () => {
     const { ctx } = makeCtx();
     const renderCallback = await setupFooter(ctx, 'high');
-    const brokenTheme = {
-      getBgAnsi: () => {
-        throw new Error('nope');
-      },
-      fg: (color: string, text: string) => text,
-      getThinkingColor: (level: string) => (text: string) => text,
-    };
-    const component = renderCallback({} as any, brokenTheme, makeFooterData());
+    const component = renderCallback({} as any, makeTheme(), makeFooterData());
     const line = component.render(120)[0];
-    expect(line).toContain('\x1b[48;2;49;50;68m');
+    expect(line).toContain('\u25c9'); // prompt
+    expect(line).toContain('\uf07c'); // folder
+    expect(line).toContain('\ue0a0'); // git
+    expect(line).toContain('\u26a1'); // thinking
+    expect(line).toContain('\uf544'); // model icon
+    expect(line).toContain('\x1b[38;2;166;173;200m'); // model icon color (mdLinkUrl)
+    expect(line).toContain('\x1b[38;2;180;190;254m'); // provider color (mdListBullet)
   });
 
   it('applies paddingX so content does not touch edges', async () => {
@@ -147,10 +149,10 @@ describe('better-footer render', () => {
     expect(lines).toHaveLength(1);
     const line = lines[0];
 
-    expect(line).toContain('\x1b[48;2;49;50;68m'); // bg
+    expect(line).not.toContain('\x1b[48;'); // no bg
     expect(line).toContain('\u26a1'); // ⚡
     expect(line).toContain('\x1b[38;2;203;166;247m'); // thinkingHigh = mauve
-    expect(line).toMatch(/ {3,}/); // distributed gaps
+    expect(line).toMatch(/ {2,}/); // distributed gaps between widget segments
 
     // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI stripper
     const stripped = line.replace(/\x1b\[[0-9;]*m/g, '');
@@ -159,12 +161,12 @@ describe('better-footer render', () => {
 
   it('each thinking level uses its theme slot color', async () => {
     const expected: Record<string, string> = {
-      off: '\x1b[38;2;108;112;134m',       // overlay0
-      minimal: '\x1b[38;2;88;91;112m',     // overlay2
-      low: '\x1b[38;2;137;180;250m',       // blue
-      medium: '\x1b[38;2;116;199;236m',    // sapphire
-      high: '\x1b[38;2;203;166;247m',      // mauve
-      xhigh: '\x1b[38;2;245;194;231m',     // pink
+      off: '\x1b[38;2;108;112;134m', // overlay0
+      minimal: '\x1b[38;2;88;91;112m', // overlay2
+      low: '\x1b[38;2;137;180;250m', // blue
+      medium: '\x1b[38;2;116;199;236m', // sapphire
+      high: '\x1b[38;2;203;166;247m', // mauve
+      xhigh: '\x1b[38;2;245;194;231m', // pink
     };
     for (const [level, color] of Object.entries(expected)) {
       const { ctx } = makeCtx();
@@ -205,6 +207,6 @@ describe('better-footer render', () => {
     expect(line).toContain('\uf0997'); // turns icon
     expect(line).toContain('\uf43a'); // uptime icon
     expect(line).toContain('5');
-    expect(line).toContain('0.0h');
+    expect(line).toMatch(/\d+\.\dh/); // system uptime format X.Xh
   });
 });

@@ -11,8 +11,8 @@
  */
 
 import { existsSync, readFileSync, watch, writeFileSync } from 'node:fs';
-import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { uptime as osUptime } from 'node:os';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { AssistantMessage, Model } from '@earendil-works/pi-ai';
 import type { ExtensionAPI, ThinkingLevelSelectEvent } from '@earendil-works/pi-coding-agent';
 import { getAgentDir } from '@earendil-works/pi-coding-agent';
@@ -107,7 +107,14 @@ const fmtCwd = (cwd: string, home?: string): string => {
 };
 
 const computeTokens = (sm: { getBranch(): any[] }) => {
-  const init = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0, cacheHitRate: undefined as number | undefined };
+  const init = {
+    input: 0,
+    output: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
+    cost: 0,
+    cacheHitRate: undefined as number | undefined,
+  };
   return sm.getBranch().reduce((acc, e) => {
     if (e.type !== 'message' || e.message?.role !== 'assistant') return acc;
     const m = e.message as AssistantMessage;
@@ -197,7 +204,188 @@ function writeConfig(cfg: FooterConfig): void {
     console.error(`[better-footer] failed to write ${path}: ${err}`);
   }
 }
-// Single-line renderer with background box + flexbox-style space-between
+// ────────────────────────────────────────────────────────────────────────────
+// Widgets — one class per footer segment, owns its color + rendering.
+// Each widget returns { text, color } segments; the renderer applies
+// theme.fg() and handles space-between distribution.
+// Add a new footer piece = new class + entry in WIDGETS below.
+// ────────────────────────────────────────────────────────────────────────────
+
+type ColoredSegment = { text: string; color: string };
+
+abstract class Widget {
+  abstract readonly id: string;
+  abstract render(data: RenderData, cfg: FooterConfig): ColoredSegment[];
+}
+
+class PromptWidget extends Widget {
+  readonly id = 'prompt';
+  render(_data: RenderData, cfg: FooterConfig): ColoredSegment[] {
+    if (!cfg.promptSymbol) return [];
+    return [{ text: `${cfg.promptSymbol} `, color: 'accent' }];
+  }
+}
+
+class CwdWidget extends Widget {
+  readonly id = 'cwd';
+  render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
+    if (cfg.metrics.cwd?.enabled === false) return [];
+    return [{ text: `${ICON_FOLDER} ${data.cwd}`, color: 'warning' }];
+  }
+}
+
+class GitBranchWidget extends Widget {
+  readonly id = 'git.branch';
+  render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
+    if (!data.branch || cfg.metrics['git.branch']?.enabled === false) return [];
+    return [{ text: `${ICON_GIT} ${data.branch}`, color: 'accent' }];
+  }
+}
+
+const THINKING_COLOR_NAMES: Record<string, string> = {
+  off: 'thinkingOff',
+  minimal: 'thinkingMinimal',
+  low: 'thinkingLow',
+  medium: 'thinkingMedium',
+  high: 'thinkingHigh',
+  xhigh: 'thinkingXhigh',
+};
+
+class ThinkingWidget extends Widget {
+  readonly id = 'thinking.level';
+  render(data: RenderData): ColoredSegment[] {
+    const level = data.thinkingLevel;
+    return [
+      {
+        text: `${THINKING_ICON}${THINKING_BARS[level] ?? ''} ${level}`,
+        color: THINKING_COLOR_NAMES[level] ?? 'thinkingOff',
+      },
+    ];
+  }
+}
+
+class TokensInputWidget extends Widget {
+  readonly id = 'tokens.input';
+  render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
+    if (!data.tokens.input || cfg.metrics['tokens.input']?.enabled === false) return [];
+    return [{ text: `${ICON_INPUT} ${fmt(data.tokens.input)}`, color: 'error' }];
+  }
+}
+
+class TokensOutputWidget extends Widget {
+  readonly id = 'tokens.output';
+  render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
+    if (!data.tokens.output || cfg.metrics['tokens.output']?.enabled === false) return [];
+    return [{ text: `${ICON_OUTPUT} ${fmt(data.tokens.output)}`, color: 'success' }];
+  }
+}
+
+class CacheWidget extends Widget {
+  readonly id = 'cache';
+  render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
+    if (cfg.metrics.cache?.enabled === false || !data.tokens.cacheRead) return [];
+    const segs: ColoredSegment[] = [
+      {
+        text: `${ICON_CACHE} ${fmt(data.tokens.cacheRead)}`,
+        color: 'error',
+      },
+    ];
+    if (data.tokens.cacheHitRate !== undefined) {
+      const threshold = cfg.metrics['cache.hitRate']?.warnBelow ?? 50;
+      const isHit = data.tokens.cacheHitRate >= threshold;
+      const hrIcon = isHit ? ICON_ACCEPT : ICON_CACHE_MISS;
+      segs.push({
+        text: ` ${hrIcon} ${data.tokens.cacheHitRate.toFixed(0)}%`,
+        color: isHit ? 'success' : 'warning',
+      });
+    }
+    return segs;
+  }
+}
+
+class CostWidget extends Widget {
+  readonly id = 'cost';
+  render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
+    if (!data.tokens.cost || cfg.metrics.cost?.enabled === false) return [];
+    return [{ text: `${ICON_COST}${data.tokens.cost.toFixed(3)}`, color: 'warning' }];
+  }
+}
+
+class CtxBarWidget extends Widget {
+  readonly id = 'ctx.bar';
+  render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
+    if (cfg.metrics['ctx.bar']?.enabled === false) return [];
+    const warnAbove = cfg.metrics['ctx.bar']?.warnAbove ?? 70;
+    const errorAbove = cfg.metrics['ctx.bar']?.errorAbove ?? 90;
+    const color =
+      data.ctxPct > errorAbove ? 'error' : data.ctxPct > warnAbove ? 'warning' : 'success';
+    const pctStr = data.ctxUnknown ? '?%' : `${data.ctxPct.toFixed(0)}%`;
+    return [
+      { text: progressBar(data.ctxPct), color },
+      { text: ` ${pctStr}/${fmt(data.ctxWindow)}`, color },
+    ];
+  }
+}
+
+class SessionWidget extends Widget {
+  readonly id = 'session';
+  render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
+    if (cfg.metrics.session?.enabled === false) return [];
+    const segs: ColoredSegment[] = [];
+    if (data.sessionDuration > 0) {
+      const d = data.sessionDuration;
+      const fmtDur =
+        d >= 3600
+          ? `${Math.floor(d / 3600)}h${Math.floor((d % 3600) / 60)}m`
+          : d >= 60
+            ? `${Math.floor(d / 60)}m`
+            : `${d}s`;
+      segs.push({ text: `${ICON_SESSION_DUR} ${fmtDur}`, color: 'accent' });
+    }
+    if (data.sessionTurnCount > 0) {
+      segs.push({ text: `${ICON_SESSION_TURNS} ${data.sessionTurnCount}`, color: 'success' });
+    }
+    segs.push({
+      text: `${ICON_SESSION_UPTIME} ${(data.toolUptime / 3600).toFixed(1)}h`,
+      color: 'text',
+    });
+    return segs;
+  }
+}
+
+class ModelWidget extends Widget {
+  readonly id = 'model';
+  render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
+    if (!data.model || cfg.metrics['model.id']?.enabled === false) return [];
+    const segs: ColoredSegment[] = [
+      { text: ICON_MODEL, color: 'mdLinkUrl' }, // was 'dim'
+      { text: ` ${data.model.id}`, color: 'accent' },
+    ];
+    if (data.model.provider && cfg.metrics['model.provider']?.enabled !== false) {
+      segs.push({ text: ` (${data.model.provider})`, color: 'mdListBullet' }); // was 'dim'
+    }
+    return segs;
+  }
+}
+
+const WIDGETS: Widget[] = [
+  new PromptWidget(),
+  new CwdWidget(),
+  new GitBranchWidget(),
+  new ThinkingWidget(),
+  new TokensInputWidget(),
+  new TokensOutputWidget(),
+  new CacheWidget(),
+  new CostWidget(),
+  new CtxBarWidget(),
+  new SessionWidget(),
+  new ModelWidget(),
+];
+
+// ────────────────────────────────────────────────────────────────────────────
+// Renderer — space-between distribution across widget-produced segments
+// ────────────────────────────────────────────────────────────────────────────
+
 function renderSingleLine(
   config: FooterConfig,
   data: RenderData,
@@ -207,103 +395,13 @@ function renderSingleLine(
   // ponytail: no background fill — plain text footer.
   const bgAnsi = '';
 
-  const mc = (id: string) => config.metrics[id] ?? {};
-
   // Horizontal padding so icons don't touch the screen edge
   const PADDING_X = 1;
 
-  // Build segments (without pipe separators — we add gaps at the end)
-  const segments: string[] = [];
-
-  // Prompt symbol
-  if (config.promptSymbol) {
-    segments.push(theme.fg('accent', `${config.promptSymbol} `));
-  }
-
-  // CWD
-  if (mc('cwd').enabled !== false) {
-    segments.push(theme.fg('warning', `${ICON_FOLDER} ${data.cwd}`));
-  }
-
-  // Git branch
-  if (data.branch && mc('git.branch').enabled !== false) {
-    segments.push(theme.fg('accent', `${ICON_GIT} ${data.branch}`));
-  }
-
-  // Thinking level — same ⚡ icon, color from theme's thinking* slot
-  segments.push(
-    theme.getThinkingBorderColor(data.thinkingLevel)(
-      `${THINKING_ICON}${THINKING_BARS[data.thinkingLevel] ?? ''} ${data.thinkingLevel}`
-    )
+  // Build colored segments by composing each widget
+  const segments: string[] = WIDGETS.flatMap((w) => w.render(data, config)).map((s) =>
+    theme.fg(s.color, s.text)
   );
-
-  // Token stats (compact)
-  if (data.tokens.input && mc('tokens.input').enabled !== false) {
-    segments.push(theme.fg('error', `${ICON_INPUT} ${fmt(data.tokens.input)}`));
-  }
-  if (data.tokens.output && mc('tokens.output').enabled !== false) {
-    segments.push(theme.fg('success', `${ICON_OUTPUT} ${fmt(data.tokens.output)}`));
-  }
-
-  // Cache (combined: read tokens + hit rate)
-  if (mc('cache').enabled !== false && data.tokens.cacheRead) {
-    let combined = theme.fg('error', `${ICON_CACHE} ${fmt(data.tokens.cacheRead)}`);
-    if (data.tokens.cacheHitRate !== undefined) {
-      const isHit = data.tokens.cacheHitRate >= (mc('cache.hitRate').warnBelow ?? 50);
-      const hrIcon = isHit ? ICON_ACCEPT : ICON_CACHE_MISS;
-      combined += theme.fg(isHit ? 'success' : 'warning', ` ${hrIcon} ${data.tokens.cacheHitRate.toFixed(0)}%`);
-    }
-    segments.push(combined);
-  }
-
-  // Cost
-  if (data.tokens.cost && mc('cost').enabled !== false) {
-    segments.push(theme.fg('warning', `${ICON_COST}${data.tokens.cost.toFixed(3)}`));
-  }
-
-  // Context bar
-  if (mc('ctx.bar').enabled !== false) {
-    const barColor = data.ctxPct > (mc('ctx.bar').errorAbove ?? 90)
-      ? 'error'
-      : data.ctxPct > (mc('ctx.bar').warnAbove ?? 70)
-        ? 'warning'
-        : 'success';
-    const bar = theme.fg(barColor, progressBar(data.ctxPct));
-    const pctStr = data.ctxUnknown ? '?%' : `${data.ctxPct.toFixed(0)}%`;
-    segments.push(bar + theme.fg('dim', ` ${pctStr}/${fmt(data.ctxWindow)}`));
-  }
-
-  // Session (combined: duration, turns, uptime)
-  if (mc('session').enabled !== false) {
-    const parts: string[] = [];
-    // Duration
-    if (data.sessionDuration > 0) {
-      const d = data.sessionDuration;
-      const fmtDur = d >= 3600
-        ? `${Math.floor(d / 3600)}h${Math.floor((d % 3600) / 60)}m`
-        : d >= 60
-          ? `${Math.floor(d / 60)}m`
-          : `${d}s`;
-      parts.push(theme.fg('accent', `${ICON_SESSION_DUR} ${fmtDur}`));
-    }
-    // Turns
-    if (data.sessionTurnCount > 0) {
-      parts.push(theme.fg('success', `${ICON_SESSION_TURNS} ${data.sessionTurnCount}`));
-    }
-    // Uptime
-    parts.push(theme.fg('text', `${ICON_SESSION_UPTIME} ${(data.toolUptime / 3600).toFixed(1)}h`));
-    if (parts.length) segments.push(parts.join('  '));
-  }
-
-  // Model
-  if (data.model && mc('model.id').enabled !== false) {
-    segments.push(theme.fg('dim', ICON_MODEL) + theme.fg('accent', ` ${data.model.id}`));
-  }
-
-  // Provider
-  if (data.model?.provider && mc('model.provider').enabled !== false) {
-    segments.push(theme.fg('dim', ` (${data.model.provider})`));
-  }
 
   // Space-between distribution: spread segments across available width
   const n = segments.length;
@@ -313,15 +411,11 @@ function renderSingleLine(
     const pad = Math.max(0, width - segW);
     return `${bgAnsi}${segments[0]}${' '.repeat(pad)}\x1b[0m`;
   }
-  // Measure total content width
   let contentW = 0;
   for (const s of segments) contentW += visibleWidth(s);
-  // Reserve PADDING_X on each side
   const innerWidth = Math.max(1, width - 2 * PADDING_X);
   const remaining = innerWidth - contentW;
   const totalGaps = n - 1;
-  // Distribute remaining space across gaps (space-between).
-  // baseGap = floor(remaining/totalGaps) — but never less than 0 (clamp when overflowing).
   const baseGap = Math.max(0, Math.floor(remaining / totalGaps));
   const extraGap = remaining - baseGap * totalGaps;
   const leftPad = ' '.repeat(PADDING_X);
@@ -330,7 +424,6 @@ function renderSingleLine(
     const gap = baseGap + (i <= extraGap ? 1 : 0);
     result += ' '.repeat(gap) + segments[i];
   }
-  // Pad to full width to fill the background box (right padding)
   const finalW = visibleWidth(result);
   if (finalW < width) {
     result += ' '.repeat(width - finalW);
@@ -348,7 +441,7 @@ function makeFooterFactory(
   getConfig: () => FooterConfig,
   getThinkingLevel: () => string,
   getSessionStartTime: () => number,
-  setRequestRender: (fn: () => void) => void,
+  setRequestRender: (fn: () => void) => void
 ) {
   return (ctx: any) => {
     ctx.ui.setFooter((tui: any, theme: any, footerData: any) => {
@@ -430,7 +523,7 @@ export default function (pi: ExtensionAPI) {
     () => state.sessionStartTime,
     (fn) => {
       state.requestRender = fn;
-    },
+    }
   );
 
   // Auto-install on session start if config says enabled.
