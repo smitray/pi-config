@@ -1,16 +1,15 @@
 /**
  * Better Footer - one-line status bar for pi's TUI.
  *
- * Hardcoded layout + hardcoded Catppuccin accents. Per-segment colors are NOT
- * configurable yet; only `enabled`, `promptSymbol`, and metric-level `enabled`
- * / `warn*` / `errorAbove` thresholds are honored.
+ * Config lives in the standard pi settings file under the `betterFooter` key
+ * (alongside `kb`, `theme`, etc.). Each widget's color, bold, and on/off are
+ * all configurable there; widgets can also be reordered via `order`.
  *
- * Config: ~/.pi/agent/better-footer.json (auto-created with defaults on first run)
- *
+ * Config: ~/.pi/agent/settings.json -> { "betterFooter": { ... } }
  * Toggle: /footer
  */
 
-import { existsSync, readFileSync, watch, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync, watch, writeFileSync } from 'node:fs';
 import { uptime as osUptime } from 'node:os';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import type { AssistantMessage, Model } from '@earendil-works/pi-ai';
@@ -148,6 +147,9 @@ const progressBar = (pct: number, width = 10): string => {
 const DEFAULT_CONFIG: FooterConfig = {
   enabled: true,
   promptSymbol: ICON_PROMPT,
+  // ponytail: undefined order = use WIDGETS declaration order. Set to a
+  // list of widget ids to reorder; missing ids keep default order.
+  order: undefined,
   metrics: {
     cwd: {},
     'git.branch': {},
@@ -170,44 +172,84 @@ const DEFAULT_CONFIG: FooterConfig = {
   },
 };
 
-const CONFIG_FILENAME = 'better-footer.json';
+const SETTINGS_FILENAME = 'settings.json';
+const SETTINGS_KEY = 'betterFooter';
 const CONFIG_DIR = getAgentDir();
+// ponytail: legacy standalone config file — migrated into settings.json on first load.
+const LEGACY_CONFIG_FILENAME = 'better-footer.json';
 
-const configPath = (): string => join(CONFIG_DIR, CONFIG_FILENAME);
+const settingsPath = (): string => join(CONFIG_DIR, SETTINGS_FILENAME);
+const legacyConfigPath = (): string => join(CONFIG_DIR, LEGACY_CONFIG_FILENAME);
 
 // ────────────────────────────────────────────────────────────────────────────
-// Config I/O
+// Config I/O — reads/writes the `betterFooter` key inside settings.json,
+// preserving all other settings keys. One config file, not two.
 // ────────────────────────────────────────────────────────────────────────────
 
-function readConfig(): FooterConfig {
-  const path = configPath();
-  if (!existsSync(path)) {
-    writeConfig(DEFAULT_CONFIG);
-    return DEFAULT_CONFIG;
-  }
+function mergeFooterConfig(parsed: Partial<FooterConfig> | undefined): FooterConfig {
+  if (!parsed) return DEFAULT_CONFIG;
+  return {
+    enabled: parsed.enabled ?? DEFAULT_CONFIG.enabled,
+    promptSymbol: parsed.promptSymbol ?? DEFAULT_CONFIG.promptSymbol,
+    order: parsed.order ?? DEFAULT_CONFIG.order,
+    metrics: { ...DEFAULT_CONFIG.metrics, ...(parsed.metrics ?? {}) },
+  };
+}
+
+function readSettings(): Record<string, unknown> {
+  const path = settingsPath();
+  if (!existsSync(path)) return {};
   try {
-    const raw = readFileSync(path, 'utf-8');
-    const parsed = JSON.parse(raw) as Partial<FooterConfig>;
-    // Shallow merge with defaults so new fields don't break old configs
-    return {
-      enabled: parsed.enabled ?? DEFAULT_CONFIG.enabled,
-      promptSymbol: parsed.promptSymbol ?? DEFAULT_CONFIG.promptSymbol,
-      metrics: { ...DEFAULT_CONFIG.metrics, ...(parsed.metrics ?? {}) },
-    };
+    return JSON.parse(readFileSync(path, 'utf-8')) as Record<string, unknown>;
   } catch (err) {
     console.error(`[better-footer] failed to parse ${path}: ${err}; using defaults`);
-    return DEFAULT_CONFIG;
+    return {};
   }
 }
 
-function writeConfig(cfg: FooterConfig): void {
-  const path = configPath();
-  const json = `${JSON.stringify(cfg, null, 2)}\n`;
+function writeSettings(settings: Record<string, unknown>): void {
+  const path = settingsPath();
   try {
-    writeFileSync(path, json);
+    writeFileSync(path, `${JSON.stringify(settings, null, 2)}\n`);
   } catch (err) {
     console.error(`[better-footer] failed to write ${path}: ${err}`);
   }
+}
+
+function readConfig(): FooterConfig {
+  // ponytail: one-time migration — fold the old standalone config file into settings.json.
+  const legacy = legacyConfigPath();
+  if (existsSync(legacy)) {
+    try {
+      const legacyParsed = JSON.parse(readFileSync(legacy, 'utf-8')) as Partial<FooterConfig>;
+      const settings = readSettings();
+      if (settings[SETTINGS_KEY] === undefined) {
+        settings[SETTINGS_KEY] = mergeFooterConfig(legacyParsed);
+        writeSettings(settings);
+        console.error(`[better-footer] migrated ${LEGACY_CONFIG_FILENAME} into settings.json`);
+      }
+      // Best-effort cleanup of the old file. Keep going if unlink fails.
+      try {
+        unlinkSync(legacy);
+      } catch {
+        /* ignore */
+      }
+    } catch (err) {
+      console.error(`[better-footer] failed to migrate ${legacy}: ${err}`);
+    }
+  }
+
+  const settings = readSettings();
+  const section = settings[SETTINGS_KEY] as Partial<FooterConfig> | undefined;
+  const cfg = mergeFooterConfig(section);
+  if (section === undefined) writeConfig(cfg); // seed defaults on first run
+  return cfg;
+}
+
+function writeConfig(cfg: FooterConfig): void {
+  const settings = readSettings();
+  settings[SETTINGS_KEY] = cfg;
+  writeSettings(settings);
 }
 // ────────────────────────────────────────────────────────────────────────────
 // Widgets — one class per footer segment, owns its color + rendering.
@@ -560,7 +602,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   // Watch config file for changes; debounce 200ms
-  const configFile = configPath();
+  const configFile = settingsPath();
   let watchTimer: ReturnType<typeof setTimeout> | undefined;
   try {
     watch(configFile, { persistent: false }, () => {
