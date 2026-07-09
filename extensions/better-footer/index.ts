@@ -12,6 +12,7 @@
 
 import { existsSync, readFileSync, watch, writeFileSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { uptime as osUptime } from 'node:os';
 import type { AssistantMessage, Model } from '@earendil-works/pi-ai';
 import type { ExtensionAPI, ThinkingLevelSelectEvent } from '@earendil-works/pi-coding-agent';
 import { getAgentDir } from '@earendil-works/pi-coding-agent';
@@ -82,7 +83,7 @@ interface RenderData {
   ctxUnknown: boolean;
   sessionDuration: number; // seconds since session start
   sessionTurnCount: number;
-  toolUptime: number; // seconds since process start
+  toolUptime: number; // seconds since system boot
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -290,7 +291,7 @@ function renderSingleLine(
       parts.push(theme.fg('success', `${ICON_SESSION_TURNS} ${data.sessionTurnCount}`));
     }
     // Uptime
-    parts.push(theme.fg('muted', `${ICON_SESSION_UPTIME} ${(data.toolUptime / 3600).toFixed(1)}h`));
+    parts.push(theme.fg('text', `${ICON_SESSION_UPTIME} ${(data.toolUptime / 3600).toFixed(1)}h`));
     if (parts.length) segments.push(parts.join('  '));
   }
 
@@ -347,7 +348,6 @@ function makeFooterFactory(
   getConfig: () => FooterConfig,
   getThinkingLevel: () => string,
   getSessionStartTime: () => number,
-  getProcessStartTime: () => number,
   setRequestRender: (fn: () => void) => void,
 ) {
   return (ctx: any) => {
@@ -376,7 +376,7 @@ function makeFooterFactory(
             thinkingLevel: getThinkingLevel(),
             sessionDuration: startSec(getSessionStartTime()),
             sessionTurnCount: ctx.sessionManager.getBranch().length,
-            toolUptime: startSec(getProcessStartTime()),
+            toolUptime: osUptime(),
             ctxPct: ctxUse?.percent ?? 0,
             ctxWindow: ctxUse?.contextWindow ?? ctx.model?.contextWindow ?? 0,
             ctxUnknown: ctxUse === undefined || ctxUse?.percent === null,
@@ -398,7 +398,6 @@ export default function (pi: ExtensionAPI) {
     config: readConfig(),
     thinkingLevel: 'off' as string, // synced from pi on session_start (can't call getThinkingLevel during load)
     sessionStartTime: 0,
-    processStartTime: Date.now(),
     requestRender: () => {}, // populated by the footer renderer on mount
   };
 
@@ -429,7 +428,6 @@ export default function (pi: ExtensionAPI) {
     () => state.config,
     () => state.thinkingLevel,
     () => state.sessionStartTime,
-    () => state.processStartTime,
     (fn) => {
       state.requestRender = fn;
     },
