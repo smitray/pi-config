@@ -17,17 +17,43 @@ vi.mock('node:fs', async () => {
 import { visibleWidth } from '@earendil-works/pi-tui';
 import betterFooter from '../index.ts';
 
+// Catppuccin Mocha colors used by the footer (subset of themes/catppuccin-mocha.json)
+const FG_RGB: Record<string, [number, number, number]> = {
+  accent: [203, 166, 247],        // mauve
+  success: [166, 227, 161],       // green
+  warning: [249, 226, 175],       // yellow
+  error: [243, 139, 168],         // red
+  dim: [108, 112, 134],           // overlay0
+  muted: [127, 132, 156],         // overlay1
+  thinkingOff: [108, 112, 134],   // overlay0
+  thinkingMinimal: [88, 91, 112], // overlay2
+  thinkingLow: [137, 180, 250],   // blue
+  thinkingMedium: [116, 199, 236], // sapphire
+  thinkingHigh: [203, 166, 247],  // mauve
+  thinkingXhigh: [245, 194, 231], // pink
+};
+
 function makeTheme(bgHex = '#313244') {
   const [r, g, b] = [
     parseInt(bgHex.slice(1, 3), 16),
     parseInt(bgHex.slice(3, 5), 16),
     parseInt(bgHex.slice(5, 7), 16),
   ];
+  // Mirror Theme.fg(): wrap text in fg ANSI + reset-only-fg, never throw for unknown colors in tests.
+  const fg = (color: string, text: string): string => {
+    const rgb = FG_RGB[color];
+    if (!rgb) throw new Error(`Unknown fg color: ${color}`);
+    return `\x1b[38;2;${rgb[0]};${rgb[1]};${rgb[2]}m${text}\x1b[39m`;
+  };
+  const titleCase = (s: string) => s[0].toUpperCase() + s.slice(1);
   return {
     getBgAnsi: (name: string) => {
       if (name === 'userMessageBg') return `\x1b[48;2;${r};${g};${b}m`;
       throw new Error(`Unknown bg: ${name}`);
     },
+    fg,
+    getThinkingColor: (level: string) => (text: string) =>
+      fg(`thinking${titleCase(level)}`, text),
   };
 }
 
@@ -93,6 +119,8 @@ describe('better-footer render', () => {
       getBgAnsi: () => {
         throw new Error('nope');
       },
+      fg: (color: string, text: string) => text,
+      getThinkingColor: (level: string) => (text: string) => text,
     };
     const component = renderCallback({} as any, brokenTheme, makeFooterData());
     const line = component.render(120)[0];
@@ -121,7 +149,7 @@ describe('better-footer render', () => {
 
     expect(line).toContain('\x1b[48;2;49;50;68m'); // bg
     expect(line).toContain('\u26a1'); // ⚡
-    expect(line).toContain('\x1b[38;2;243;138;90m'); // high gradient
+    expect(line).toContain('\x1b[38;2;203;166;247m'); // thinkingHigh = mauve
     expect(line).toMatch(/ {3,}/); // distributed gaps
 
     // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI stripper
@@ -129,14 +157,14 @@ describe('better-footer render', () => {
     expect(visibleWidth(stripped)).toBe(120);
   });
 
-  it('each thinking level uses its gradient color', async () => {
+  it('each thinking level uses its theme slot color', async () => {
     const expected: Record<string, string> = {
-      off: '\x1b[38;2;108;112;134m',
-      minimal: '\x1b[38;2;249;226;175m',
-      low: '\x1b[38;2;245;200;150m',
-      medium: '\x1b[38;2;243;169;120m',
-      high: '\x1b[38;2;243;138;90m',
-      xhigh: '\x1b[38;2;243;139;168m',
+      off: '\x1b[38;2;108;112;134m',       // overlay0
+      minimal: '\x1b[38;2;88;91;112m',     // overlay2
+      low: '\x1b[38;2;137;180;250m',       // blue
+      medium: '\x1b[38;2;116;199;236m',    // sapphire
+      high: '\x1b[38;2;203;166;247m',      // mauve
+      xhigh: '\x1b[38;2;245;194;231m',     // pink
     };
     for (const [level, color] of Object.entries(expected)) {
       const { ctx } = makeCtx();

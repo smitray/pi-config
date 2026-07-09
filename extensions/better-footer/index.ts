@@ -36,14 +36,6 @@ const ICON_SESSION_UPTIME = '\uf43a'; // total hours
 
 const THINKING_ICON = '\u26a1'; // ⚡ fa-bolt
 
-// Thinking level gradient (hardcoded Catppuccin — change when theme.fg('thinkingHigh') etc. is wired)
-const THINKING_GRADIENT: Record<string, string> = {
-  minimal: '#f9e2af',
-  low: '#f5c896',
-  medium: '#f3a978',
-  high: '#f38a5a',
-  xhigh: '#f38ba8',
-};
 const THINKING_BARS: Record<string, string> = {
   off: '',
   minimal: '\u2581', // ▁
@@ -103,14 +95,6 @@ const fmt = (n: number): string => {
   if (n < 1_000_000) return `${Math.round(n / 1000)}k`;
   if (n < 10_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   return `${Math.round(n / 1_000_000)}M`;
-};
-
-// Raw ANSI fg helper (theme bg color is read via theme.getBgAnsi())
-const ansiFg = (hex: string, text: string): string => {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `\x1b[38;2;${r};${g};${b}m${text}\x1b[0m`;
 };
 
 const fmtCwd = (cwd: string, home?: string): string => {
@@ -228,15 +212,6 @@ function renderSingleLine(
     /* keep fallback */
   }
 
-  // Catppuccin Mocha palette
-  const FG_MAUVE = '#cba6f7';
-  const FG_GREEN = '#a6e3a1';
-  const FG_OVERLAY = '#7f849c';
-  const FG_DIM = '#6c7086';
-  const FG_YELLOW = '#f9e2af';
-  const FG_RED = '#f38ba8';
-
-  const icon = (c: string, t: string) => ansiFg(c, t);
   const mc = (id: string) => config.metrics[id] ?? {};
 
   // Horizontal padding so icons don't touch the screen edge
@@ -247,65 +222,60 @@ function renderSingleLine(
 
   // Prompt symbol
   if (config.promptSymbol) {
-    segments.push(icon(FG_MAUVE, `${config.promptSymbol} `));
+    segments.push(theme.fg('accent', `${config.promptSymbol} `));
   }
 
   // CWD
   if (mc('cwd').enabled !== false) {
-    segments.push(icon(FG_YELLOW, `${ICON_FOLDER} ${data.cwd}`));
+    segments.push(theme.fg('warning', `${ICON_FOLDER} ${data.cwd}`));
   }
 
   // Git branch
   if (data.branch && mc('git.branch').enabled !== false) {
-    segments.push(icon(FG_MAUVE, `${ICON_GIT} ${data.branch}`));
+    segments.push(theme.fg('accent', `${ICON_GIT} ${data.branch}`));
   }
 
-  // Thinking level — same ⚡ icon, color from gradient
-  const thinkingHex = THINKING_GRADIENT[data.thinkingLevel] ?? FG_DIM;
+  // Thinking level — same ⚡ icon, color from theme's thinking* slot
   segments.push(
-    icon(
-      thinkingHex,
+    theme.getThinkingColor(data.thinkingLevel)(
       `${THINKING_ICON}${THINKING_BARS[data.thinkingLevel] ?? ''} ${data.thinkingLevel}`
     )
   );
 
   // Token stats (compact)
   if (data.tokens.input && mc('tokens.input').enabled !== false) {
-    segments.push(icon(FG_RED, `${ICON_INPUT} ${fmt(data.tokens.input)}`));
+    segments.push(theme.fg('error', `${ICON_INPUT} ${fmt(data.tokens.input)}`));
   }
   if (data.tokens.output && mc('tokens.output').enabled !== false) {
-    segments.push(icon(FG_GREEN, `${ICON_OUTPUT} ${fmt(data.tokens.output)}`));
+    segments.push(theme.fg('success', `${ICON_OUTPUT} ${fmt(data.tokens.output)}`));
   }
 
   // Cache (combined: read tokens + hit rate)
   if (mc('cache').enabled !== false && data.tokens.cacheRead) {
-    let combined = icon(FG_RED, `${ICON_CACHE} ${fmt(data.tokens.cacheRead)}`);
+    let combined = theme.fg('error', `${ICON_CACHE} ${fmt(data.tokens.cacheRead)}`);
     if (data.tokens.cacheHitRate !== undefined) {
       const isHit = data.tokens.cacheHitRate >= (mc('cache.hitRate').warnBelow ?? 50);
       const hrIcon = isHit ? ICON_ACCEPT : ICON_CACHE_MISS;
-      const hrColor = isHit ? FG_GREEN : FG_YELLOW;
-      combined += icon(hrColor, ` ${hrIcon} ${data.tokens.cacheHitRate.toFixed(0)}%`);
+      combined += theme.fg(isHit ? 'success' : 'warning', ` ${hrIcon} ${data.tokens.cacheHitRate.toFixed(0)}%`);
     }
     segments.push(combined);
   }
 
   // Cost
   if (data.tokens.cost && mc('cost').enabled !== false) {
-    segments.push(icon(FG_YELLOW, `${ICON_COST}${data.tokens.cost.toFixed(3)}`));
+    segments.push(theme.fg('warning', `${ICON_COST}${data.tokens.cost.toFixed(3)}`));
   }
 
   // Context bar
   if (mc('ctx.bar').enabled !== false) {
-    const barPct = data.ctxPct;
-    const barColor =
-      barPct > (mc('ctx.bar').errorAbove ?? 90)
-        ? FG_RED
-        : barPct > (mc('ctx.bar').warnAbove ?? 70)
-          ? FG_YELLOW
-          : FG_GREEN;
-    const bar = ansiFg(barColor, progressBar(barPct));
+    const barColor = data.ctxPct > (mc('ctx.bar').errorAbove ?? 90)
+      ? 'error'
+      : data.ctxPct > (mc('ctx.bar').warnAbove ?? 70)
+        ? 'warning'
+        : 'success';
+    const bar = theme.fg(barColor, progressBar(data.ctxPct));
     const pctStr = data.ctxUnknown ? '?%' : `${data.ctxPct.toFixed(0)}%`;
-    segments.push(bar + ansiFg(FG_DIM, ` ${pctStr}/${fmt(data.ctxWindow)}`));
+    segments.push(bar + theme.fg('dim', ` ${pctStr}/${fmt(data.ctxWindow)}`));
   }
 
   // Session (combined: duration, turns, uptime)
@@ -319,25 +289,25 @@ function renderSingleLine(
         : d >= 60
           ? `${Math.floor(d / 60)}m`
           : `${d}s`;
-      parts.push(icon(FG_MAUVE, `${ICON_SESSION_DUR} ${fmtDur}`));
+      parts.push(theme.fg('accent', `${ICON_SESSION_DUR} ${fmtDur}`));
     }
     // Turns
     if (data.sessionTurnCount > 0) {
-      parts.push(icon(FG_GREEN, `${ICON_SESSION_TURNS} ${data.sessionTurnCount}`));
+      parts.push(theme.fg('success', `${ICON_SESSION_TURNS} ${data.sessionTurnCount}`));
     }
     // Uptime
-    parts.push(icon(FG_DIM, `${ICON_SESSION_UPTIME} ${(data.toolUptime / 3600).toFixed(1)}h`));
+    parts.push(theme.fg('dim', `${ICON_SESSION_UPTIME} ${(data.toolUptime / 3600).toFixed(1)}h`));
     if (parts.length) segments.push(parts.join('  '));
   }
 
   // Model
   if (data.model && mc('model.id').enabled !== false) {
-    segments.push(icon(FG_DIM, ICON_MODEL) + icon(FG_MAUVE, ` ${data.model.id}`));
+    segments.push(theme.fg('dim', ICON_MODEL) + theme.fg('accent', ` ${data.model.id}`));
   }
 
   // Provider
   if (data.model?.provider && mc('model.provider').enabled !== false) {
-    segments.push(icon(FG_DIM, ` (${data.model.provider})`));
+    segments.push(theme.fg('dim', ` (${data.model.provider})`));
   }
 
   // Space-between distribution: spread segments across available width
