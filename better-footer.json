@@ -1,0 +1,90 @@
+{
+  "enabled": true,
+  "separator": "  ",
+  "promptSymbol": "◉",
+  "lines": [
+    [
+      "cwd",
+      "git.branch",
+      "session.name",
+      "|",
+      "thinking.level"
+    ],
+    [
+      "session",
+      "tokens.input",
+      "tokens.output",
+      "cache",
+      "cost",
+      "ctx.bar",
+      "|",
+      "model.id",
+      "model.provider"
+    ]
+  ],
+  "metrics": {
+    "cwd": {
+      "color": "warning",
+      "enabled": true
+    },
+    "git.branch": {
+      "color": "accent",
+      "bold": true
+    },
+    "session.name": {
+      "color": "mdLink"
+    },
+    "session": {
+      "enabled": true,
+      "color": "muted"
+    },
+    "session.duration": {
+      "enabled": true,
+      "color": "accent"
+    },
+    "session.turns": {
+      "enabled": true,
+      "color": "mdLink"
+    },
+    "tokens.input": {
+      "color": "error"
+    },
+    "tokens.output": {
+      "color": "success"
+    },
+    "cache": {
+      "color": "muted"
+    },
+    "cache.read": {
+      "color": "muted"
+    },
+    "cache.write": {
+      "color": "muted",
+      "enabled": false
+    },
+    "cache.hitRate": {
+      "color": "success",
+      "warnBelow": 50
+    },
+    "cost": {
+      "color": "warning"
+    },
+    "ctx.bar": {
+      "warnAbove": 70,
+      "errorAbove": 90
+    },
+    "model.id": {
+      "color": "accent"
+    },
+    "model.provider": {
+      "color": "dim"
+    },
+    "thinking.level": {
+      "bold": true
+    },
+    "tool.uptime": {
+      "enabled": true,
+      "color": "muted"
+    }
+  }
+}
