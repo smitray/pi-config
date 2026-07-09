@@ -203,14 +203,8 @@ function renderSingleLine(
   theme: any,
   width: number
 ): string {
-  // Theme bg (userMessageBg looks like a good fit — subtle background).
-  // Fallback to surface0 hex if the theme doesn't define it.
-  let bgAnsi = '\x1b[48;2;49;50;68m'; // catppuccin surface0
-  try {
-    bgAnsi = theme.getBgAnsi('userMessageBg');
-  } catch {
-    /* keep fallback */
-  }
+  // ponytail: no background fill — plain text footer.
+  const bgAnsi = '';
 
   const mc = (id: string) => config.metrics[id] ?? {};
 
