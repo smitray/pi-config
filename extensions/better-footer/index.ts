@@ -357,12 +357,12 @@ class ModelWidget extends Widget {
   readonly id = 'model';
   render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
     if (!data.model || cfg.metrics['model.id']?.enabled === false) return [];
-    const segs: ColoredSegment[] = [
-      { text: ICON_MODEL, color: 'mdLinkUrl' }, // was 'dim'
-      { text: ` ${data.model.id}`, color: 'accent' },
-    ];
+    // ponytail: icon + name share one color so they live as a single
+    // gap-less segment (space-between would split otherwise). accent
+    // (mauve) keeps the name's prior color and makes the chip pop.
+    const segs: ColoredSegment[] = [{ text: `${ICON_MODEL} ${data.model.id}`, color: 'accent' }];
     if (data.model.provider && cfg.metrics['model.provider']?.enabled !== false) {
-      segs.push({ text: ` (${data.model.provider})`, color: 'mdListBullet' }); // was 'dim'
+      segs.push({ text: ` (${data.model.provider})`, color: 'mdListBullet' });
     }
     return segs;
   }

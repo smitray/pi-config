@@ -125,7 +125,7 @@ describe('better-footer render', () => {
     expect(line).toContain('\ue0a0'); // git
     expect(line).toContain('\u26a1'); // thinking
     expect(line).toContain('\uf544'); // model icon
-    expect(line).toContain('\x1b[38;2;166;173;200m'); // model icon color (mdLinkUrl)
+    expect(line).toContain('\x1b[38;2;203;166;247m'); // icon+name share accent (mauve)
     expect(line).toContain('\x1b[38;2;180;190;254m'); // provider color (mdListBullet)
   });
 
