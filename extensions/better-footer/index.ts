@@ -178,15 +178,19 @@ const CONFIG_DIR = getAgentDir();
 // ponytail: legacy standalone config file — migrated into settings.json on first load.
 const LEGACY_CONFIG_FILENAME = 'better-footer.json';
 
-const settingsPath = (): string => join(CONFIG_DIR, SETTINGS_FILENAME);
-const legacyConfigPath = (): string => join(CONFIG_DIR, LEGACY_CONFIG_FILENAME);
-
 // ────────────────────────────────────────────────────────────────────────────
 // Config I/O — reads/writes the `betterFooter` key inside settings.json,
 // preserving all other settings keys. One config file, not two.
+// `dir` is injectable for tests; production callers use the default (CONFIG_DIR).
 // ────────────────────────────────────────────────────────────────────────────
 
-function mergeFooterConfig(parsed: Partial<FooterConfig> | undefined): FooterConfig {
+function settingsPath(dir: string = CONFIG_DIR): string {
+  return join(dir, SETTINGS_FILENAME);
+}
+function legacyConfigPath(dir: string = CONFIG_DIR): string {
+  return join(dir, LEGACY_CONFIG_FILENAME);
+}
+export function mergeFooterConfig(parsed: Partial<FooterConfig> | undefined): FooterConfig {
   if (!parsed) return DEFAULT_CONFIG;
   return {
     enabled: parsed.enabled ?? DEFAULT_CONFIG.enabled,
@@ -196,8 +200,8 @@ function mergeFooterConfig(parsed: Partial<FooterConfig> | undefined): FooterCon
   };
 }
 
-function readSettings(): Record<string, unknown> {
-  const path = settingsPath();
+function readSettings(dir: string = CONFIG_DIR): Record<string, unknown> {
+  const path = settingsPath(dir);
   if (!existsSync(path)) return {};
   try {
     return JSON.parse(readFileSync(path, 'utf-8')) as Record<string, unknown>;
@@ -207,8 +211,8 @@ function readSettings(): Record<string, unknown> {
   }
 }
 
-function writeSettings(settings: Record<string, unknown>): void {
-  const path = settingsPath();
+function writeSettings(settings: Record<string, unknown>, dir: string = CONFIG_DIR): void {
+  const path = settingsPath(dir);
   try {
     writeFileSync(path, `${JSON.stringify(settings, null, 2)}\n`);
   } catch (err) {
@@ -216,16 +220,16 @@ function writeSettings(settings: Record<string, unknown>): void {
   }
 }
 
-function readConfig(): FooterConfig {
+export function readConfig(dir: string = CONFIG_DIR): FooterConfig {
   // ponytail: one-time migration — fold the old standalone config file into settings.json.
-  const legacy = legacyConfigPath();
+  const legacy = legacyConfigPath(dir);
   if (existsSync(legacy)) {
     try {
       const legacyParsed = JSON.parse(readFileSync(legacy, 'utf-8')) as Partial<FooterConfig>;
-      const settings = readSettings();
+      const settings = readSettings(dir);
       if (settings[SETTINGS_KEY] === undefined) {
         settings[SETTINGS_KEY] = mergeFooterConfig(legacyParsed);
-        writeSettings(settings);
+        writeSettings(settings, dir);
         console.error(`[better-footer] migrated ${LEGACY_CONFIG_FILENAME} into settings.json`);
       }
       // Best-effort cleanup of the old file. Keep going if unlink fails.
@@ -239,17 +243,17 @@ function readConfig(): FooterConfig {
     }
   }
 
-  const settings = readSettings();
+  const settings = readSettings(dir);
   const section = settings[SETTINGS_KEY] as Partial<FooterConfig> | undefined;
   const cfg = mergeFooterConfig(section);
-  if (section === undefined) writeConfig(cfg); // seed defaults on first run
+  if (section === undefined) writeConfig(cfg, dir); // seed defaults on first run
   return cfg;
 }
 
-function writeConfig(cfg: FooterConfig): void {
-  const settings = readSettings();
+export function writeConfig(cfg: FooterConfig, dir: string = CONFIG_DIR): void {
+  const settings = readSettings(dir);
   settings[SETTINGS_KEY] = cfg;
-  writeSettings(settings);
+  writeSettings(settings, dir);
 }
 // ────────────────────────────────────────────────────────────────────────────
 // Widgets — one class per footer segment, owns its color + rendering.
