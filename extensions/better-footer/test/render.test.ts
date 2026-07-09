@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { orderedWidgets, renderSingleLine } from '../index';
 
 vi.mock('@earendil-works/pi-coding-agent', () => ({
   getAgentDir: () => '/tmp',
@@ -208,5 +209,117 @@ describe('better-footer render', () => {
     expect(line).toContain('\uf43a'); // uptime icon
     expect(line).toContain('5');
     expect(line).toMatch(/\d+\.\dh/); // system uptime format X.Xh
+  });
+
+  it('honors per-metric color override from config', () => {
+    const cfg = {
+      enabled: true,
+      promptSymbol: '\u25c9',
+      metrics: { cwd: { color: 'error' } },
+    } as any;
+    const data = {
+      cwd: '~/foo',
+      branch: null,
+      sessionName: undefined,
+      tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0 },
+      model: undefined,
+      thinkingLevel: 'off',
+      sessionDuration: 0,
+      sessionTurnCount: 0,
+      toolUptime: 0,
+      ctxPct: 0,
+      ctxWindow: 0,
+      ctxUnknown: true,
+    };
+    const line = renderSingleLine(cfg, data, makeTheme(), 120);
+    expect(line).toContain('\x1b[38;2;243;139;168m'); // error (rgb 243,139,168)
+    expect(line).not.toContain('\x1b[38;2;249;226;175m'); // warning absent
+  });
+
+  it('honors widget order from config (missing widgets kept in default order)', () => {
+    const cfg = {
+      enabled: true,
+      promptSymbol: '\u25c9',
+      order: ['thinking.level', 'cwd'],
+      metrics: {},
+    } as any;
+    const data = {
+      cwd: '~/foo',
+      branch: null,
+      sessionName: undefined,
+      tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0 },
+      model: undefined,
+      thinkingLevel: 'off',
+      sessionDuration: 0,
+      sessionTurnCount: 0,
+      toolUptime: 0,
+      ctxPct: 0,
+      ctxWindow: 0,
+      ctxUnknown: true,
+    };
+    const line = renderSingleLine(cfg, data, makeTheme(), 120);
+    const thinkIdx = line.indexOf('\u26a1');
+    const cwdIdx = line.indexOf('\uf07c');
+    expect(thinkIdx).toBeGreaterThan(0);
+    expect(cwdIdx).toBeGreaterThan(thinkIdx);
+  });
+
+  it('orderedWidgets returns default order when cfg.order omitted', () => {
+    const cfg = { enabled: true, promptSymbol: '\u25c9', metrics: {} } as any;
+    const ids = orderedWidgets(cfg).map((w) => w.id);
+    // Default order matches WIDGETS array declared in index.ts
+    expect(ids[0]).toBe('prompt');
+    expect(ids).toContain('thinking.level');
+    expect(ids[ids.length - 1]).toBe('model');
+  });
+
+  it('orderedWidgets puts cfg.order first, missing widgets after in default order', () => {
+    const cfg = {
+      enabled: true,
+      promptSymbol: '\u25c9',
+      order: ['ctx.bar', 'cwd'],
+      metrics: {},
+    } as any;
+    const ids = orderedWidgets(cfg).map((w) => w.id);
+    // First two: explicitly listed
+    expect(ids[0]).toBe('ctx.bar');
+    expect(ids[1]).toBe('cwd');
+    // Rest: default order minus the already-listed ones
+    expect(ids.slice(2)).toEqual([
+      'prompt',
+      'git.branch',
+      'thinking.level',
+      'tokens.input',
+      'tokens.output',
+      'cache',
+      'cost',
+      'session',
+      'model',
+    ]);
+  });
+
+  it('applies bold to a widget when metrics[id].bold is true', () => {
+    const cfg = {
+      enabled: true,
+      promptSymbol: '\u25c9',
+      metrics: { cwd: { bold: true } },
+    } as any;
+    const data = {
+      cwd: '~/foo',
+      branch: null,
+      sessionName: undefined,
+      tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, cost: 0 },
+      model: undefined,
+      thinkingLevel: 'off',
+      sessionDuration: 0,
+      sessionTurnCount: 0,
+      toolUptime: 0,
+      ctxPct: 0,
+      ctxWindow: 0,
+      ctxUnknown: true,
+    };
+    const line = renderSingleLine(cfg, data, makeTheme(), 120);
+    expect(line).toContain('\x1b[1m'); // bold-on
+    expect(line).toContain('\x1b[22m'); // bold-off
   });
 });

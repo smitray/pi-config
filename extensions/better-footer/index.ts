@@ -52,6 +52,8 @@ const THINKING_BARS: Record<string, string> = {
 
 interface MetricConfig {
   enabled?: boolean;
+  color?: string; // theme slot name, e.g. 'accent' / 'warning' / 'success'
+  bold?: boolean; // apply bold to this widget's segments
   warnBelow?: number;
   warnAbove?: number;
   errorAbove?: number;
@@ -60,6 +62,9 @@ interface MetricConfig {
 interface FooterConfig {
   enabled: boolean;
   promptSymbol: string;
+  // ponytail: optional widget order — by widget.id. Missing ids kept
+  // at the end in default order. Example: ["prompt", "thinking.level", ...].
+  order?: string[];
   metrics: Record<string, MetricConfig>;
 }
 
@@ -216,13 +221,21 @@ type ColoredSegment = { text: string; color: string };
 abstract class Widget {
   abstract readonly id: string;
   abstract render(data: RenderData, cfg: FooterConfig): ColoredSegment[];
+  // ponytail: user can override this widget's color via
+  // config.metrics[this.id]?.color — falls back to widget default.
+  color(cfg: FooterConfig, fallback: string): string {
+    return cfg.metrics[this.id]?.color ?? fallback;
+  }
+  bold(cfg: FooterConfig): boolean {
+    return cfg.metrics[this.id]?.bold ?? false;
+  }
 }
 
 class PromptWidget extends Widget {
   readonly id = 'prompt';
   render(_data: RenderData, cfg: FooterConfig): ColoredSegment[] {
     if (!cfg.promptSymbol) return [];
-    return [{ text: `${cfg.promptSymbol} `, color: 'accent' }];
+    return [{ text: `${cfg.promptSymbol} `, color: this.color(cfg, 'accent') }];
   }
 }
 
@@ -230,7 +243,7 @@ class CwdWidget extends Widget {
   readonly id = 'cwd';
   render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
     if (cfg.metrics.cwd?.enabled === false) return [];
-    return [{ text: `${ICON_FOLDER} ${data.cwd}`, color: 'warning' }];
+    return [{ text: `${ICON_FOLDER} ${data.cwd}`, color: this.color(cfg, 'warning') }];
   }
 }
 
@@ -238,7 +251,7 @@ class GitBranchWidget extends Widget {
   readonly id = 'git.branch';
   render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
     if (!data.branch || cfg.metrics['git.branch']?.enabled === false) return [];
-    return [{ text: `${ICON_GIT} ${data.branch}`, color: 'accent' }];
+    return [{ text: `${ICON_GIT} ${data.branch}`, color: this.color(cfg, 'accent') }];
   }
 }
 
@@ -253,12 +266,12 @@ const THINKING_COLOR_NAMES: Record<string, string> = {
 
 class ThinkingWidget extends Widget {
   readonly id = 'thinking.level';
-  render(data: RenderData): ColoredSegment[] {
+  render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
     const level = data.thinkingLevel;
     return [
       {
         text: `${THINKING_ICON}${THINKING_BARS[level] ?? ''} ${level}`,
-        color: THINKING_COLOR_NAMES[level] ?? 'thinkingOff',
+        color: cfg.metrics['thinking.level']?.color ?? THINKING_COLOR_NAMES[level] ?? 'thinkingOff',
       },
     ];
   }
@@ -268,7 +281,7 @@ class TokensInputWidget extends Widget {
   readonly id = 'tokens.input';
   render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
     if (!data.tokens.input || cfg.metrics['tokens.input']?.enabled === false) return [];
-    return [{ text: `${ICON_INPUT} ${fmt(data.tokens.input)}`, color: 'error' }];
+    return [{ text: `${ICON_INPUT} ${fmt(data.tokens.input)}`, color: this.color(cfg, 'error') }];
   }
 }
 
@@ -276,7 +289,9 @@ class TokensOutputWidget extends Widget {
   readonly id = 'tokens.output';
   render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
     if (!data.tokens.output || cfg.metrics['tokens.output']?.enabled === false) return [];
-    return [{ text: `${ICON_OUTPUT} ${fmt(data.tokens.output)}`, color: 'success' }];
+    return [
+      { text: `${ICON_OUTPUT} ${fmt(data.tokens.output)}`, color: this.color(cfg, 'success') },
+    ];
   }
 }
 
@@ -287,7 +302,7 @@ class CacheWidget extends Widget {
     const segs: ColoredSegment[] = [
       {
         text: `${ICON_CACHE} ${fmt(data.tokens.cacheRead)}`,
-        color: 'error',
+        color: this.color(cfg, 'error'),
       },
     ];
     if (data.tokens.cacheHitRate !== undefined) {
@@ -296,7 +311,7 @@ class CacheWidget extends Widget {
       const hrIcon = isHit ? ICON_ACCEPT : ICON_CACHE_MISS;
       segs.push({
         text: ` ${hrIcon} ${data.tokens.cacheHitRate.toFixed(0)}%`,
-        color: isHit ? 'success' : 'warning',
+        color: cfg.metrics['cache.hitRate']?.color ?? (isHit ? 'success' : 'warning'),
       });
     }
     return segs;
@@ -307,7 +322,9 @@ class CostWidget extends Widget {
   readonly id = 'cost';
   render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
     if (!data.tokens.cost || cfg.metrics.cost?.enabled === false) return [];
-    return [{ text: `${ICON_COST}${data.tokens.cost.toFixed(3)}`, color: 'warning' }];
+    return [
+      { text: `${ICON_COST}${data.tokens.cost.toFixed(3)}`, color: this.color(cfg, 'warning') },
+    ];
   }
 }
 
@@ -329,10 +346,12 @@ class CtxBarWidget extends Widget {
 
 class SessionWidget extends Widget {
   readonly id = 'session';
+  // ponytail: session parts (duration/turns/uptime) are independently
+  // togglable + colorable via session.duration, session.turns, tool.uptime.
   render(data: RenderData, cfg: FooterConfig): ColoredSegment[] {
     if (cfg.metrics.session?.enabled === false) return [];
     const segs: ColoredSegment[] = [];
-    if (data.sessionDuration > 0) {
+    if (data.sessionDuration > 0 && cfg.metrics['session.duration']?.enabled !== false) {
       const d = data.sessionDuration;
       const fmtDur =
         d >= 3600
@@ -340,15 +359,23 @@ class SessionWidget extends Widget {
           : d >= 60
             ? `${Math.floor(d / 60)}m`
             : `${d}s`;
-      segs.push({ text: `${ICON_SESSION_DUR} ${fmtDur}`, color: 'accent' });
+      segs.push({
+        text: `${ICON_SESSION_DUR} ${fmtDur}`,
+        color: cfg.metrics['session.duration']?.color ?? 'accent',
+      });
     }
-    if (data.sessionTurnCount > 0) {
-      segs.push({ text: `${ICON_SESSION_TURNS} ${data.sessionTurnCount}`, color: 'success' });
+    if (data.sessionTurnCount > 0 && cfg.metrics['session.turns']?.enabled !== false) {
+      segs.push({
+        text: `${ICON_SESSION_TURNS} ${data.sessionTurnCount}`,
+        color: cfg.metrics['session.turns']?.color ?? 'success',
+      });
     }
-    segs.push({
-      text: `${ICON_SESSION_UPTIME} ${(data.toolUptime / 3600).toFixed(1)}h`,
-      color: 'text',
-    });
+    if (cfg.metrics['tool.uptime']?.enabled !== false) {
+      segs.push({
+        text: `${ICON_SESSION_UPTIME} ${(data.toolUptime / 3600).toFixed(1)}h`,
+        color: cfg.metrics['tool.uptime']?.color ?? 'text',
+      });
+    }
     return segs;
   }
 }
@@ -360,9 +387,11 @@ class ModelWidget extends Widget {
     // ponytail: icon + name share one color so they live as a single
     // gap-less segment (space-between would split otherwise). accent
     // (mauve) keeps the name's prior color and makes the chip pop.
-    const segs: ColoredSegment[] = [{ text: `${ICON_MODEL} ${data.model.id}`, color: 'accent' }];
+    const segs: ColoredSegment[] = [
+      { text: `${ICON_MODEL} ${data.model.id}`, color: this.color(cfg, 'accent') },
+    ];
     if (data.model.provider && cfg.metrics['model.provider']?.enabled !== false) {
-      segs.push({ text: ` (${data.model.provider})`, color: 'mdListBullet' });
+      segs.push({ text: ` (${data.model.provider})`, color: this.color(cfg, 'mdListBullet') });
     }
     return segs;
   }
@@ -382,6 +411,26 @@ const WIDGETS: Widget[] = [
   new ModelWidget(),
 ];
 
+// ponytail: reorder widgets per cfg.order, missing ids kept in default order.
+// Callers that want the original WIDGETS array can still use it directly.
+function orderedWidgets(cfg: FooterConfig): Widget[] {
+  if (!cfg.order) return WIDGETS;
+  const byId = new Map(WIDGETS.map((w) => [w.id, w]));
+  const out: Widget[] = [];
+  const seen = new Set<string>();
+  for (const id of cfg.order) {
+    const w = byId.get(id);
+    if (w && !seen.has(id)) {
+      out.push(w);
+      seen.add(id);
+    }
+  }
+  for (const w of WIDGETS) {
+    if (!seen.has(w.id)) out.push(w);
+  }
+  return out;
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // Renderer — space-between distribution across widget-produced segments
 // ────────────────────────────────────────────────────────────────────────────
@@ -399,9 +448,16 @@ function renderSingleLine(
   const PADDING_X = 1;
 
   // Build colored segments by composing each widget
-  const segments: string[] = WIDGETS.flatMap((w) => w.render(data, config)).map((s) =>
-    theme.fg(s.color, s.text)
-  );
+  const widgets = orderedWidgets(config);
+  const segments: string[] = [];
+  for (const w of widgets) {
+    const isBold = w.bold(config);
+    for (const seg of w.render(data, config)) {
+      let text = theme.fg(seg.color, seg.text);
+      if (isBold) text = `\x1b[1m${text}\x1b[22m`;
+      segments.push(text);
+    }
+  }
 
   // Space-between distribution: spread segments across available width
   const n = segments.length;
@@ -551,3 +607,9 @@ export default function (pi: ExtensionAPI) {
     },
   });
 }
+
+export type { ColoredSegment };
+// ponytail: test-only exports — used by test/render.test.ts to verify
+// per-widget behavior without going through the full extension+config flow.
+// Strip these from production builds if they bloat bundle size.
+export { orderedWidgets, renderSingleLine, WIDGETS };
