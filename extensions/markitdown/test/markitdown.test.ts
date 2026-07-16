@@ -1,14 +1,10 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { runCommand } from '../../_shared/spawn';
 
-let markitdownAvailable = false;
+const markitdownAvailable = (await runCommand('markitdown', ['--version'])).ok;
+const markitdownDescribe = markitdownAvailable ? describe : describe.skip;
 
-beforeAll(async () => {
-  const result = await runCommand('markitdown', ['--version']);
-  markitdownAvailable = result.ok;
-});
-
-describe('markitdown CLI', { skipIf: () => !markitdownAvailable }, () => {
+markitdownDescribe('markitdown CLI', () => {
   it('reports version', async () => {
     const result = await runCommand('markitdown', ['--version']);
     expect(result.ok).toBe(true);
