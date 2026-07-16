@@ -34,6 +34,20 @@ Packages auto-install on first pi startup.
 
 See [extensions/README.md](extensions/README.md) for dev setup and commands.
 
+## Skills
+
+| Skill | Description |
+|---|---|
+| `firefox-use` | Playwright Firefox automation — navigate, screenshot, form fill, JS eval |
+| `browser-use` | Chrome DevTools Protocol automation via browser-use library |
+| `git-commit` | Conventional Commits with emoji prefixes |
+| `web-media` | YouTube/media transcription via yt-dlp |
+| `web-fetch` | Fetch web pages as clean markdown |
+| `web-search` | Web search via SearXNG |
+| `om-recall` | Query observational memory from past sessions |
+
+Skills are markdown docs in `skills/*/SKILL.md`. pi auto-discovers them on startup.
+
 ## Packages
 
 - `pi-observational-memory` — session continuity
