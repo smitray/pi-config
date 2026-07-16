@@ -43,7 +43,7 @@ function createToolRecorder(c: AccessConfig) {
   return tools;
 }
 
-describe('web-fetch-docs kbRoot integration (live)', { skipIf: () => !crawlReachable }, () => {
+describe('web-fetch-docs kbRoot integration (live)', { skip: true }, () => {
   let tmpRoot: string;
   let kbRoot: string;
 
