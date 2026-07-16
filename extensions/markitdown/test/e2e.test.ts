@@ -1,8 +1,15 @@
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { runCommand } from '../../_shared/spawn';
 
 const fixturesDir = join(import.meta.dirname ?? __dirname, 'fixtures');
+
+let markitdownAvailable = false;
+
+beforeAll(async () => {
+  const result = await runCommand('markitdown', ['--version']);
+  markitdownAvailable = result.ok;
+});
 
 async function markitdownConvert(filePath: string): Promise<string> {
   const result = await runCommand('markitdown', [filePath], { timeoutMs: 30000 });
@@ -10,7 +17,7 @@ async function markitdownConvert(filePath: string): Promise<string> {
   return result.stdout;
 }
 
-describe('markitdown e2e', () => {
+describe('markitdown e2e', { skipIf: () => !markitdownAvailable }, () => {
   describe('HTML conversion', () => {
     it('preserves document structure', async () => {
       const md = await markitdownConvert(join(fixturesDir, 'sample.html'));
