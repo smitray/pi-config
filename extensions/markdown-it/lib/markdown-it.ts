@@ -132,7 +132,7 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
           chunk = `# ${section.heading}\n\n${para}`;
           chunkTokens = approxTokens(chunk);
         } else {
-          chunk += '\n\n' + para;
+          chunk += `\n\n${para}`;
           chunkTokens += paraTokens;
         }
       }
@@ -149,7 +149,7 @@ export function chunkByHeadings(markdown: string, maxTokens: number): string[] {
           chunk = para;
           chunkTokens = paraTokens;
         } else {
-          chunk += '\n\n' + para;
+          chunk += `\n\n${para}`;
           chunkTokens += paraTokens;
         }
       }

@@ -202,9 +202,9 @@ export function resolveApiKey(provider: string): string | undefined {
  */
 export function getProviderBaseUrl(provider: string): string {
   const urls: Record<string, string> = {
-    'curated': 'https://openrouter.ai/api/v1',
+    curated: 'https://openrouter.ai/api/v1',
     'mimo-plan': 'https://token-plan-sgp.xiaomimimo.com/v1',
-    'minimax': 'https://api.minimax.io/v1',
+    minimax: 'https://api.minimax.io/v1',
   };
   return urls[provider] ?? '';
 }

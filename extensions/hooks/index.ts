@@ -1,8 +1,8 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
-import { loadConfig } from './engine/config';
 import { registerCommands } from './commands/register';
+import { loadConfig } from './engine/config';
 import { registerEventHandlers } from './engine/events';
 
 const skillsDir = join(dirname(fileURLToPath(import.meta.url)), 'skills');

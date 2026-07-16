@@ -90,13 +90,18 @@ const markitdownConvert = defineTool({
     timeoutMs: Type.Optional(
       Type.Number({
         description: 'Timeout in ms (default 60000). Increase for large PDFs or OCR-heavy images.',
-      }),
+      })
     ),
   }),
   async execute(_toolCallId, params) {
     const result = await handleMarkitdownConvert(params as MarkitdownConvertArgs);
     return {
-      content: [{ type: 'text' as const, text: result.ok ? result.content ?? '' : result.error ?? 'markitdown failed' }],
+      content: [
+        {
+          type: 'text' as const,
+          text: result.ok ? (result.content ?? '') : (result.error ?? 'markitdown failed'),
+        },
+      ],
       details: result,
     };
   },

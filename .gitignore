@@ -13,6 +13,6 @@ node_modules/
 !skills/**/*.md
 notes/
 observational-memory/
-docs/
+/docs/
 .kb/
 extensions/coverage/

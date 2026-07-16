@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { runCommand } from '../../_shared/spawn';
 
-describe('markitdown CLI', () => {
+const markitdownAvailable = (await runCommand('markitdown', ['--version'])).ok;
+const markitdownDescribe = markitdownAvailable ? describe : describe.skip;
+
+markitdownDescribe('markitdown CLI', () => {
   it('reports version', async () => {
     const result = await runCommand('markitdown', ['--version']);
     expect(result.ok).toBe(true);
