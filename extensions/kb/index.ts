@@ -613,21 +613,8 @@ export default function (pi: ExtensionAPI) {
         'meetings',
         'diaries',
       ];
-      const typoAliases: Record<string, string> = {
-        entities: 'entitys',
-        syntheses: 'synthesiss',
-        analyses: 'analysiss',
-      };
       for (const type of typeNames) {
-        let typeDir = join(paths.wiki, type);
-        const aliasDir = typoAliases[type] ? join(paths.wiki, typoAliases[type]) : null;
-        if (
-          aliasDir &&
-          existsSync(aliasDir) &&
-          readdirSync(aliasDir).some((f: string) => f.endsWith('.md'))
-        ) {
-          typeDir = aliasDir;
-        }
+        const typeDir = join(paths.wiki, type);
         if (existsSync(typeDir)) {
           const files = readdirSync(typeDir).filter((f: string) => f.endsWith('.md'));
           wikiPages[type] = files.length;
@@ -1058,8 +1045,8 @@ export default function (pi: ExtensionAPI) {
       for (const source of pending) {
         if (!existsSync(source.extractedPath)) continue;
 
-        const { readFileSync } = await import('node:fs');
-        const extracted = readFileSync(source.extractedPath, 'utf-8');
+        const { readFile } = await import('node:fs/promises');
+        const extracted = await readFile(source.extractedPath, 'utf-8');
         const { content, filename } = buildPage('source', source.title, paths, {
           tags: ['auto-ingested'],
         });

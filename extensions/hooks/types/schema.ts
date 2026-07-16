@@ -23,7 +23,6 @@ export interface HookRule {
 
 export interface HooksGroup {
   group: string;
-  pattern: string;
   hooks: HookRule[];
 }
 

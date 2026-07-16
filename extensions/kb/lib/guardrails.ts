@@ -1,4 +1,4 @@
-import { registerRules } from '../../guardrails/api';
+import { registerRules } from '../../_shared/guardrails-registry';
 
 // ponytail: KB guardrails register with the guardrails extension instead of
 // using an inline tool_call hook. The guardrails extension handles the hook,

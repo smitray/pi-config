@@ -2,9 +2,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { loadConfig } from './lib/config';
-import { clearDocsChunksCache, registerDocsTools } from './tools/docs-tools';
+import { clearDocsStoreChunksCache, registerDocsTools } from './tools/docs-tools';
 import { registerMediaTools } from './tools/media-cli';
-import { clearDocsChunkCache, registerWebFetch } from './tools/web-fetch';
+import { clearWebFetchChunkCache, registerWebFetch } from './tools/web-fetch';
 import { registerWebSearch } from './tools/web-search';
 
 const skillsDir = join(dirname(fileURLToPath(import.meta.url)), 'skills');
@@ -28,7 +28,7 @@ export default function accessWeb(pi: ExtensionAPI): void {
 
   // Drop in-memory chunk caches at session end so we don't leak across sessions.
   pi.on('session_shutdown', () => {
-    clearDocsChunkCache();
-    clearDocsChunksCache();
+    clearWebFetchChunkCache();
+    clearDocsStoreChunksCache();
   });
 }

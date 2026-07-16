@@ -97,10 +97,14 @@ export function writePagesAsKbPackets(
 
     const sourceId = nextSourceId(rawSourcesDir, now);
     const packetDir = join(rawSourcesDir, sourceId);
-    // Ponytail: mkdirSync with recursive:false throws EEXIST on duplicate,
-    // surfacing race conditions between concurrent crawls.
-    mkdirSync(packetDir, { recursive: false });
-    mkdirSync(join(packetDir, 'original'), { recursive: false });
+    // ponytail: catch EEXIST from concurrent crawls creating the same packet.
+    try {
+      mkdirSync(packetDir, { recursive: false });
+      mkdirSync(join(packetDir, 'original'), { recursive: false });
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+      continue;
+    }
 
     writeFileSync(join(packetDir, 'original', 'url.txt'), page.url, 'utf-8');
     const tokens = approxTokens(page.markdown);

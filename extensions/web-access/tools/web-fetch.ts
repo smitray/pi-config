@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { err, ok } from '../../_shared/result';
+import { cleanFetch } from '../lib/clean-fetch';
 import type { AccessConfig } from '../lib/config';
 import {
   type DocsManifest,
@@ -194,7 +195,7 @@ interface ChunkCacheEntry {
 
 const chunkCache = new Map<string, ChunkCacheEntry>();
 
-export function clearDocsChunkCache(): void {
+export function clearWebFetchChunkCache(): void {
   chunkCache.clear();
 }
 
@@ -202,17 +203,46 @@ export function registerWebFetch(pi: ExtensionAPI, config: AccessConfig): void {
   pi.registerTool({
     name: 'web-fetch',
     label: 'Web Fetch',
-    description: 'Fetch a single web page as markdown via Crawl4AI',
+    description:
+      'Fetch a single web page as markdown via Crawl4AI. ' +
+      'Filter strategies: fit (default, basic extraction), raw (full page), ' +
+      'bm25/llm (query-relevant chunks), clean (minimal tokens via TinyFish API, ' +
+      'falls back to Crawl4AI fit).',
     parameters: Type.Object({
       url: Type.String({ description: 'URL to fetch' }),
       q: Type.Optional(Type.String({ description: 'Query for BM25/LLM filters' })),
       f: Type.Optional(
-        Type.String({ description: 'Filter strategy: fit, raw, bm25, llm', default: 'fit' })
+        Type.String({
+          description: 'Filter strategy: fit, raw, bm25, llm, clean',
+          default: 'fit',
+        })
       ),
     }),
     async execute(_id, params) {
       const { url, q, f } = params as { url: string; q?: string; f?: string };
       const filter = f || 'fit';
+
+      // clean mode: three-tier (TinyFish → Crawl4AI fit)
+      if (filter === 'clean') {
+        try {
+          const result = await cleanFetch(url, config);
+          return ok(result.markdown, {
+            url,
+            source: result.source,
+            tokens: result.tokens,
+            title: result.title,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          // ponytail: add crawl4ai endpoint to error for debugging
+          return err('FETCH_UNAVAILABLE', `${message} [crawl4ai: ${config.crawl4aiBase}/md]`, {
+            url,
+            endpoint: `${config.crawl4aiBase}/md`,
+            hasTinyfishKey: !!config.tinyfishApiKey,
+          });
+        }
+      }
+
       if ((filter === 'bm25' || filter === 'llm') && !q) {
         return err('MISSING_QUERY', `f="${filter}" requires q= parameter`, { url });
       }

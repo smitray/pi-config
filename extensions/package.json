@@ -15,14 +15,12 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.0",
-    "@earendil-works/pi-coding-agent": "latest",
-    "@types/markdown-it": "^14.1.2",
     "@vitest/coverage-v8": "^4.1.10",
     "typebox": "^1.2.9",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   },
   "dependencies": {
-    "markdown-it": "^14.2.0"
+    "@earendil-works/pi-coding-agent": "latest"
   }
 }

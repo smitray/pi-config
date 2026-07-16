@@ -1,20 +1,9 @@
-export interface GuardrailsRule {
-  context: 'command' | 'file_name' | 'file_content';
-  pattern: string;
-  file_pattern?: string;
-  includes?: string;
-  excludes?: string;
-  scope?: 'project' | 'external';
-  action: 'block' | 'confirm';
-  reason: string;
-}
+/**
+ * Re-export guardrails types from _shared.
+ */
+export type { GuardrailsGroup, GuardrailsRule } from '../_shared/guardrails-registry';
 
-export interface GuardrailsGroup {
-  group: string;
-  pattern: string;
-  excludePattern?: string;
-  rules: GuardrailsRule[];
-}
+import type { GuardrailsGroup, GuardrailsRule } from '../_shared/guardrails-registry';
 
 export interface MatchedRule {
   rule: GuardrailsRule;

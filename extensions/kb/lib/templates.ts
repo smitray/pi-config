@@ -139,6 +139,7 @@ export function buildPage(
   // Build template vars — spread extraVars first, then override with formatted tags
   const vars: Record<string, string> = {
     title,
+    date: today,
     created: today,
     updated: today,
     stage: 'brainstorm',
