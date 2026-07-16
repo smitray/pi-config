@@ -84,9 +84,7 @@ describe('getProviderBaseUrl', () => {
   });
 
   it('returns mimo-plan url', () => {
-    expect(getProviderBaseUrl('mimo-plan')).toBe(
-      'https://token-plan-sgp.xiaomimimo.com/v1'
-    );
+    expect(getProviderBaseUrl('mimo-plan')).toBe('https://token-plan-sgp.xiaomimimo.com/v1');
   });
 
   it('returns empty string for unknown provider', () => {

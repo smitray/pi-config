@@ -6,11 +6,11 @@ import { type AccessConfig, loadConfig } from '../lib/config';
 import { registerWebFetch } from '../tools/web-fetch';
 
 let config: AccessConfig;
-let crawlReachable = false;
+let _crawlReachable = false;
 
 beforeAll(async () => {
   config = loadConfig();
-  crawlReachable = await isReachable(config.crawl4aiBase);
+  _crawlReachable = await isReachable(config.crawl4aiBase);
 });
 
 async function isReachable(baseUrl: string): Promise<boolean> {
