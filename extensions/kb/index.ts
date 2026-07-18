@@ -6,6 +6,16 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { err, ok } from '../_shared/result';
 import { captureFile, captureText } from './lib/capture';
+import {
+  registerContentTool,
+  registerLibraryTool,
+  registerPlanTool,
+  registerProjectTools,
+  registerResearchTool,
+  registerScheduleTool,
+  registerTicketTool,
+  registerTodoTool,
+} from './lib/create-tools';
 import { findPageByTitle, formatEnrichmentResult, mergeObservationIntoPage } from './lib/enrich';
 import { logEvent } from './lib/events';
 import { installGuardrails } from './lib/guardrails';
@@ -17,14 +27,15 @@ import { formatObservationResult, saveObservation } from './lib/observe';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
 import { formatRetroResult, saveInsight } from './lib/retro';
 import { buildPage, writeAgentsMd, writeDefaultTemplates } from './lib/templates';
-import type { VaultPaths } from './lib/vault';
 import {
+  DIR_NAMES,
   ensureVaultStructure,
   fmtDate,
   getExplicitVaultPaths,
   getVaultPaths,
   readJson,
   resolveVaultContext,
+  type VaultPaths,
   writeJson,
 } from './lib/vault';
 
@@ -179,8 +190,10 @@ export default function (pi: ExtensionAPI) {
     label: 'KB Ensure Page',
     description:
       'Create or update a wiki page with enforced template frontmatter. ' +
-      'Page types: concept, entity, synthesis, analysis, source, artifact, meeting, diary. ' +
-      'Templates are loaded from .kb/templates/pages/{type}.md and always applied.',
+      'Page types: concept, entity, synthesis, analysis, source, artifact, meeting, diary, ' +
+      'schedule, library, research, plan, content. ' +
+      'For typed pages (schedule, library, research, plan, content), prefer the dedicated ' +
+      'kb_create_* tools which auto-generate IDs and handle type-specific fields.',
     promptSnippet: 'Create a KB wiki page from a template',
     promptGuidelines: [
       'Use kb_ensure_page to create new wiki pages. Templates are always enforced.',
@@ -188,7 +201,7 @@ export default function (pi: ExtensionAPI) {
     parameters: Type.Object({
       type: Type.String({
         description:
-          'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary',
+          'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary, schedule, library, research, plan, content',
       }),
       title: Type.String({ description: 'Page title' }),
       content: Type.Optional(
@@ -252,9 +265,16 @@ export default function (pi: ExtensionAPI) {
         'synthesis',
         'analysis',
         'source',
+        'artifact',
         'meeting',
         'diary',
-        'artifact',
+        'schedule',
+        'library',
+        'research',
+        'plan',
+        'content',
+        'ticket',
+        'todo',
       ];
       const pageType = validTypes.includes(params.type) ? params.type : 'concept';
 
@@ -276,13 +296,7 @@ export default function (pi: ExtensionAPI) {
 
       const fullContent = params.content ? `${content}\n${params.content}` : content;
 
-      const dirNames: Record<string, string> = {
-        entity: 'entities',
-        synthesis: 'syntheses',
-        analysis: 'analyses',
-        diary: 'diaries',
-      };
-      const typeDir = join(paths.wiki, dirNames[pageType] ?? `${pageType}s`);
+      const typeDir = join(paths.wiki, DIR_NAMES[pageType] ?? `${pageType}s`);
       if (!existsSync(typeDir)) mkdirSync(typeDir, { recursive: true });
 
       writeFileSync(join(typeDir, filename), fullContent, 'utf-8');
@@ -292,10 +306,13 @@ export default function (pi: ExtensionAPI) {
         content: [
           {
             type: 'text',
-            text: `✅ Created \`wiki/${pageType}s/${filename}\` — template enforced (type: ${pageType})`,
+            text: `✅ Created \`wiki/${DIR_NAMES[pageType] ?? `${pageType}s`}/${filename}\` — template enforced (type: ${pageType})`,
           },
         ],
-        details: { path: `wiki/${pageType}s/${filename}`, type: pageType },
+        details: {
+          path: `wiki/${DIR_NAMES[pageType] ?? `${pageType}s`}/${filename}`,
+          type: pageType,
+        },
       };
     },
   });
@@ -307,7 +324,7 @@ export default function (pi: ExtensionAPI) {
     label: 'KB Capture',
     description:
       'Capture a file or text into the KB as an immutable source packet in raw/sources/. ' +
-      'For URLs, use web-access fetch first, then capture the result. ' +
+      'For URLs, prefer kb_create_library which auto-fetches title, description, and platform. ' +
       'Supports: file paths and raw text.',
     promptSnippet: 'Capture file or text into KB raw sources',
     promptGuidelines: [
@@ -602,17 +619,7 @@ export default function (pi: ExtensionAPI) {
       // Count wiki pages by type
       const wikiPages: Record<string, number> = {};
       let totalWiki = 0;
-      // ponytail: handle typo dirs from earlier versions (entitys, synthesiss)
-      const typeNames = [
-        'sources',
-        'entities',
-        'concepts',
-        'syntheses',
-        'analyses',
-        'artifacts',
-        'meetings',
-        'diaries',
-      ];
+      const typeNames = Object.values(DIR_NAMES);
       for (const type of typeNames) {
         const typeDir = join(paths.wiki, type);
         if (existsSync(typeDir)) {
@@ -677,7 +684,7 @@ export default function (pi: ExtensionAPI) {
       type: Type.Optional(
         Type.String({
           description:
-            'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary',
+            'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary, schedule, library, research, plan, content',
         })
       ),
       stage: Type.Optional(
@@ -994,6 +1001,16 @@ export default function (pi: ExtensionAPI) {
       return ok(`✅ Event logged: ${params.kind}`, { kind: params.kind });
     },
   });
+
+  // ─── New typed tools ───────────────────────────────────────────
+  registerScheduleTool(pi);
+  registerLibraryTool(pi);
+  registerResearchTool(pi);
+  registerPlanTool(pi);
+  registerContentTool(pi);
+  registerTicketTool(pi);
+  registerTodoTool(pi);
+  registerProjectTools(pi);
 
   // ─── Hooks ─────────────────────────────────────────────────────
 

@@ -2,6 +2,35 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 
+// Canonical directory and ID name map. Update here to add a new type.
+export const DIR_NAMES: Record<string, string> = {
+  concept: 'concepts',
+  entity: 'entities',
+  source: 'sources',
+  synthesis: 'syntheses',
+  analysis: 'analyses',
+  artifact: 'artifacts',
+  meeting: 'meetings',
+  diary: 'diaries',
+  library: 'libraries',
+  research: 'research',
+  ticket: 'tickets',
+  todo: 'todos',
+  schedule: 'schedules',
+  plan: 'plans',
+  content: 'contents',
+};
+
+export const ID_PREFIXES: Record<string, string> = {
+  schedule: 'SCHED',
+  library: 'LIB',
+  research: 'RES',
+  plan: 'PLAN',
+  content: 'CONT',
+  ticket: 'TICK',
+  todo: 'TODO',
+};
+
 // ponytail: vault resolution walks up for .kb/, falls back to ~/.kb/.
 // Project hint: .git/ or package.json in parent chain biases toward project mode.
 
@@ -75,11 +104,32 @@ export function ensureVaultStructure(paths: VaultPaths): void {
     join(paths.wiki, 'concepts'),
     join(paths.wiki, 'syntheses'),
     join(paths.wiki, 'analyses'),
+    join(paths.wiki, 'schedules'),
+    join(paths.wiki, 'libraries'),
+    join(paths.wiki, 'research'),
+    join(paths.wiki, 'plans'),
+    join(paths.wiki, 'contents'),
+    join(paths.wiki, 'tickets'),
+    join(paths.wiki, 'todos'),
     paths.meta,
   ];
   for (const d of dirs) {
     if (!existsSync(d)) mkdirSync(d, { recursive: true });
   }
+}
+
+// Build VaultPaths for a given root. sub = '.kb' for standard vaults.
+export function buildVaultPaths(root: string, sub = '.kb'): VaultPaths {
+  const kbRoot = join(root, sub);
+  return {
+    root,
+    raw: join(kbRoot, 'raw'),
+    rawSources: join(kbRoot, 'raw', 'sources'),
+    wiki: join(kbRoot, 'wiki'),
+    meta: join(kbRoot, 'meta'),
+    dotKb: kbRoot,
+    templates: join(kbRoot, 'templates', 'pages'),
+  };
 }
 
 export function readJson<T>(path: string): T | null {
