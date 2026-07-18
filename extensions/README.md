@@ -42,7 +42,7 @@ npm install
 
 ```text
 extensions/
-├── AGENTS.md            # agent-facing docs
+
 ├── biome.json           # lint/format config
 ├── tsconfig.json        # TypeScript config
 ├── package.json         # shared dependencies + scripts

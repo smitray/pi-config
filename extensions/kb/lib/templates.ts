@@ -84,22 +84,9 @@ This \`.kb/\` directory is a Karpathy-style LLM Wiki maintained by the \`kb\` pi
 <!-- Add your project-specific conventions below this line -->
 `;
 
-export function writeAgentsMd(paths: VaultPaths, minimal = false): void {
+export function writeAgentsMd(paths: VaultPaths): void {
   const target = join(paths.dotKb, 'AGENTS.md');
   if (existsSync(target)) return;
-
-  if (minimal) {
-    writeFileSync(target, MINIMAL_AGENTS_MD, 'utf-8');
-    return;
-  }
-
-  // Read from extension template
-  const templatePath = join(EXT_DIR, 'templates', 'AGENTS.md');
-  if (existsSync(templatePath)) {
-    writeFileSync(target, readFileSync(templatePath, 'utf-8'), 'utf-8');
-    return;
-  }
-
   writeFileSync(target, MINIMAL_AGENTS_MD, 'utf-8');
 }
 

@@ -149,7 +149,7 @@ export default function (pi: ExtensionAPI) {
       }
 
       if (writeAgentsFile) {
-        writeAgentsMd(paths, true);
+        writeAgentsMd(paths);
       }
 
       writeJson(join(paths.dotKb, 'config.json'), {

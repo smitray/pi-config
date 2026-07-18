@@ -103,5 +103,5 @@ Configured in `settings.json`:
 │   ├── diaries/
 │   └── artifacts/
 ├── meta/                # registry.json, backlinks.json, events.jsonl
-└── templates/           # AGENTS.md + pages/*.md (per-vault copy)
+└── templates/           # pages/*.md (per-vault copy)
 ```

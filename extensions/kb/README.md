@@ -125,7 +125,7 @@ kb/
 │   ├── recall.ts       # Search + tag filtering
 │   └── guardrails.ts   # KB raw/meta protection
 ├── skills/             # 5 workflow skills
-├── templates/          # 8 page templates + AGENTS.md
+├── templates/          # page templates (concept/entity/synthesis/...)
 ├── test/               # Vitest tests
 └── README.md
 ```
