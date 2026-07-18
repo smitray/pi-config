@@ -11,9 +11,10 @@ export interface AccessConfig {
   ytdlpCookies?: string;
   downloadDir: string;
   mediaMaxMb: number;
-  whisperBin?: string;
+  whisperApiBase?: string;
   whisperModel?: string;
-  whisperCuda: boolean;
+  tinyfishApiKey?: string;
+  tinyfishApiBase: string;
 }
 
 function intOrDefault(value: string | undefined, fallback: string): number {
@@ -42,8 +43,9 @@ export function loadConfig(): AccessConfig {
     ytdlpCookies: process.env.PI_ACCESS_YTDLP_COOKIES,
     downloadDir: process.env.PI_ACCESS_DOWNLOAD_DIR || '/tmp/pi-access',
     mediaMaxMb: intOrDefault(process.env.PI_ACCESS_MEDIA_MAX_MB, '100'),
-    whisperBin: process.env.PI_ACCESS_WHISPER_BIN,
-    whisperModel: process.env.PI_ACCESS_WHISPER_MODEL,
-    whisperCuda: process.env.PI_ACCESS_WHISPER_CUDA === '1',
+    whisperApiBase: process.env.PI_ACCESS_WHISPER_API || 'http://localhost:7861',
+    whisperModel: process.env.PI_ACCESS_WHISPER_MODEL || 'small',
+    tinyfishApiKey: process.env.PI_TINYFISH_API_KEY,
+    tinyfishApiBase: process.env.PI_TINYFISH_API_BASE || 'https://api.fetch.tinyfish.ai',
   };
 }

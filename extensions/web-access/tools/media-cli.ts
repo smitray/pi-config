@@ -213,13 +213,7 @@ async function fetchVideo(url: string, config: AccessConfig): Promise<ToolResult
   return ok(filePath, { url, id, filePath, format: extname(filePath).slice(1), sizeBytes: size });
 }
 
-async function transcribeWithWhisper(url: string, config: AccessConfig): Promise<ToolResult> {
-  if (!config.whisperBin || !config.whisperModel) {
-    return err('WHISPER_CONFIG_MISSING', 'Set PI_ACCESS_WHISPER_BIN and PI_ACCESS_WHISPER_MODEL', {
-      url,
-    });
-  }
-
+async function transcribeWithWhisperApi(url: string, config: AccessConfig): Promise<ToolResult> {
   ensureDownloadDir(config);
   const idResult = await runYtDlp(url, ['--no-download', '--print', '%(id)s'], config);
   if (idResult.exitCode !== 0 || !idResult.stdout.trim()) {
@@ -227,6 +221,7 @@ async function transcribeWithWhisper(url: string, config: AccessConfig): Promise
   }
   const id = idResult.stdout.trim();
 
+  // download audio
   const audioResult = await runYtDlp(
     url,
     ['-x', '--audio-format', 'opus', '--audio-quality', '0', '-o', '%(id)s'],
@@ -242,43 +237,34 @@ async function transcribeWithWhisper(url: string, config: AccessConfig): Promise
     return err('AUDIO_NOT_FOUND', 'Audio file not found for transcription', { url, id });
   }
 
-  const device = config.whisperCuda ? 'cuda' : 'cpu';
-  const whisperResult = await runCommand(
-    config.whisperBin,
-    [
-      '--model',
-      config.whisperModel,
-      '--device',
-      device,
-      '--compute_type',
-      'int8',
-      '--output_dir',
-      config.downloadDir,
-      audioPath,
-    ],
-    { timeoutMs: config.timeout }
-  );
+  // POST to local Whisper API (OpenAI-compatible)
+  const formData = new FormData();
+  formData.set('file', new Blob([readFileSync(audioPath)]), extname(audioPath));
+  formData.set('model', config.whisperModel || 'small');
+
+  const apiUrl = `${config.whisperApiBase}/v1/audio/transcriptions`;
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    body: formData,
+  });
 
   rmSync(audioPath, { force: true });
 
-  if (whisperResult.exitCode !== 0) {
-    return err('WHISPER_FAILED', whisperResult.stderr || whisperResult.stdout, { url, id });
+  if (!response.ok) {
+    const text = await response.text();
+    return err('WHISPER_FAILED', `API returned ${response.status}: ${text}`, { url, id });
   }
 
-  const base = audioPath.replace(/\.[^.]+$/, '');
-  const txtPath = findFileByIdPrefix(config.downloadDir, id, ['txt']);
-  if (!txtPath) {
-    return err('WHISPER_OUTPUT_MISSING', `Expected transcript text file near ${base}`, { url, id });
+  const data = (await response.json()) as { text?: string };
+  if (!data.text) {
+    return err('WHISPER_FAILED', 'API returned empty response', { url, id });
   }
 
-  const transcript = readFileSync(txtPath, 'utf8').trim();
-  rmSync(txtPath, { force: true });
-
-  return ok(transcript, {
+  return ok(data.text.trim(), {
     url,
     id,
-    source: config.whisperCuda ? 'faster-whisper-cuda' : 'faster-whisper-cpu',
-    chars: transcript.length,
+    source: 'whisper-api',
+    chars: data.text.trim().length,
   });
 }
 
@@ -335,15 +321,15 @@ export function registerMediaTools(pi: ExtensionAPI, config: AccessConfig): void
         return ok(subs.content[0].text, { ...(subs.details || {}), fallback: false });
       }
 
-      if (!config.whisperBin || !config.whisperModel) {
+      if (!config.whisperApiBase) {
         return err(
           'NO_TRANSCRIPT_AVAILABLE',
-          'No subtitles and faster-whisper fallback is not configured. Set PI_ACCESS_WHISPER_BIN and PI_ACCESS_WHISPER_MODEL.',
+          'No subtitles and no Whisper API configured. Set PI_ACCESS_WHISPER_API.',
           { url }
         );
       }
 
-      return transcribeWithWhisper(url, config);
+      return transcribeWithWhisperApi(url, config);
     },
   });
 }

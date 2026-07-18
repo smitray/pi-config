@@ -1,7 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { VaultPaths } from './vault';
-import { fmtDate } from './vault';
+import { fmtDate, type VaultPaths } from './vault';
 
 // Templates live in extensions/kb/templates/pages/ as single source of truth.
 // Copied to vault on bootstrap. kb_ensure_page reads from vault or extension.
@@ -14,14 +13,36 @@ export type PageType =
   | 'source'
   | 'meeting'
   | 'diary'
-  | 'artifact';
+  | 'artifact'
+  | 'schedule'
+  | 'library'
+  | 'research'
+  | 'plan'
+  | 'content'
+  | 'ticket'
+  | 'todo';
 
 // Extension dir resolved once at import time
 const EXT_DIR = join(import.meta.dirname ?? __dirname, '..');
 
 export function writeDefaultTemplates(paths: VaultPaths, mode?: string): void {
   const pagesDir = join(EXT_DIR, 'templates', 'pages');
-  const types = ['concept', 'entity', 'synthesis', 'analysis', 'source', 'meeting', 'diary'];
+  const types = [
+    'concept',
+    'entity',
+    'synthesis',
+    'analysis',
+    'source',
+    'meeting',
+    'diary',
+    'schedule',
+    'library',
+    'research',
+    'plan',
+    'content',
+    'ticket',
+    'todo',
+  ];
   // Artifact template is project-only
   if (mode !== 'personal') types.push('artifact');
 
@@ -63,22 +84,9 @@ This \`.kb/\` directory is a Karpathy-style LLM Wiki maintained by the \`kb\` pi
 <!-- Add your project-specific conventions below this line -->
 `;
 
-export function writeAgentsMd(paths: VaultPaths, minimal = false): void {
+export function writeAgentsMd(paths: VaultPaths): void {
   const target = join(paths.dotKb, 'AGENTS.md');
   if (existsSync(target)) return;
-
-  if (minimal) {
-    writeFileSync(target, MINIMAL_AGENTS_MD, 'utf-8');
-    return;
-  }
-
-  // Read from extension template
-  const templatePath = join(EXT_DIR, 'templates', 'AGENTS.md');
-  if (existsSync(templatePath)) {
-    writeFileSync(target, readFileSync(templatePath, 'utf-8'), 'utf-8');
-    return;
-  }
-
   writeFileSync(target, MINIMAL_AGENTS_MD, 'utf-8');
 }
 
@@ -139,6 +147,7 @@ export function buildPage(
   // Build template vars — spread extraVars first, then override with formatted tags
   const vars: Record<string, string> = {
     title,
+    date: today,
     created: today,
     updated: today,
     stage: 'brainstorm',
@@ -158,21 +167,30 @@ export function buildPage(
 
   const content = populateTemplate(template, vars);
 
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+  const id = (extraVars.id as string | undefined) ?? '';
+
   let filename: string;
   if (type === 'artifact' && extraVars.prefix) {
     // Artifact: {prefix}-{slug}-{date}.md
-    const prefix = extraVars.prefix as ArtifactPrefix;
-    const slug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
-    filename = `${prefix}-${slug}-${today}.md`;
+    filename = `${extraVars.prefix}-${slug}-${today}.md`;
+  } else if (id) {
+    // ID-based types: use short type prefix from DIR_NAMES key
+    const shortMap: Record<string, string> = {
+      schedule: 'sched',
+      library: 'lib',
+      research: 'res',
+      plan: 'plan',
+      content: 'cont',
+      ticket: 'tick',
+      todo: 'todo',
+    };
+    filename = `${shortMap[type] ?? type}-${id}.md`;
   } else {
     // Default: {slug}.md
-    const slug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '');
     filename = `${slug}.md`;
   }
 

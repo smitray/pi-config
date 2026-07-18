@@ -38,8 +38,6 @@ See [extensions/README.md](extensions/README.md) for dev setup and commands.
 
 | Skill | Description |
 |---|---|
-| `firefox-use` | Playwright Firefox automation — navigate, screenshot, form fill, JS eval |
-| `browser-use` | Chrome DevTools Protocol automation via browser-use library |
 | `git-commit` | Conventional Commits with emoji prefixes |
 | `web-media` | YouTube/media transcription via yt-dlp |
 | `web-fetch` | Fetch web pages as clean markdown |

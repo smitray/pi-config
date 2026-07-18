@@ -6,6 +6,16 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { err, ok } from '../_shared/result';
 import { captureFile, captureText } from './lib/capture';
+import {
+  registerContentTool,
+  registerLibraryTool,
+  registerPlanTool,
+  registerProjectTools,
+  registerResearchTool,
+  registerScheduleTool,
+  registerTicketTool,
+  registerTodoTool,
+} from './lib/create-tools';
 import { findPageByTitle, formatEnrichmentResult, mergeObservationIntoPage } from './lib/enrich';
 import { logEvent } from './lib/events';
 import { installGuardrails } from './lib/guardrails';
@@ -17,14 +27,15 @@ import { formatObservationResult, saveObservation } from './lib/observe';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
 import { formatRetroResult, saveInsight } from './lib/retro';
 import { buildPage, writeAgentsMd, writeDefaultTemplates } from './lib/templates';
-import type { VaultPaths } from './lib/vault';
 import {
+  DIR_NAMES,
   ensureVaultStructure,
   fmtDate,
   getExplicitVaultPaths,
   getVaultPaths,
   readJson,
   resolveVaultContext,
+  type VaultPaths,
   writeJson,
 } from './lib/vault';
 
@@ -101,7 +112,8 @@ export default function (pi: ExtensionAPI) {
     label: 'KB Bootstrap',
     description:
       'Initialize a new .kb/ knowledge base vault at the current or specified directory. ' +
-      'Auto-detects project vs personal mode based on context.',
+      'Auto-detects project vs personal mode based on context. ' +
+      'AGENTS.md is only written for personal (root) vaults, not project vaults.',
     promptSnippet: 'Initialize a new KB vault',
     promptGuidelines: [
       'Use kb_bootstrap when setting up a new knowledge base for a project or personal use.',
@@ -127,18 +139,19 @@ export default function (pi: ExtensionAPI) {
 
       ensureVaultStructure(paths);
 
-      // Ask user whether to include AGENTS.md
-      let writeAgentsFile = true;
-      if (ctx.hasUI) {
-        const choice = await ctx.ui.select('Write .kb/AGENTS.md?', [
-          'yes \u2014 include minimal AGENTS.md (pointer to skills)',
-          'skip \u2014 no AGENTS.md (skills only)',
-        ]);
-        writeAgentsFile = !choice?.startsWith('skip');
-      }
-
-      if (writeAgentsFile) {
-        writeAgentsMd(paths, true);
+      // AGENTS.md only for personal (root) vaults — projects inherit from KB tool skills.
+      if (resolvedMode === 'personal') {
+        let writeAgentsFile = true;
+        if (ctx.hasUI) {
+          const choice = await ctx.ui.select('Write ~/.kb/AGENTS.md?', [
+            'yes \u2014 include minimal AGENTS.md (pointer to skills)',
+            'skip \u2014 no AGENTS.md (skills only)',
+          ]);
+          writeAgentsFile = !choice?.startsWith('skip');
+        }
+        if (writeAgentsFile) {
+          writeAgentsMd(paths);
+        }
       }
 
       writeJson(join(paths.dotKb, 'config.json'), {
@@ -179,8 +192,10 @@ export default function (pi: ExtensionAPI) {
     label: 'KB Ensure Page',
     description:
       'Create or update a wiki page with enforced template frontmatter. ' +
-      'Page types: concept, entity, synthesis, analysis, source, artifact, meeting, diary. ' +
-      'Templates are loaded from .kb/templates/pages/{type}.md and always applied.',
+      'Page types: concept, entity, synthesis, analysis, source, artifact, meeting, diary, ' +
+      'schedule, library, research, plan, content. ' +
+      'For typed pages (schedule, library, research, plan, content), prefer the dedicated ' +
+      'kb_create_* tools which auto-generate IDs and handle type-specific fields.',
     promptSnippet: 'Create a KB wiki page from a template',
     promptGuidelines: [
       'Use kb_ensure_page to create new wiki pages. Templates are always enforced.',
@@ -188,7 +203,7 @@ export default function (pi: ExtensionAPI) {
     parameters: Type.Object({
       type: Type.String({
         description:
-          'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary',
+          'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary, schedule, library, research, plan, content',
       }),
       title: Type.String({ description: 'Page title' }),
       content: Type.Optional(
@@ -252,9 +267,16 @@ export default function (pi: ExtensionAPI) {
         'synthesis',
         'analysis',
         'source',
+        'artifact',
         'meeting',
         'diary',
-        'artifact',
+        'schedule',
+        'library',
+        'research',
+        'plan',
+        'content',
+        'ticket',
+        'todo',
       ];
       const pageType = validTypes.includes(params.type) ? params.type : 'concept';
 
@@ -276,13 +298,7 @@ export default function (pi: ExtensionAPI) {
 
       const fullContent = params.content ? `${content}\n${params.content}` : content;
 
-      const dirNames: Record<string, string> = {
-        entity: 'entities',
-        synthesis: 'syntheses',
-        analysis: 'analyses',
-        diary: 'diaries',
-      };
-      const typeDir = join(paths.wiki, dirNames[pageType] ?? `${pageType}s`);
+      const typeDir = join(paths.wiki, DIR_NAMES[pageType] ?? `${pageType}s`);
       if (!existsSync(typeDir)) mkdirSync(typeDir, { recursive: true });
 
       writeFileSync(join(typeDir, filename), fullContent, 'utf-8');
@@ -292,10 +308,13 @@ export default function (pi: ExtensionAPI) {
         content: [
           {
             type: 'text',
-            text: `✅ Created \`wiki/${pageType}s/${filename}\` — template enforced (type: ${pageType})`,
+            text: `✅ Created \`wiki/${DIR_NAMES[pageType] ?? `${pageType}s`}/${filename}\` — template enforced (type: ${pageType})`,
           },
         ],
-        details: { path: `wiki/${pageType}s/${filename}`, type: pageType },
+        details: {
+          path: `wiki/${DIR_NAMES[pageType] ?? `${pageType}s`}/${filename}`,
+          type: pageType,
+        },
       };
     },
   });
@@ -307,7 +326,7 @@ export default function (pi: ExtensionAPI) {
     label: 'KB Capture',
     description:
       'Capture a file or text into the KB as an immutable source packet in raw/sources/. ' +
-      'For URLs, use web-access fetch first, then capture the result. ' +
+      'For URLs, prefer kb_create_library which auto-fetches title, description, and platform. ' +
       'Supports: file paths and raw text.',
     promptSnippet: 'Capture file or text into KB raw sources',
     promptGuidelines: [
@@ -602,32 +621,9 @@ export default function (pi: ExtensionAPI) {
       // Count wiki pages by type
       const wikiPages: Record<string, number> = {};
       let totalWiki = 0;
-      // ponytail: handle typo dirs from earlier versions (entitys, synthesiss)
-      const typeNames = [
-        'sources',
-        'entities',
-        'concepts',
-        'syntheses',
-        'analyses',
-        'artifacts',
-        'meetings',
-        'diaries',
-      ];
-      const typoAliases: Record<string, string> = {
-        entities: 'entitys',
-        syntheses: 'synthesiss',
-        analyses: 'analysiss',
-      };
+      const typeNames = Object.values(DIR_NAMES);
       for (const type of typeNames) {
-        let typeDir = join(paths.wiki, type);
-        const aliasDir = typoAliases[type] ? join(paths.wiki, typoAliases[type]) : null;
-        if (
-          aliasDir &&
-          existsSync(aliasDir) &&
-          readdirSync(aliasDir).some((f: string) => f.endsWith('.md'))
-        ) {
-          typeDir = aliasDir;
-        }
+        const typeDir = join(paths.wiki, type);
         if (existsSync(typeDir)) {
           const files = readdirSync(typeDir).filter((f: string) => f.endsWith('.md'));
           wikiPages[type] = files.length;
@@ -690,7 +686,7 @@ export default function (pi: ExtensionAPI) {
       type: Type.Optional(
         Type.String({
           description:
-            'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary',
+            'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary, schedule, library, research, plan, content',
         })
       ),
       stage: Type.Optional(
@@ -1008,6 +1004,16 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
+  // ─── New typed tools ───────────────────────────────────────────
+  registerScheduleTool(pi);
+  registerLibraryTool(pi);
+  registerResearchTool(pi);
+  registerPlanTool(pi);
+  registerContentTool(pi);
+  registerTicketTool(pi);
+  registerTodoTool(pi);
+  registerProjectTools(pi);
+
   // ─── Hooks ─────────────────────────────────────────────────────
 
   // Status on session start — explicit bootstrap only (no auto-create)
@@ -1058,8 +1064,8 @@ export default function (pi: ExtensionAPI) {
       for (const source of pending) {
         if (!existsSync(source.extractedPath)) continue;
 
-        const { readFileSync } = await import('node:fs');
-        const extracted = readFileSync(source.extractedPath, 'utf-8');
+        const { readFile } = await import('node:fs/promises');
+        const extracted = await readFile(source.extractedPath, 'utf-8');
         const { content, filename } = buildPage('source', source.title, paths, {
           tags: ['auto-ingested'],
         });

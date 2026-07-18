@@ -7,7 +7,7 @@ import { chunkPages, listLabels, loadManifest, readPage, searchDocs } from '../l
 // In-memory chunk cache, cleared on session shutdown via the extension.
 const chunksCache = new Map<string, ReturnType<typeof chunkPages>>();
 
-export function clearDocsChunksCache(): void {
+export function clearDocsStoreChunksCache(): void {
   chunksCache.clear();
 }
 

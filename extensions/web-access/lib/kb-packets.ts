@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path';
 import { approxTokens, splitIntoChunks } from './markdown'; // paragraph-based chunking (mature)
 
-// ponytail: keep kb-packets simple — use proven paragraph splitter. markdown-it.ts available
+// ponytail: keep kb-packets simple — use proven paragraph splitter. See lib/markdown.ts.
 // for future AST-based features (heading detection, etc.).
 
 /**
@@ -97,10 +97,14 @@ export function writePagesAsKbPackets(
 
     const sourceId = nextSourceId(rawSourcesDir, now);
     const packetDir = join(rawSourcesDir, sourceId);
-    // Ponytail: mkdirSync with recursive:false throws EEXIST on duplicate,
-    // surfacing race conditions between concurrent crawls.
-    mkdirSync(packetDir, { recursive: false });
-    mkdirSync(join(packetDir, 'original'), { recursive: false });
+    // ponytail: catch EEXIST from concurrent crawls creating the same packet.
+    try {
+      mkdirSync(packetDir, { recursive: false });
+      mkdirSync(join(packetDir, 'original'), { recursive: false });
+    } catch (err: unknown) {
+      if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+      continue;
+    }
 
     writeFileSync(join(packetDir, 'original', 'url.txt'), page.url, 'utf-8');
     const tokens = approxTokens(page.markdown);

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { runCommand } from '../../_shared/spawn';
 
-const markitdownAvailable = (await runCommand('markitdown', ['--version'])).ok;
+// ponytail: skip CLI tests in CI — markitdown CLI not installed on GH runners.
+const inCI = !!process.env.CI;
+const markitdownAvailable = !inCI && (await runCommand('markitdown', ['--version'])).ok;
 const markitdownDescribe = markitdownAvailable ? describe : describe.skip;
 
 markitdownDescribe('markitdown CLI', () => {

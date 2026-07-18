@@ -1,6 +1,9 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.0/schema.json",
   "vcs": { "useIgnoreFile": true },
+  "files": {
+    "includes": ["**", "!**/coverage", "!**/node_modules", "!package-lock.json"]
+  },
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,

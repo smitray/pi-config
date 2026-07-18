@@ -32,4 +32,3 @@ In pi, use the `markitdown-convert` tool with a local file path.
 
 ## Related
 
-- [markdown-it](../markdown-it/) — npm-based markdown parser (AST chunking, sections, validation)

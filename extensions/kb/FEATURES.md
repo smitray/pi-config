@@ -15,7 +15,7 @@
 
 | Tool | Description |
 | ------ | ------------- |
-| `kb_bootstrap` | Initialize a new vault — auto-detects project vs personal, generates AGENTS.md (3 choices) |
+| `kb_bootstrap` | Initialize a new vault — auto-detects project vs personal, generates AGENTS.md for personal vaults only |
 | `kb_ensure_page` | Create/update a wiki page — enforces template frontmatter, 8 types |
 | `kb_capture` | File/text → immutable source packet in `raw/sources/SRC-*` |
 | `kb_ingest` | Two-step pipeline: read `extracted.md` → synthesize wiki pages |
@@ -103,5 +103,5 @@ Configured in `settings.json`:
 │   ├── diaries/
 │   └── artifacts/
 ├── meta/                # registry.json, backlinks.json, events.jsonl
-└── templates/           # AGENTS.md + pages/*.md (per-vault copy)
+└── templates/           # pages/*.md (per-vault copy)
 ```
