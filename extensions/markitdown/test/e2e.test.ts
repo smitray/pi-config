@@ -4,7 +4,9 @@ import { runCommand } from '../../_shared/spawn';
 
 const fixturesDir = join(import.meta.dirname ?? __dirname, 'fixtures');
 
-const markitdownAvailable = (await runCommand('markitdown', ['--version'])).ok;
+// ponytail: skip e2e in CI unconditionally — markitdown CLI not installed on GH runners.
+const inCI = !!process.env.CI;
+const markitdownAvailable = !inCI && (await runCommand('markitdown', ['--version'])).ok;
 const markitdownDescribe = markitdownAvailable ? describe : describe.skip;
 
 async function markitdownConvert(filePath: string): Promise<string> {

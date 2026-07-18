@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path';
 import { approxTokens, splitIntoChunks } from './markdown'; // paragraph-based chunking (mature)
 
-// ponytail: keep kb-packets simple — use proven paragraph splitter. markdown-it.ts available
+// ponytail: keep kb-packets simple — use proven paragraph splitter. See lib/markdown.ts.
 // for future AST-based features (heading detection, etc.).
 
 /**

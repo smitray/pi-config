@@ -25,7 +25,6 @@ workspace tooling and generated output.
 │   ├── guardrails/
 │   ├── hooks/
 │   ├── kb/
-│   ├── markdown-it/
 │   ├── markitdown/
 │   └── web-access/
 ├── skills/
@@ -186,7 +185,7 @@ If you want the cleanest setup:
 
 ## What This Means For Your Current Tree
 
-- `extensions/better-footer/`, `extensions/guardrails/`, `extensions/hooks/`, `extensions/kb/`, `extensions/web-access/`, `extensions/markdown-it/`, and `extensions/markitdown/` are in the right place.
+- `extensions/better-footer/`, `extensions/guardrails/`, `extensions/hooks/`, `extensions/kb/`, `extensions/web-access/`, and `extensions/markitdown/` are in the right place.
 - `extensions/AGENTS.md`, `extensions/package.json`, `extensions/tsconfig.json`, and `extensions/biome.json` are good workspace-level files.
 - `coverage/` should be treated as generated output and excluded from linting.
 - A `vitest.config.mts` file is usually unnecessary here; the workspace can rely on Vitest defaults unless you have a specific reason to override them.
