@@ -14,7 +14,7 @@ compatibility: >
 
 Self-contained `.kb/` vaults. Four layers: **raw** (immutable sources), **wiki** (editable
 pages with wikilinks), **meta** (auto-generated registry + backlinks + embeddings), and
-**config** (templates + AGENTS.md).
+**config** (templates + AGENTS.md for personal vaults only).
 
 ## Workflow Skills (Use These First)
 
@@ -35,7 +35,7 @@ instructions.
 ```text
 .kb/
 ├── config.json                    # topic, mode, created, version
-├── AGENTS.md                      # minimal pointer to skills (optional)
+├── AGENTS.md                      # minimal pointer to skills (personal only)
 ├── templates/pages/               # 8 page templates
 │   ├── concept.md                 #   abstract idea, pattern, technique
 │   ├── entity.md                  #   concrete thing (library, tool, person, project)

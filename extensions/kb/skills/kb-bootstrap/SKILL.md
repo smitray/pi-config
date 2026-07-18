@@ -33,9 +33,9 @@ kb_bootstrap topic="Project Docs" mode=project root="/path/to/project"
 ## What Gets Created
 
 ```
-.kb/
+.kb/  (or ~/.kb/ for personal)
 ├── config.json              # topic, mode, created date
-├── AGENTS.md                # KB usage instructions for agents
+├── AGENTS.md                # personal vaults only — minimal pointer to skills
 ├── templates/pages/         # 7-8 page templates (personal: 7, project: 8)
 │   ├── concept.md
 │   ├── entity.md

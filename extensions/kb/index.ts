@@ -112,7 +112,8 @@ export default function (pi: ExtensionAPI) {
     label: 'KB Bootstrap',
     description:
       'Initialize a new .kb/ knowledge base vault at the current or specified directory. ' +
-      'Auto-detects project vs personal mode based on context.',
+      'Auto-detects project vs personal mode based on context. ' +
+      'AGENTS.md is only written for personal (root) vaults, not project vaults.',
     promptSnippet: 'Initialize a new KB vault',
     promptGuidelines: [
       'Use kb_bootstrap when setting up a new knowledge base for a project or personal use.',
@@ -138,18 +139,19 @@ export default function (pi: ExtensionAPI) {
 
       ensureVaultStructure(paths);
 
-      // Ask user whether to include AGENTS.md
-      let writeAgentsFile = true;
-      if (ctx.hasUI) {
-        const choice = await ctx.ui.select('Write .kb/AGENTS.md?', [
-          'yes \u2014 include minimal AGENTS.md (pointer to skills)',
-          'skip \u2014 no AGENTS.md (skills only)',
-        ]);
-        writeAgentsFile = !choice?.startsWith('skip');
-      }
-
-      if (writeAgentsFile) {
-        writeAgentsMd(paths);
+      // AGENTS.md only for personal (root) vaults — projects inherit from KB tool skills.
+      if (resolvedMode === 'personal') {
+        let writeAgentsFile = true;
+        if (ctx.hasUI) {
+          const choice = await ctx.ui.select('Write ~/.kb/AGENTS.md?', [
+            'yes \u2014 include minimal AGENTS.md (pointer to skills)',
+            'skip \u2014 no AGENTS.md (skills only)',
+          ]);
+          writeAgentsFile = !choice?.startsWith('skip');
+        }
+        if (writeAgentsFile) {
+          writeAgentsMd(paths);
+        }
       }
 
       writeJson(join(paths.dotKb, 'config.json'), {
