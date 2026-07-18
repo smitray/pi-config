@@ -13,7 +13,15 @@ const fakePaths: VaultPaths = {
 };
 
 describe('new page templates', () => {
-  for (const type of ['schedule', 'library', 'research', 'plan', 'content', 'ticket', 'todo'] as const) {
+  for (const type of [
+    'schedule',
+    'library',
+    'research',
+    'plan',
+    'content',
+    'ticket',
+    'todo',
+  ] as const) {
     it(`${type} loads real template (not stub)`, () => {
       const r = buildPage(type, 'Test', fakePaths, { id: 'TEST-001', tags: [] });
       const expected: Record<typeof type, string> = {
