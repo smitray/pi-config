@@ -50,8 +50,7 @@ export interface KBLintConfig {
 }
 
 export interface KBRecallConfig {
-  linksThreshold: number;
-  maxResults: number;
+  // ponytail: hybridWeight reserved for future embeddings wiring — no consumer yet.
   hybridWeight: number;
 }
 
@@ -94,8 +93,6 @@ const DEFAULTS: KBConfig = {
     storePath: 'meta/embeddings.json',
   },
   recall: {
-    linksThreshold: 50,
-    maxResults: 5,
     hybridWeight: 0.3,
   },
   autoIngest: true,

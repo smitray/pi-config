@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { complete, getModelConfig, type Message } from './models';
 import type { VaultPaths } from './vault';
@@ -21,7 +21,6 @@ export function findPageByTitle(paths: VaultPaths, title: string): string | null
 
   function scanDir(dir: string): string | null {
     if (!existsSync(dir)) return null;
-    const { readdirSync } = require('node:fs');
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
