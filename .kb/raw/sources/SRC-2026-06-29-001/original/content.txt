@@ -1,0 +1,33 @@
+# rpiv-pi — Pipeline for Pi Coding Agent
+
+## Overview
+Part of rpiv-mono (juicesharp/rpiv-mono), 12 npm packages in lockstep. MIT licensed. Built by Sergii Guslystyi, CTO at Codemasters International.
+
+## Package Structure (packages/rpiv-pi/)
+- **21 skills**: _shared, annotate-guidance, annotate-inline, architecture-review, blueprint, changelog, code-review, commit, create-handoff, design, discover, explore, frontend-design, implement, migrate-to-guidance, plan, pr-triage, research, resume-handoff, revise, validate
+- **15 agents** (subagents): artifact-code-reviewer, artifact-coverage-reviewer, artifacts-analyzer, artifacts-locator, claim-verifier, codebase-analyzer, codebase-locator, codebase-pattern-finder, diff-auditor, integration-scanner, peer-comparator, precedent-locator, scope-tracer, slice-verifier, web-search-researcher
+- **1 extension**: rpiv-core
+- **6 workflow stages**: research → blueprint → implement → validate → code-review → commit
+- **6 workflow flows**: build (blueprint-implement-validate-commit), research (adds research stage), design (adds design stage), diff-review (code-review-first), architecture-review, pr-triage (security-gate only)
+
+## Sibling Extensions (12 packages)
+| Package | Role |
+|---------|------|
+| rpiv-pi | Pipeline (skills + subagents) |
+| rpiv-args | $1 / $ARGUMENTS placeholders in skills |
+| rpiv-ask-user-question | Structured questionnaire to the user |
+| rpiv-todo | Live task overlay surviving /reload and compaction |
+| rpiv-advisor | Escalate to a stronger reviewer model |
+| rpiv-web-tools | Web search + fetch with pluggable providers |
+| rpiv-i18n | Localization SDK for sibling extensions |
+| rpiv-workflow | /wf runner — chain skills into typed multi-stage pipelines |
+| rpiv-btw | /btw side-conversation slash command |
+| rpiv-voice | Local voice dictation (/v overlay, on-device Whisper) |
+| rpiv-telemetry | MLflow observability |
+| rpiv-warp | Warp terminal notification integration |
+
+## Philosophy: Driver-in-the-Loop
+LLMs produce correct code, not aligned code. Misaligned code is negative-value — compiles, ships, taxes every engineer who reads it. rpiv-pi keeps the driver meaningfully in the loop: asks right questions at right moments, surfaces architectural decisions, structures human involvement as participation not approval.
+
+## Model Strategy
+Viable on affordable open-weight models (GLM-5.1, Kimi K2.5, MiMo-V2-Pro). Current gap: self-validation blindness on affordable models — same-model verification ratifies instead of attacks. Next round: fresh-context isolation first, frontier escalation only where needed.

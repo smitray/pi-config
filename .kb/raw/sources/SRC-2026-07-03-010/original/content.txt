@@ -1,0 +1,147 @@
+# anthropics/skills — Official Examples Repository
+
+Repository: https://github.com/anthropics/skills
+
+> Note: This repository contains Anthropic's implementation of skills for Claude. For information about the Agent Skills standard, see https://agentskills.io.
+
+## What this repo is
+
+Skills are folders of instructions, scripts, and resources that Claude loads dynamically to improve performance on specialized tasks. Skills teach Claude how to complete specific tasks in a repeatable way — creating documents with company brand guidelines, analyzing data with organization's specific workflows, or automating personal tasks.
+
+This repository contains skills that demonstrate what's possible with Claude's skills system — ranging from creative applications (art, music, design) to technical tasks (testing web apps, MCP server generation) to enterprise workflows (communications, branding, etc.).
+
+Each skill is self-contained in its own folder with a `SKILL.md` file containing the instructions and metadata that Claude uses.
+
+Document creation & editing skills (docx, pdf, pptx, xlsx) are source-available under the [`skills/docx`](https://github.com/anthropics/skills/tree/main/skills/docx), [`skills/pdf`](https://github.com/anthropics/skills/tree/main/skills/pdf), [`skills/pptx`](https://github.com/anthropics/skills/tree/main/skills/pptx), and [`skills/xlsx`](https://github.com/anthropics/skills/tree/main/skills/xlsx) subfolders.
+
+Disclaimer: These skills are provided for demonstration and educational purposes only. Always test skills thoroughly before relying on them for critical tasks.
+
+---
+
+## Directory layout
+
+```
+skills/
+  brand-guidelines/    # Anthropic's official brand styling skill
+  docx/                # DOCX creation (source-available)
+  pdf/                 # PDF creation (source-available)
+  pptx/                # PPTX creation (source-available)
+  xlsx/                # XLSX creation (source-available)
+  frontend-design/     # Distinctive production-grade frontend interfaces
+  skill-creator/       # Interactive guide for creating new skills
+spec/                  # The Agent Skills specification
+template/              # Skill template
+```
+
+---
+
+## Install via Claude Code
+
+```
+/plugin marketplace add anthropics/skills
+/plugin install document-skills@anthropic-agent-skills
+/plugin install example-skills@anthropic-agent-skills
+```
+
+After installing, just mention the skill: "Use the PDF skill to extract form fields from `path/to/some-file.pdf`".
+
+---
+
+## Minimal skill template
+
+```yaml
+---
+name: my-skill-name
+description: A clear description of what this skill does and when to use it
+---
+
+# My Skill Name
+
+[Add your instructions here that Claude will follow when this skill is active]
+
+## Examples
+- Example usage 1
+- Example usage 2
+
+## Guidelines
+- Guideline 1
+- Guideline 2
+```
+
+Frontmatter requires only two fields:
+- `name` — unique identifier (lowercase, hyphens for spaces)
+- `description` — complete description of what the skill does and when to use it
+
+---
+
+## Concrete example: brand-guidelines SKILL.md
+
+```yaml
+---
+name: brand-guidelines
+description: Applies Anthropic's official brand colors and typography to any sort of artifact that may benefit from having Anthropic's look-and-feel. Use it when brand colors or style guidelines, visual formatting, or company design standards apply.
+license: Complete terms in LICENSE.txt
+---
+
+# Anthropic Brand Styling
+
+## Overview
+
+Access Anthropic's official brand identity and style resources.
+
+**Keywords**: branding, corporate identity, visual identity, post-processing, styling, brand colors, typography, Anthropic brand, visual formatting, visual design
+
+## Brand Guidelines
+
+### Colors
+
+**Main Colors:**
+- Dark: `#141413` — Primary text and dark backgrounds
+- Light: `#faf9f5` — Light backgrounds and text on dark
+- Mid Gray: `#b0aea5` — Secondary elements
+- Light Gray: `#e8e6dc` — Subtle backgrounds
+
+**Accent Colors:**
+- Orange: `#d97757` — Primary accent
+- Blue: `#6a9bcc` — Secondary accent
+- Green: `#788c5d` — Tertiary accent
+
+### Typography
+- **Headings**: Poppins (with Arial fallback)
+- **Body Text**: Lora (with Georgia fallback)
+
+## Features
+
+### Smart Font Application
+- Applies Poppins font to headings (24pt and larger)
+- Applies Lora font to body text
+- Falls back to Arial/Georgia if custom fonts unavailable
+
+### Text Styling
+- Headings (24pt+): Poppins font
+- Body text: Lora font
+- Smart color selection based on background
+- Preserves text hierarchy and formatting
+
+## Technical Details
+
+### Font Management
+- Uses system-installed Poppins and Lora fonts when available
+- Provides automatic fallback to Arial (headings) and Georgia (body)
+- No font installation required — works with existing system fonts
+
+### Color Application
+- Uses RGB color values for precise brand matching
+- Applied via python-pptx's RGBColor class
+- Maintains color fidelity across different systems
+```
+
+---
+
+## Partner Skills
+
+- **Notion** — [Notion Skills for Claude](https://www.notion.so/notiondevs/Notion-Skills-for-Claude-28da4445d27180c7af1df7d8615723d0)
+
+## Source
+
+https://github.com/anthropics/skills (README, template SKILL.md, brand-guidelines/SKILL.md example)

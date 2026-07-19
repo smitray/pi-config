@@ -1,0 +1,84 @@
+# rpiv-pi Mechanics: How the Pipeline Engine Works
+
+## 4-Layer Engine Architecture
+
+### Layer 1: Guidance Injection (session_start hook)
+- Walks directory tree from project root to touched file
+- Picks first-existing at each depth: AGENTS.md > CLAUDE.md > .rpiv/guidance/architecture.md
+- Depth 0 skips AGENTS.md/CLAUDE.md (Pi's own loader handles cwd)
+- Injects guidance messages into LLM context via sendMessage
+- Deduplicates via in-memory Set
+
+### Layer 2: Skill Bracket (before_agent_start hook)
+- Reads models.json for per-skill model/effort overrides
+- Sets status bar to "rpiv: blueprint" etc.
+- Detects skill blocks in agent prompts via parseSkillBlock()
+- Only claims ownership of known rpiv-pi skill names (BUNDLED_SKILL_NAMES)
+
+### Layer 3: Workflow Runner (rpiv-workflow sibling, /wf command)
+- Workflows defined as DAGs: stages + edges
+- Each stage = separate Pi session (session_start/session_shutdown cycle)
+- Stage types: produce() = LLM skill, acts.script() = pure TS (no LLM), gate() = routing
+
+### Layer 4: Siblings (7 auto-installed via rpiv-setup)
+- rpiv-args: $1 placeholders in skills
+- rpiv-ask-user-question: structured questionnaires
+- rpiv-todo: task overlay surviving compaction
+- rpiv-advisor: stronger model reviewer escalation
+- rpiv-web-tools: web search/fetch
+- rpiv-i18n: localization
+- rpiv-workflow: /wf runner
+
+## Stage Mechanics
+
+### fanout() — Parallel Phase Execution
+- Reads plan's frontmatter `phases:` array
+- Creates N parallel sessions, one per phase
+- Example: implement reads plan.md → fans out to "Phase 1: Auth", "Phase 2: API"
+- MAX_PHASES = 32 cap
+- Validates phase count vs `## Phase N:` headings in body (stale derive detection)
+
+### iterate() — Sequential Unit Generation
+- Used in polish workflow: one blueprint per review phase
+- Each unit builds on prior units' outputs
+- Guards: depends_on must reference earlier phases, no self/cyclic edges
+- Corrective re-entry: drops stale generation, keeps only latest phaseCount plans
+
+### gate() — Output-Based Routing
+- Routes based on typed output data
+- Example: code-review output has `blockers_count: number`
+  - gt(0) → route to revise/blueprint (loop back)
+  - eq(0) → route to commit
+- maxBackwardJumps (default 2) bounds the loop to max 3 iterations
+
+### produces() — Output Validation
+- Declares output schema a skill must satisfy
+- Runtime validates output against schema
+- Missing `blockers_count` field → fails output validation (not silent routing)
+
+### acts.script() — Zero-Token Guard
+- Pure TypeScript, no LLM, no session spawn
+- Used for security-gate in pr-triage: reads security_flag, throws haltPreflight on BLOCK
+- Also used for commit stage (acts git commit)
+
+## Workflow Graphs
+
+### ship (fast path): blueprint → implement → validate → commit
+### build (standard): research → blueprint → implement → validate → code-review → (revise loop) → commit
+### arch (complex): research → design → plan → implement → validate → code-review → (design loop) → commit
+### vet (review): code-review → (blueprint → implement → validate → loop) → commit
+### polish (large): architecture-review → blueprint(iterate) → implement(fanout all plans) → validate(all plans) → code-review → commit
+### pr-triage (security): pr-triage → security-gate(script) → stop
+
+## Session Lifecycle per Stage
+1. session_start: inject root guidance + git diff context
+2. before_agent_start: read models.json, set status bar, inject per-skill guidance
+3. LLM runs skill with injected context
+4. Output validated against produces() schema
+5. session_shutdown: clear injection state
+
+## Key Design Decisions
+- Fresh context per stage: no conversation baggage from previous stages
+- Self-validation blindness fix: verifiers get isolated context, not the author's
+- Affordable-model strategy: designed for GLM-5.1, Kimi K2.5, MiMo-V2-Pro
+- Lockstep monorepo: 12 packages, one version, no build step, TypeScript directly

@@ -1,0 +1,1 @@
+User's report: “it always shows "project", even if I run my personal wiki”Ⱐ26I was asked NOT to change the bootstrap config.Ⲑf9fef8c4378519f2f7ff9b698613d

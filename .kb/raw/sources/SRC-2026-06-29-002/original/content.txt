@@ -1,0 +1,17 @@
+# Subagent Visualization: tmux Panes vs Pi TUI Sidebar
+
+## Comparison
+- **tmux Panes**: Real terminal output (code, errors, logs). Read-only (copy text). Persistent across detach/reattach. Setup via `tmux split-window`.
+- **Pi TUI Sidebar**: Structured state (blocked/working/done). Interactive (select, navigate). Only while extension runs. 30-line TUI component via `ctx.ui.custom({ overlay, anchor: 'right-center' })`.
+- **herdr**: Combines both — agent-aware sidebar + real terminal panes. Already has Pi integration (`herdr integration install pi`).
+
+## Relationship
+Complementary, not competing. Sidebar = dashboard showing which subagent is stuck (🔴 blocked). tmux = drill-down into raw output. Real workflow: sidebar flags a blocked agent, user switches to its tmux pane to diagnose.
+
+## Pi TUI API Options
+| Component | API | Purpose |
+|-----------|-----|---------|
+| Sidebar overlay | `ctx.ui.custom({ overlay, anchor: 'right-center' })` | Full KB/subagent panel |
+| Widget | `ctx.ui.setWidget("kb-vault", ...)` | Compact below-editor indicator |
+| Status line | `ctx.ui.setStatus("kb", ...)` | Footer badge |
+| Custom footer | `ctx.ui.setFooter(...)` | Full footer with KB + git + model |

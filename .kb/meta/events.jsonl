@@ -1,0 +1,32 @@
+{"timestamp":"2026-06-29","kind":"auto_ingest","sourceId":"SRC-2026-06-29-006","title":"Hyprland Scrolling Layout (Official Wiki)"}
+{"timestamp":"2026-06-29","kind":"auto_ingest","sourceId":"SRC-2026-06-29-007","title":"Anthropic Complete Guide to Building Skills for Claude"}
+{"timestamp":"2026-06-29","kind":"auto_ingest","sourceId":"SRC-2026-06-29-007","title":"Anthropic Complete Guide to Building Skills for Claude"}
+{"timestamp":"2026-06-29","kind":"enrichment","page":"Pinia Setup","observation":"Pinia Setup Stores with ref"}
+{"timestamp":"2026-07-03","kind":"auto_ingest","sourceId":"SRC-2026-07-03-008","title":"Anthropic Complete Guide to Building Skills for Claude"}
+{"timestamp":"2026-07-03","kind":"auto_ingest","sourceId":"SRC-2026-07-03-008","title":"Anthropic Complete Guide to Building Skills for Claude"}
+{"timestamp":"2026-07-03","kind":"auto_ingest","sourceId":"SRC-2026-07-03-008","title":"Anthropic Complete Guide to Building Skills for Claude"}
+{"timestamp":"2026-07-03","kind":"auto_ingest","sourceId":"SRC-2026-07-03-009","title":"Agent Skills Open Standard (agentskills.io)"}
+{"timestamp":"2026-07-03","kind":"auto_ingest","sourceId":"SRC-2026-07-03-009","title":"Agent Skills Open Standard (agentskills.io)"}
+{"timestamp":"2026-07-03","kind":"auto_ingest","sourceId":"SRC-2026-07-03-009","title":"Agent Skills Open Standard (agentskills.io)"}
+{"timestamp":"2026-07-03","kind":"auto_ingest","sourceId":"SRC-2026-07-03-010","title":"anthropics/skills — Official Examples Repo"}
+{"timestamp":"2026-07-03","kind":"auto_ingest","sourceId":"SRC-2026-07-03-010","title":"anthropics/skills — Official Examples Repo"}
+{"timestamp":"2026-07-03","kind":"auto_ingest","sourceId":"SRC-2026-07-03-010","title":"anthropics/skills — Official Examples Repo"}
+{"timestamp":"2026-07-04","kind":"auto_ingest","sourceId":"SRC-2026-07-04-011","title":"West Bengal Government Corruption Scams - Complete Overview"}
+{"timestamp":"2026-07-04","kind":"auto_ingest","sourceId":"SRC-2026-07-04-011","title":"West Bengal Government Corruption Scams - Complete Overview"}
+{"timestamp":"2026-07-04","kind":"auto_ingest","sourceId":"SRC-2026-07-04-011","title":"West Bengal Government Corruption Scams - Complete Overview"}
+{"timestamp":"2026-07-04","kind":"auto_ingest","sourceId":"SRC-2026-07-04-012","title":"Indian PAN Card Format and Verification Guide"}
+{"timestamp":"2026-07-04","kind":"auto_ingest","sourceId":"SRC-2026-07-04-012","title":"Indian PAN Card Format and Verification Guide"}
+{"timestamp":"2026-07-04","kind":"auto_ingest","sourceId":"SRC-2026-07-04-012","title":"Indian PAN Card Format and Verification Guide"}
+{"timestamp":"2026-07-04","kind":"auto_ingest","sourceId":"SRC-2026-07-04-013","title":"Indian Fraud and Scam Reporting Process Guide"}
+{"timestamp":"2026-07-04","kind":"auto_ingest","sourceId":"SRC-2026-07-04-013","title":"Indian Fraud and Scam Reporting Process Guide"}
+{"timestamp":"2026-07-04","kind":"auto_ingest","sourceId":"SRC-2026-07-04-013","title":"Indian Fraud and Scam Reporting Process Guide"}
+{"timestamp":"2026-07-06","kind":"auto_ingest","sourceId":"SRC-2026-07-06-014","title":"KERNEL Prompt Engineering Framework — Reddit r/PromptEngineering"}
+{"timestamp":"2026-07-07","kind":"diary_create","title":"2026-07-08 Extensions Bug Fixes & Coverage Setup","entries":189}
+{"timestamp":"2026-07-08","kind":"page_create","page":"LLM Model Ranking & Purpose Brainstorm","type":"diary","tags":["models","llm","brainstorm","ranking","minimax","mimo","deepseek"]}
+{"timestamp":"2026-07-08","kind":"auto_ingest","sourceId":"SRC-2026-07-08-015","title":"KB Vault Resolution Bug - Project overrides Personal"}
+{"timestamp":"2026-07-08","kind":"auto_ingest","sourceId":"SRC-2026-07-08-016","title":"User&apos;s Immediate Feedback on Previous Action"}
+{"timestamp":"2026-07-18","kind":"auto_ingest","sourceId":"SRC-2026-07-16-017","title":"https://httpbin.org"}
+{"timestamp":"2026-07-18","kind":"auto_ingest","sourceId":"SRC-2026-07-16-018","title":"https://httpbin.org/forms/post"}
+{"timestamp":"2026-07-19","kind":"page_create","title":"Per-Task Execution Loop","type":"concept","stage":"brainstorm"}
+{"timestamp":"2026-07-19","kind":"page_update","title":"Per-Task Execution Loop","additions":["mattpocock/skills base","info source: GitHub Issues","output: dual-store","runtime: pi skill-driven","skill↔phase mapping table"],"stage":"brainstorm"}
+{"timestamp":"2026-07-19","kind":"skill_create","skill":"codebase-memory","path":"~/.pi/agent/skills/codebase-memory/SKILL.md","binary":"codebase-memory-mcp already installed at ~/.local/bin/codebase-memory-mcp"}
