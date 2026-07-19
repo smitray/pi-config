@@ -43,21 +43,36 @@ For any extension-related task (test, lint, format): cd to
 `~/.pi/agent/extensions` and run `npm run pick` (fzf selector).
 Read AGENTS.md there for details.
 
-## pi-lens (default diagnostics)
+## Our Extensions (auto-discovered in `~/.pi/agent/extensions/`)
 
-pi-lens provides LSP diagnostics, AST search/replace, and code
-intelligence automatically on every write/edit. Key tools:
+| Extension | Purpose |
+|-----------|---------|
+| `mcp/` | MCP (Model Context Protocol) adapter via pi-mcp-adapter |
+| `ast/` | AST search/replace via ast-grep CLI (mise-managed) |
+| `lsp/` | LSP server routing (mise-managed servers) |
+| `gh/` | GitHub integration |
+| `kb/` | Knowledge base |
+| `web-access/` | Web search/fetch/media |
+| `markitdown/` | Convert files to Markdown |
+| `guardrails/` | Security rules |
+| `hooks/` | Lifecycle hooks |
 
-- `lens_diagnostics` — query diagnostic state (mode=delta|all|full)
-- `lsp_diagnostics` — LSP errors/warnings per file or directory
-- `lsp_navigation` — definitions, references, hover, rename, call hierarchy
-- `ast_grep_search` — AST-pattern search across code
-- `ast_grep_replace` — AST-pattern find-and-replace
-- `module_report` — structured file overview with who-uses-this
-- `ast_grep_outline` — file structure outline (symbols, imports, exports)
+## Skills (`/skill:<name>`)
 
-Diagnostics run automatically. Use `lens_diagnostics mode=all` before
-declaring work done to verify no blocking errors remain.
+- `ast` — AST search/replace via ast-grep (`/skill:ast`)
+- `lsp` — LSP server routing (`/skill:lsp`)
+- `gh`, `kb`, `web-access`, etc.
+
+## Tools
+
+- **ast extension:** `ast_grep_search`, `ast_grep_replace` (pattern-based via ast-grep) + `code_search`, `code_trace`, `code_architecture`, `code_index` (graph-based via codebase-memory-mcp)
+- **lsp extension:** `lsp_check`, `lsp_list` (server routing)
+- **mcp extension:** MCP server connections
+
+**File search priority:** Prefer `code_search` / `code_trace` (codebase-memory-mcp graph) over grep — 99% fewer tokens, sub-ms queries. Project `home-debasmitr-.pi-agent` is pre-indexed. Run `code_index({ path })` for new repos.
+
+LSP/AST servers are managed via **mise** (`~/.config/mise/config.toml`).
+Run `mise install` to set up. Restart pi after tool changes.
 
 ## Auto Web Search
 

@@ -90,7 +90,7 @@ async function fetchMetadata(url: string, config: AccessConfig): Promise<ToolRes
   return ok(JSON.stringify(payload, null, 2), payload);
 }
 
-async function fetchSubtitles(url: string, config: AccessConfig): Promise<ToolResult> {
+async function fetchSubtitles(url: string, config: AccessConfig, lang = 'en'): Promise<ToolResult> {
   ensureDownloadDir(config);
   const idResult = await runYtDlp(url, ['--no-download', '--print', '%(id)s'], config);
   if (idResult.exitCode !== 0 || !idResult.stdout.trim()) {
@@ -103,7 +103,7 @@ async function fetchSubtitles(url: string, config: AccessConfig): Promise<ToolRe
     [
       '--write-auto-sub',
       '--sub-langs',
-      'en,-live_chat',
+      `${lang},-live_chat`,
       '--convert-subs',
       'srt',
       '--skip-download',
@@ -186,7 +186,7 @@ async function fetchVideo(url: string, config: AccessConfig): Promise<ToolResult
 
   const result = await runYtDlp(
     url,
-    ['-f', 'best', '-o', '%(id)s.%(ext)s'],
+    ['-f', `best[filesize<${maxBytes}]`, '-o', '%(id)s.%(ext)s'],
     config,
     config.downloadDir
   );
@@ -312,11 +312,11 @@ export function registerMediaTools(pi: ExtensionAPI, config: AccessConfig): void
       ),
     }),
     async execute(_id, params) {
-      const { url } = params as { url: string; lang?: string };
+      const { url, lang } = params as { url: string; lang?: string };
       const validation = validateMediaUrl(url);
       if (validation) return err('INVALID_URL', validation.message, { url });
 
-      const subs = await fetchSubtitles(url, config);
+      const subs = await fetchSubtitles(url, config, lang || 'en');
       if (!subs.isError && subs.content[0]?.text) {
         return ok(subs.content[0].text, { ...(subs.details || {}), fallback: false });
       }
