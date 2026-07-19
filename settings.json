@@ -1,7 +1,7 @@
 {
   "theme": "catppuccin-mocha",
-  "lastChangelogVersion": "0.80.3",
-  "defaultProvider": "curated",
+  "lastChangelogVersion": "0.80.10",
+  "defaultProvider": "minimax",
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-observational-memory",
@@ -45,6 +45,69 @@
   "terminal": {
     "showTerminalProgress": false
   },
-  "defaultModel": "cohere/north-mini-code:free",
-  "defaultThinkingLevel": "high"
+  "defaultModel": "MiniMax-M3",
+  "defaultThinkingLevel": "high",
+  "betterFooter": {
+    "enabled": true,
+    "promptSymbol": "◉",
+    "metrics": {
+      "cwd": {
+        "color": "warning",
+        "enabled": true
+      },
+      "git.branch": {
+        "color": "accent",
+        "bold": true
+      },
+      "session.name": {},
+      "tokens.input": {
+        "color": "error"
+      },
+      "tokens.output": {
+        "color": "success"
+      },
+      "cache": {
+        "color": "error"
+      },
+      "cache.read": {},
+      "cache.write": {
+        "enabled": false
+      },
+      "cache.hitRate": {
+        "color": "success",
+        "warnBelow": 50
+      },
+      "cost": {
+        "color": "warning"
+      },
+      "ctx.bar": {
+        "warnAbove": 70,
+        "errorAbove": 90
+      },
+      "model.id": {
+        "color": "accent"
+      },
+      "model.provider": {
+        "color": "mdListBullet"
+      },
+      "thinking.level": {
+        "bold": true
+      },
+      "session": {
+        "enabled": true
+      },
+      "session.duration": {
+        "enabled": true,
+        "color": "accent"
+      },
+      "session.turns": {
+        "enabled": true,
+        "color": "mdLink"
+      },
+      "tool.uptime": {
+        "enabled": true,
+        "color": "text"
+      }
+    }
+  }
 }
