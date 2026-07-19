@@ -61,11 +61,7 @@ function scanWikiPages(
  */
 function normalizeLink(link: string): string {
   // ponytail: strip `|display text` aliasing before normalizing.
-  return link
-    .split('|')[0]
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/\.md$/, '');
+  return link.split('|')[0].toLowerCase().replace(/\s+/g, '-').replace(/\.md$/, '');
 }
 
 /**
