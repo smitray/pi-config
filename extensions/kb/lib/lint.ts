@@ -60,7 +60,8 @@ function scanWikiPages(
  * [[foo-bar]] → "foo-bar"
  */
 function normalizeLink(link: string): string {
-  return link.toLowerCase().replace(/\s+/g, '-').replace(/\.md$/, '');
+  // ponytail: strip `|display text` aliasing before normalizing.
+  return link.split('|')[0].toLowerCase().replace(/\s+/g, '-').replace(/\.md$/, '');
 }
 
 /**
