@@ -3,7 +3,11 @@ set -e
 cd "$(dirname "$0")"
 
 echo "Installing extensions dev dependencies..."
-cd extensions && npm install
+cd extensions && npm install && cd ..
 
 echo ""
-echo "Done. Pi package (observational-memory) auto-installs on first startup."
+echo "Installing tools via mise..."
+mise install
+
+echo ""
+echo "Done. Restart pi to load new packages."
