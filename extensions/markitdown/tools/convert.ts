@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { Type } from '@earendil-works/pi-ai';
+import { Type } from 'typebox';
 import { defineTool, type ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { runCommand } from '../../_shared/spawn';
 

@@ -100,7 +100,7 @@ export function runCommand(
       }, SIGKILL_GRACE_MS);
     }, timeoutMs);
 
-    proc.on('error', (err) => {
+    proc.on('error', (err: Error) => {
       settle({
         ok: false,
         stdout,
@@ -111,7 +111,7 @@ export function runCommand(
       });
     });
 
-    proc.on('exit', (exitCode, signal) => {
+    proc.on('exit', (exitCode: number | null, signal: string | null) => {
       const tail = '\n[output truncated]';
       settle({
         ok: exitCode === 0,

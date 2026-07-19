@@ -1,28 +1,16 @@
-import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { ok } from "../_shared/result";
+import { runCommand } from "../_shared/spawn";
 
 const skillsDir = join(dirname(fileURLToPath(import.meta.url)), "skills");
 
-// ponytail: stdlib exec via spawn — no need for execa / promisify abstractions
-
-function run(cmd: string, args: string[], cwd: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(cmd, args, { cwd });
-    let stdout = "";
-    let stderr = "";
-    proc.stdout.on("data", (d) => (stdout += d.toString()));
-    proc.stderr.on("data", (d) => (stderr += d.toString()));
-    proc.on("close", (code) => {
-      if (code !== 0 && code !== 1) {
-        reject(new Error(`${cmd} exited ${code}: ${stderr}`));
-      } else {
-        resolve(stdout);
-      }
-    });
-  });
+async function run(cmd: string, args: string[], cwd: string): Promise<string> {
+  const result = await runCommand(cmd, args, { cwd, timeoutMs: 30_000 });
+  if (!result.ok) throw new Error(result.error || `${cmd} exited ${result.exitCode}: ${result.stderr}`);
+  return result.stdout;
 }
 
 /**
@@ -50,7 +38,7 @@ export default function astExtension(pi: ExtensionAPI): void {
       if (params.lang) args.push("--lang", params.lang);
       if (params.paths?.length) args.push(...params.paths);
       const out = await run("ast-grep", args, ctx.cwd);
-      return { content: [{ type: "text", text: out || "No matches" }] };
+      return ok(out || "No matches");
     },
   });
 
@@ -71,7 +59,7 @@ export default function astExtension(pi: ExtensionAPI): void {
       if (params.paths?.length) args.push(...params.paths);
       if (params.apply) args.push("--update-all");
       const out = await run("ast-grep", args, ctx.cwd);
-      return { content: [{ type: "text", text: out || "No matches" }] };
+      return ok(out || "No matches");
     },
   });
 
@@ -98,7 +86,7 @@ export default function astExtension(pi: ExtensionAPI): void {
         limit: params.limit ?? 20,
       });
       const out = await run("codebase-memory-mcp", ["cli", "search_graph", json], process.cwd());
-      return { content: [{ type: "text", text: out }] };
+      return ok(out);
     },
   });
 
@@ -122,7 +110,7 @@ export default function astExtension(pi: ExtensionAPI): void {
         depth: params.depth ?? 3,
       });
       const out = await run("codebase-memory-mcp", ["cli", "trace_path", json], process.cwd());
-      return { content: [{ type: "text", text: out }] };
+      return ok(out);
     },
   });
 
@@ -135,7 +123,7 @@ export default function astExtension(pi: ExtensionAPI): void {
     async execute(_id, params, _signal, _onUpdate, _ctx) {
       const json = JSON.stringify({ project: params.project });
       const out = await run("codebase-memory-mcp", ["cli", "get_architecture", json], process.cwd());
-      return { content: [{ type: "text", text: out }] };
+      return ok(out);
     },
   });
 
@@ -147,7 +135,7 @@ export default function astExtension(pi: ExtensionAPI): void {
     async execute(_id, params, _signal, _onUpdate, _ctx) {
       const json = JSON.stringify({ repo_path: params.path });
       const out = await run("codebase-memory-mcp", ["cli", "index_repository", json], process.cwd());
-      return { content: [{ type: "text", text: out }] };
+      return ok(out);
     },
   });
 
