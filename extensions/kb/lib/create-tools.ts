@@ -30,8 +30,10 @@ function getNextId(vaultWiki: string, type: string): string {
   const files = readdirSync(typeDir)
     .filter((f) => f.endsWith('.md'))
     .map((f) => {
-      const m = f.match(/^([A-Z]+)-(\d+)/);
-      return m ? parseInt(m[2], 10) : 0;
+      // ponytail: filename is `${shortPrefix}-${ID}.md` (e.g. res-RES-001.md).
+      // Match case-insensitive prefix + dash + digits at the end before .md.
+      const m = f.match(/^[a-z]+-([A-Z]+-\d+)\.md$/i);
+      return m ? parseInt(m[1].split('-')[1], 10) : 0;
     });
   const max = files.length > 0 ? Math.max(...files) : 0;
   return `${prefix}-${String(max + 1).padStart(3, '0')}`;
