@@ -5,8 +5,8 @@
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-observational-memory",
-    "npm:pi-ponytail",
-    "npm:@juicesharp/rpiv-ask-user-question"
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "git:github.com/DietrichGebert/ponytail"
   ],
   "observational-memory": {
     "timezoneOffset": 5.5,
