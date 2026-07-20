@@ -1,9 +1,0 @@
-{
-  "name": "mcp",
-  "version": "1.0.0",
-  "type": "module",
-  "description": "MCP (Model Context Protocol) adapter for pi",
-  "dependencies": {
-    "pi-mcp-adapter": "^2.11.0"
-  }
-}

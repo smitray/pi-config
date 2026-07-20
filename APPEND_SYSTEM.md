@@ -47,7 +47,6 @@ Read AGENTS.md there for details.
 
 | Extension | Purpose |
 |-----------|---------|
-| `mcp/` | MCP (Model Context Protocol) adapter via pi-mcp-adapter |
 | `gh/` | GitHub integration |
 | `kb/` | Knowledge base |
 | `web-access/` | Web search/fetch/media |
@@ -60,8 +59,6 @@ Read AGENTS.md there for details.
 - `gh`, `kb`, `web-access`, etc.
 
 ## Tools
-
-- **mcp extension:** MCP server connections
 
 ## Auto Web Search
 
