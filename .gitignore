@@ -18,3 +18,7 @@ observational-memory/
 # .kb/ — local KB, regenerable working memory; not shipped (decision 2026-07-06)
 .kb/
 extensions/coverage/
+
+# pi runtime caches (regenerable, not shipped)
+models-store.json
+/git/
