@@ -1,12 +1,12 @@
 {
   "theme": "catppuccin-mocha",
   "lastChangelogVersion": "0.80.10",
-  "defaultProvider": "minimax",
+  "defaultProvider": "curated",
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-observational-memory",
-    "npm:pi-ponytail",
-    "npm:@juicesharp/rpiv-ask-user-question"
+    "npm:@juicesharp/rpiv-ask-user-question",
+    "git:github.com/DietrichGebert/ponytail"
   ],
   "observational-memory": {
     "timezoneOffset": 5.5,
@@ -45,6 +45,6 @@
   "terminal": {
     "showTerminalProgress": false
   },
-  "defaultModel": "MiniMax-M3",
+  "defaultModel": "tencent/hy3:free",
   "defaultThinkingLevel": "high"
 }

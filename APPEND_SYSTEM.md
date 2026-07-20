@@ -47,9 +47,6 @@ Read AGENTS.md there for details.
 
 | Extension | Purpose |
 |-----------|---------|
-| `mcp/` | MCP (Model Context Protocol) adapter via pi-mcp-adapter |
-| `ast/` | AST search/replace via ast-grep CLI (mise-managed) |
-| `lsp/` | LSP server routing (mise-managed servers) |
 | `gh/` | GitHub integration |
 | `kb/` | Knowledge base |
 | `web-access/` | Web search/fetch/media |
@@ -59,20 +56,9 @@ Read AGENTS.md there for details.
 
 ## Skills (`/skill:<name>`)
 
-- `ast` — AST search/replace via ast-grep (`/skill:ast`)
-- `lsp` — LSP server routing (`/skill:lsp`)
 - `gh`, `kb`, `web-access`, etc.
 
 ## Tools
-
-- **ast extension:** `ast_grep_search`, `ast_grep_replace` (pattern-based via ast-grep) + `code_search`, `code_trace`, `code_architecture`, `code_index` (graph-based via codebase-memory-mcp)
-- **lsp extension:** `lsp_check`, `lsp_list` (server routing)
-- **mcp extension:** MCP server connections
-
-**File search priority:** Prefer `code_search` / `code_trace` (codebase-memory-mcp graph) over grep — 99% fewer tokens, sub-ms queries. Project `home-debasmitr-.pi-agent` is pre-indexed. Run `code_index({ path })` for new repos.
-
-LSP/AST servers are managed via **mise** (`~/.config/mise/config.toml`).
-Run `mise install` to set up. Restart pi after tool changes.
 
 ## Auto Web Search
 

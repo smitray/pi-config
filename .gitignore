@@ -4,6 +4,7 @@ npm/
 node_modules/
 .DS_Store
 .session-log
+*.log
 
 # Session artifacts
 *.md
@@ -14,5 +15,10 @@ node_modules/
 notes/
 observational-memory/
 /docs/
+# .kb/ — local KB, regenerable working memory; not shipped (decision 2026-07-06)
 .kb/
 extensions/coverage/
+
+# pi runtime caches (regenerable, not shipped)
+models-store.json
+/git/
