@@ -6,7 +6,8 @@
   "packages": [
     "npm:pi-observational-memory",
     "npm:@juicesharp/rpiv-ask-user-question",
-    "git:github.com/DietrichGebert/ponytail"
+    "git:github.com/DietrichGebert/ponytail",
+    "git:github.com/jonjonrankin/pi-caveman"
   ],
   "observational-memory": {
     "timezoneOffset": 5.5,
