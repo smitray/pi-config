@@ -10,7 +10,6 @@ Custom extensions for [pi coding agent](https://github.com/earendil-works/pi).
 | [guardrails](./guardrails/) | Security rules blocking risky tool calls |
 | [hooks](./hooks/) | Shell hooks on lifecycle events |
 | [kb](./kb/) | Knowledge Base — persistent wiki vaults |
-| [markdown-it](./markdown-it/) | AST-based markdown parsing (npm) — chunking, sections, validation |
 | [markitdown](./markitdown/) | Microsoft MarkItDown — convert PDF/DOCX/PPTX/HTML/images to Markdown |
 | [web-access](./web-access/) | Web search, fetch/crawl, persisted docs, media download |
 
@@ -51,6 +50,7 @@ extensions/
 ├── guardrails/          # security rules extension
 ├── hooks/               # lifecycle shell hooks extension
 ├── kb/                  # Knowledge Base extension
+├── markitdown/          # Microsoft MarkItDown — file-to-Markdown converter
 ├── web-access/          # web search / docs / media extension
 ├── docs/                # planning docs + code reviews
 └── README.md            # you are here
