@@ -1,12 +1,13 @@
 {
   "theme": "catppuccin-mocha",
   "lastChangelogVersion": "0.80.10",
-  "defaultProvider": "curated",
+  "defaultProvider": "deepseek",
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-observational-memory",
     "npm:@juicesharp/rpiv-ask-user-question",
-    "git:github.com/DietrichGebert/ponytail"
+    "git:github.com/DietrichGebert/ponytail",
+    "git:github.com/jonjonrankin/pi-caveman"
   ],
   "observational-memory": {
     "timezoneOffset": 5.5,
@@ -45,6 +46,6 @@
   "terminal": {
     "showTerminalProgress": false
   },
-  "defaultModel": "tencent/hy3:free",
+  "defaultModel": "deepseek-v4-pro",
   "defaultThinkingLevel": "high"
 }
