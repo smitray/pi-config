@@ -270,6 +270,7 @@ export default function (pi: ExtensionAPI) {
         'artifact',
         'meeting',
         'diary',
+        'handoff',
         'schedule',
         'library',
         'research',
@@ -673,25 +674,38 @@ export default function (pi: ExtensionAPI) {
     name: 'kb_search_tags',
     label: 'KB Search Tags',
     description:
-      'Search KB wiki pages by frontmatter tags, page type, or workflow stage. ' +
-      'Tags: arbitrary labels. Types: concept, entity, synthesis, analysis, source, meeting, diary, artifact. ' +
-      'Stages: brainstorm, draft, review, production.',
-    promptSnippet: 'Search KB pages by tag, type, or workflow stage',
+      'Search KB wiki pages by frontmatter tags, page type, workflow stage, run id, or status. ' +
+      'Tags: arbitrary labels. Types: concept, entity, synthesis, analysis, source, meeting, diary, artifact, handoff. ' +
+      'Stages: brainstorm, draft, review, production. ' +
+      'Status: any value (exploring, in_progress, done, etc). ' +
+      'Run: run_id for filtering pages belonging to a specific flow run.',
+    promptSnippet: 'Search KB pages by tag, type, stage, status, or run',
     promptGuidelines: [
       'Use kb_search_tags to find pages matching specific taxonomy. ' +
-        'Omit filters to see all pages.',
+        'Omit filters to see all pages. ' +
+        'Use run= to find all pages belonging to a flow run, status= to filter by execution status.',
     ],
     parameters: Type.Object({
       tag: Type.Optional(Type.String({ description: 'Frontmatter tag to search for' })),
       type: Type.Optional(
         Type.String({
           description:
-            'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary, schedule, library, research, plan, content',
+            'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary, handoff, schedule, library, research, plan, content, ticket, todo',
         })
       ),
       stage: Type.Optional(
         Type.String({
           description: 'Workflow stage: brainstorm, draft, review, production',
+        })
+      ),
+      status: Type.Optional(
+        Type.String({
+          description: 'Execution status (e.g. exploring, draft, in_progress, done)',
+        })
+      ),
+      run: Type.Optional(
+        Type.String({
+          description: 'Run ID to filter pages belonging to a specific flow run',
         })
       ),
     }),
@@ -705,6 +719,8 @@ export default function (pi: ExtensionAPI) {
         tag: params.tag,
         type: params.type,
         stage: params.stage,
+        status: params.status,
+        run: params.run,
       });
       const formatted = formatRecallResults(results);
 

@@ -27,10 +27,6 @@ export interface CompletionResult {
   usage?: { input: number; output: number };
 }
 
-export interface EmbeddingResult {
-  embeddings: number[][];
-  usage?: { input: number };
-}
 
 export interface KBModelsConfig {
   task: ModelConfig;
@@ -274,39 +270,5 @@ export async function complete(
 
 /**
  * Generate embeddings (OpenAI-compatible).
+ * ponytail: removed — dead code, never called. Re-add when embeddings pipeline is wired.
  */
-export async function embed(config: ModelConfig, texts: string[]): Promise<EmbeddingResult> {
-  const baseUrl = getProviderBaseUrl(config.provider);
-  const apiKey = resolveApiKey(config.provider);
-
-  if (!apiKey) {
-    throw new Error(`No API key found for provider: ${config.provider}`);
-  }
-
-  const res = await fetchWithRetry(`${baseUrl}/embeddings`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: config.id,
-      input: texts,
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => 'unknown error');
-    throw new Error(`Embedding failed (${res.status}): ${text}`);
-  }
-
-  const data = (await res.json()) as {
-    data: Array<{ embedding: number[] }>;
-    usage?: { prompt_tokens: number };
-  };
-
-  return {
-    embeddings: data.data.map((d) => d.embedding),
-    usage: data.usage ? { input: data.usage.prompt_tokens } : undefined,
-  };
-}

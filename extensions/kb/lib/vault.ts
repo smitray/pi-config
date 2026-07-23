@@ -12,6 +12,7 @@ export const DIR_NAMES: Record<string, string> = {
   artifact: 'artifacts',
   meeting: 'meetings',
   diary: 'diaries',
+  handoff: 'handoffs',
   library: 'libraries',
   research: 'research',
   ticket: 'tickets',
@@ -29,6 +30,7 @@ export const ID_PREFIXES: Record<string, string> = {
   content: 'CONT',
   ticket: 'TICK',
   todo: 'TODO',
+  handoff: 'HOFF',
 };
 
 // ponytail: vault resolution walks up for .kb/, falls back to ~/.kb/.

@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { hybridSearch } from './embeddings';
 import type { RegistryEntry } from './metadata';
+import { loadKBConfig } from './models';
 import type { VaultPaths } from './vault';
 import { readJson } from './vault';
 
@@ -17,6 +18,8 @@ export interface RecallResult {
   type: string;
   tags: string[];
   stage: string;
+  status: string;
+  run: string;
   score: number;
   vault: 'project' | 'personal';
 }
@@ -64,6 +67,8 @@ function searchVault(
       type: entry.type,
       tags: entry.tags,
       stage: entry.stage,
+      status: entry.status || '',
+      run: entry.run || '',
       score: scoreEntry(entry, queryTokens),
       vault: vaultLabel,
     }))
@@ -108,13 +113,14 @@ export function searchWiki(
   if (queryEmbedding && merged.length > 0) {
     const paths = mode === 'context' ? (projectPaths ?? personalPaths) : personalPaths;
     const lexicalForHybrid = merged.map((r) => ({ pagePath: r.path, score: r.score }));
+    const weight = hybridWeight ?? loadKBConfig().recall.hybridWeight;
     const hybridResults = hybridSearch(
       paths,
       query,
       queryEmbedding,
       lexicalForHybrid,
       maxResults,
-      hybridWeight
+      weight
     );
 
     // Re-map hybrid results back to RecallResult
@@ -139,6 +145,8 @@ function readVaultEntries(paths: VaultPaths, vaultLabel: 'project' | 'personal')
     type: e.type,
     tags: e.tags,
     stage: e.stage,
+    status: e.status || '',
+    run: e.run || '',
     score: 0,
     vault: vaultLabel,
   }));
@@ -148,6 +156,8 @@ export interface TagFilters {
   tag?: string;
   type?: string;
   stage?: string;
+  status?: string;
+  run?: string;
 }
 
 function matchesFilter(result: RecallResult, filters: TagFilters): boolean {
@@ -159,6 +169,8 @@ function matchesFilter(result: RecallResult, filters: TagFilters): boolean {
   }
   if (filters.type && result.type !== filters.type) return false;
   if (filters.stage && result.stage !== filters.stage) return false;
+  if (filters.status && result.status !== filters.status) return false;
+  if (filters.run && result.run !== filters.run) return false;
   return true;
 }
 
@@ -167,7 +179,7 @@ export function searchByTag(
   personalPaths: VaultPaths,
   filters: TagFilters
 ): RecallResult[] {
-  if (!filters.tag && !filters.type && !filters.stage) return [];
+  if (!filters.tag && !filters.type && !filters.stage && !filters.status && !filters.run) return [];
 
   const projectEntries = projectPaths ? readVaultEntries(projectPaths, 'project') : [];
   const personalEntries = readVaultEntries(personalPaths, 'personal');
