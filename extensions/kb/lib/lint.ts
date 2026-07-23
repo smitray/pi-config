@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { extractWikilinks } from './metadata';
 import type { VaultPaths } from './vault';
 
@@ -43,8 +43,8 @@ function scanWikiPages(
         const content = readFileSync(full, 'utf-8');
         const links = extractWikilinks(content);
         const stat = statSync(full);
-        // Use filename without extension as the page key
-        const key = entry.name.replace(/\.md$/, '');
+        // Use relative path so wiki links with `plans/...`, `todos/...` prefixes resolve.
+        const key = relative(wikiDir, full).replace(/\.md$/, '');
         pages.set(key, { content, links, modified: stat.mtimeMs });
       }
     }
@@ -56,12 +56,14 @@ function scanWikiPages(
 
 /**
  * Normalize a wikilink target to a page key.
- * [[Foo Bar]] → "foo-bar"
+ * [[Foo Bar]] → "Foo-Bar"
  * [[foo-bar]] → "foo-bar"
+ * [[plans/PLAN-003]] → "plans/PLAN-003"
+ * Case is preserved so typed-page IDs like PLAN-003, TODO-007, TICK-001 resolve.
  */
 function normalizeLink(link: string): string {
   // ponytail: strip `|display text` aliasing before normalizing.
-  return link.split('|')[0].toLowerCase().replace(/\s+/g, '-').replace(/\.md$/, '');
+  return link.split('|')[0].replace(/\s+/g, '-').replace(/\.md$/, '');
 }
 
 /**

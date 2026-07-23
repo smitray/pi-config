@@ -27,7 +27,6 @@ export interface CompletionResult {
   usage?: { input: number; output: number };
 }
 
-
 export interface KBModelsConfig {
   task: ModelConfig;
   synthesis: ModelConfig;

@@ -39,7 +39,7 @@ async function tinyfishSearch(
   const data = await fetchJson<TinyFishSearchResponse>(
     url,
     {
-      headers: { 'X-API-Key': config.tinyfishApiKey! },
+      headers: { 'X-API-Key': config.tinyfishApiKey ?? '' },
     },
     config
   );
@@ -112,7 +112,8 @@ export function registerWebSearch(pi: ExtensionAPI, config: AccessConfig): void 
     pi.registerTool({
       name: 'tinyfish_search',
       label: 'TinyFish Search',
-      description: 'Search the web via TinyFish API (structured results, cleaner than SearXNG). Free tier available.',
+      description:
+        'Search the web via TinyFish API (structured results, cleaner than SearXNG). Free tier available.',
       parameters: Type.Object({
         query: Type.String({ description: 'Search query' }),
         limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 100, default: 5 })),

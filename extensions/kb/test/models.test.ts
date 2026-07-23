@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-  type Message,
   clearConfigCache,
   complete,
   getEmbeddingsConfig,
   getModelConfig,
   getProviderBaseUrl,
   loadKBConfig,
+  type Message,
   resolveApiKey,
 } from '../lib/models';
 

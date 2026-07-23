@@ -1,7 +1,7 @@
 {
   "theme": "catppuccin-mocha",
   "lastChangelogVersion": "0.81.1",
-  "defaultProvider": "openrouter",
+  "defaultProvider": "minimax",
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-observational-memory",
@@ -46,6 +46,6 @@
   "terminal": {
     "showTerminalProgress": false
   },
-  "defaultModel": "moonshotai/kimi-k2.7-code",
+  "defaultModel": "MiniMax-M2.7",
   "defaultThinkingLevel": "high"
 }
