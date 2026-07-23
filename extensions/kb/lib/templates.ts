@@ -13,6 +13,7 @@ export type PageType =
   | 'source'
   | 'meeting'
   | 'diary'
+  | 'handoff'
   | 'artifact'
   | 'schedule'
   | 'library'
@@ -35,6 +36,7 @@ export function writeDefaultTemplates(paths: VaultPaths, mode?: string): void {
     'source',
     'meeting',
     'diary',
+    'handoff',
     'schedule',
     'library',
     'research',
@@ -151,8 +153,17 @@ export function buildPage(
     created: today,
     updated: today,
     stage: 'brainstorm',
+    status: '',
     feature: '',
     prefix: '',
+    run: '',
+    started_at: '',
+    completed_at: '',
+    execution_time: '',
+    depends_on: '',
+    related_pages: '',
+    todos: '',
+    gortex_refs: '',
     ...extraVars,
     // Override tag fields with formatted versions (must come AFTER spread)
     tags: formatTags(extraVars.tags),

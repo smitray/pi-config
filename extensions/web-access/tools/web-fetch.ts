@@ -423,4 +423,34 @@ export function registerWebFetch(pi: ExtensionAPI, config: AccessConfig): void {
       });
     },
   });
+
+  // TinyFish Fetch — opt-in only, requires PI_TINYFISH_API_KEY
+  if (config.tinyfishApiKey) {
+    pi.registerTool({
+      name: 'tinyfish_fetch',
+      label: 'TinyFish Fetch',
+      description:
+        'Fetch a URL via TinyFish API (cleaner output, ~90% fewer tokens than Crawl4AI). Free tier available.',
+      parameters: Type.Object({
+        url: Type.String({ description: 'URL to fetch' }),
+      }),
+      async execute(_id, params) {
+        const { url } = params as { url: string };
+        try {
+          const { tinyfishFetch } = await import('../lib/clean-fetch');
+          const result = await tinyfishFetch(url, config);
+          const text = `# ${result.title}\n\n${result.markdown}`;
+          return ok(text, {
+            url: result.url,
+            title: result.title,
+            tokens: result.tokens,
+            source: 'tinyfish',
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return err('TINYFISH_FETCH_UNAVAILABLE', message, { url });
+        }
+      },
+    });
+  }
 }

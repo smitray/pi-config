@@ -1,6 +1,8 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
+  type Message,
   clearConfigCache,
+  complete,
   getEmbeddingsConfig,
   getModelConfig,
   getProviderBaseUrl,
@@ -89,5 +91,61 @@ describe('getProviderBaseUrl', () => {
 
   it('returns empty string for unknown provider', () => {
     expect(getProviderBaseUrl('unknown')).toBe('');
+  });
+});
+
+describe('complete', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    clearConfigCache();
+  });
+
+  it('sends chat completion and returns content', async () => {
+    process.env.MIMO_API_KEY = 'test-complete-key';
+    global.fetch = (async (_url: string, _init?: RequestInit) => {
+      return {
+        ok: true,
+        json: async () => ({
+          choices: [{ message: { content: 'Hello from test' } }],
+          usage: { prompt_tokens: 10, completion_tokens: 5 },
+        }),
+      };
+    }) as unknown as typeof fetch;
+
+    const config = getModelConfig('task');
+    const messages: Message[] = [{ role: 'user', content: 'hi' }];
+    const result = await complete(config, messages);
+
+    expect(result.content).toBe('Hello from test');
+    expect(result.usage).toEqual({ input: 10, output: 5 });
+    delete process.env.MIMO_API_KEY;
+  });
+
+  it('throws when no API key is set', async () => {
+    // ensure no key is set
+    delete process.env.MIMO_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
+
+    const config = getModelConfig('task');
+    const messages: Message[] = [{ role: 'user', content: 'hi' }];
+    await expect(complete(config, messages)).rejects.toThrow('No API key');
+  });
+
+  it('handles non-ok response', async () => {
+    process.env.MIMO_API_KEY = 'test-error-key';
+    global.fetch = (async () => {
+      return {
+        ok: false,
+        status: 500,
+        text: async () => 'internal error',
+      };
+    }) as unknown as typeof fetch;
+
+    const config = getModelConfig('task');
+    const messages: Message[] = [{ role: 'user', content: 'hi' }];
+    await expect(complete(config, messages)).rejects.toThrow('Completion failed (500)');
+    delete process.env.MIMO_API_KEY;
   });
 });

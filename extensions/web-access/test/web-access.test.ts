@@ -155,7 +155,7 @@ webSearchTests('web-search integration', () => {
     expect(result.isError).toBeFalsy();
     expect(result.content[0].text).toBeTruthy();
     expect(result.details?.results).toBeInstanceOf(Array);
-    expect((result.details?.results as unknown[]).length).toBeLessThanOrEqual(3);
+    expect(((result.details.results as unknown[]) ?? []).length).toBeLessThanOrEqual(3);
   });
 });
 

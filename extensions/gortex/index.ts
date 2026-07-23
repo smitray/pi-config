@@ -43,16 +43,17 @@
 
 // Zero runtime dependencies: only Node built-ins. The tool `parameters`
 // below are plain JSON Schema objects rather than TypeBox schemas — Pi's
-// tool layer accepts a plain JSON-schema object. This is deliberate: 
-// a single-file auto-discovered extension has no package.json / node_modules, 
+// tool layer accepts a plain JSON-schema object. This is deliberate:
+// a single-file auto-discovered extension has no package.json / node_modules,
 // so importing `typebox` would throw at load and take the whole extension
 // (tools AND enforcement) down with it.
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn } from 'node:child_process';
 
-const GORTEX_BIN: string = "/home/debasmitr/.local/bin/gortex";
-const HOOK_ARGV: string[] = ["/home/debasmitr/.local/bin/gortex","hook","--agent=pi"];
+const GORTEX_BIN: string = '/home/debasmitr/.local/bin/gortex';
+const HOOK_ARGV: string[] = ['/home/debasmitr/.local/bin/gortex', 'hook', '--agent=pi'];
 const ENFORCE: boolean = true;
-const GORTEX_INSTRUCTIONS: string = "## MANDATORY: Use the Gortex public CLI mirror instead of raw source reads/searches\n\nThis harness has no native MCP transport. Invoke public Gortex tools only as `gortex call \u003ctool\u003e`; never invent a bare `gortex \u003ctool\u003e` command.\n\n1. Start every coding task with `gortex call explore --arg task=\"\u003ctask\u003e\"`.\n2. Inspect with `gortex call search`, `gortex call read`, `gortex call relations`, or `gortex call trace` instead of Read/Grep/Glob or shell equivalents.\n3. Before mutation call `gortex call change --arg operation=impact`. Mutate only through `gortex call edit` or `gortex call refactor`; afterward run change operations `detect`, `tests`, `guards`, and `contract`.\n4. Use `gortex call capabilities` only when exact operation fields are unknown.\n";
+const GORTEX_INSTRUCTIONS: string =
+  '## MANDATORY: Use the Gortex public CLI mirror instead of raw source reads/searches\n\nThis harness has no native MCP transport. Invoke public Gortex tools only as `gortex call \u003ctool\u003e`; never invent a bare `gortex \u003ctool\u003e` command.\n\n1. Start every coding task with `gortex call explore --arg task="\u003ctask\u003e"`.\n2. Inspect with `gortex call search`, `gortex call read`, `gortex call relations`, or `gortex call trace` instead of Read/Grep/Glob or shell equivalents.\n3. Before mutation call `gortex call change --arg operation=impact`. Mutate only through `gortex call edit` or `gortex call refactor`; afterward run change operations `detect`, `tests`, `guards`, and `contract`.\n4. Use `gortex call capabilities` only when exact operation fields are unknown.\n';
 
 // Names (all gortex_-prefixed) of the Gortex tools registered into Pi.
 const gortexToolNames = new Set<string>();
@@ -61,7 +62,7 @@ const gortexToolNames = new Set<string>();
 // silently clobber a Pi built-in or another extension's tool of the same
 // name.
 // The execute() closure still calls the daemon with the bare name.
-const TOOL_PREFIX = "gortex_";
+const TOOL_PREFIX = 'gortex_';
 function piToolName(bare: string): string {
   return bare.startsWith(TOOL_PREFIX) ? bare : TOOL_PREFIX + bare;
 }
@@ -73,7 +74,7 @@ function piToolName(bare: string): string {
 function runGortex(args: string[], input?: string): string {
   return execFileSync(GORTEX_BIN, args, {
     input,
-    encoding: "utf8",
+    encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
     timeout: 30_000,
   }).trim();
@@ -81,22 +82,21 @@ function runGortex(args: string[], input?: string): string {
 
 // ensureDaemon brings the shared Gortex daemon up, the way an MCP host's
 // `gortex mcp` does for other agents.
-// Idempotent, fire-and-forget (we don't block on the launcher's ≤60s 
+// Idempotent, fire-and-forget (we don't block on the launcher's ≤60s
 // readiness poll), and never throws — a missing binary or spawn failure
 // must not take the extension down. The first tool calls either find it
 // ready or degrade gracefully.
 function ensureDaemon(): void {
   try {
-    const child = spawn(GORTEX_BIN, ["daemon", "start", "--detach"], {
-      stdio: "ignore",
+    const child = spawn(GORTEX_BIN, ['daemon', 'start', '--detach'], {
+      stdio: 'ignore',
       detached: true,
     });
-    child.on("error", () => { }); // binary missing / spawn failure — swallow
+    child.on('error', () => {}); // binary missing / spawn failure — swallow
     // No teardown counterpart, by design: the daemon is shared, long-lived
     // infrastructure that outlives the session — like `gortex mcp`.
     child.unref();
-  } catch {
-  }
+  } catch {}
 }
 
 interface PiDecision {
@@ -114,7 +114,7 @@ function callHook(envelope: Record<string, unknown>): PiDecision {
   try {
     const out = execFileSync(HOOK_ARGV[0], HOOK_ARGV.slice(1), {
       input: JSON.stringify(envelope),
-      encoding: "utf8",
+      encoding: 'utf8',
       maxBuffer: 16 * 1024 * 1024,
       timeout: 5_000,
     }).trim();
@@ -135,38 +135,38 @@ function callHook(envelope: Record<string, unknown>): PiDecision {
 // and input shapes, so we translate here — keeping all Pi-specific
 // knowledge in this Pi-specific file.
 const toolNameMap: Record<string, string> = {
-  read: "Read",
-  grep: "Grep",
-  find: "Glob",
-  ls: "Glob",
-  bash: "Bash",
-  edit: "Edit",
-  write: "Write",
+  read: 'Read',
+  grep: 'Grep',
+  find: 'Glob',
+  ls: 'Glob',
+  bash: 'Bash',
+  edit: 'Edit',
+  write: 'Write',
 };
 
 function firstString(obj: Record<string, unknown>, keys: string[]): string | undefined {
   for (const k of keys) {
     const v = obj[k];
-    if (typeof v === "string" && v !== "") return v;
+    if (typeof v === 'string' && v !== '') return v;
   }
   return undefined;
 }
 
 function normalizeToolCall(
   piName: string,
-  piInput: Record<string, unknown>,
+  piInput: Record<string, unknown>
 ): { tool_name: string; tool_input: Record<string, unknown> } {
   const canonical = toolNameMap[piName.toLowerCase()] ?? piName;
   const out: Record<string, unknown> = { ...piInput };
 
-  const path = firstString(piInput, ["file_path", "path", "file", "filepath", "absolute_path"]);
+  const path = firstString(piInput, ['file_path', 'path', 'file', 'filepath', 'absolute_path']);
   if (path !== undefined) out.file_path = path;
 
-  let pattern = firstString(piInput, ["pattern", "glob", "query", "regex", "name"]);
-  if (pattern === undefined && canonical === "Glob") pattern = path;
+  let pattern = firstString(piInput, ['pattern', 'glob', 'query', 'regex', 'name']);
+  if (pattern === undefined && canonical === 'Glob') pattern = path;
   if (pattern !== undefined) out.pattern = pattern;
 
-  const command = firstString(piInput, ["command", "cmd", "script"]);
+  const command = firstString(piInput, ['command', 'cmd', 'script']);
   if (command !== undefined) out.command = command;
 
   return { tool_name: canonical, tool_input: out };
@@ -185,27 +185,39 @@ interface ToolDescriptor {
 // public CLI/MCP names; Pi adds only its collision-avoidance prefix at the
 // registration boundary.
 const PUBLIC_TOOLS: ToolDescriptor[] = [
-  { name: "explore", description: "Localize a task and return ranked source plus call paths. Call first." },
-  { name: "search", description: "Search indexed symbols, text, files, or AST shapes." },
-  { name: "read", description: "Read indexed files, symbols, summaries, or editing context." },
-  { name: "relations", description: "Find usages, callers, dependencies, dependents, or implementations." },
-  { name: "trace", description: "Trace call chains, value flow, or taint paths." },
-  { name: "analyze", description: "Run a graph analysis; use kind help to list analyses." },
-  { name: "ask", description: "Answer a codebase question from graph evidence." },
-  { name: "change", description: "Plan and check mutations: impact, verify, detect, tests, guards, or contract." },
-  { name: "edit", description: "Apply file, symbol, batch, or new-file edits." },
-  { name: "refactor", description: "Rename, move, inline, delete, or apply code actions." },
-  { name: "review", description: "Review changes with graph context." },
-  { name: "publish_review", description: "Publish prepared review feedback." },
-  { name: "pr", description: "Inspect pull-request changes, context, or risk." },
-  { name: "recall", description: "Retrieve notes or memories relevant to the work." },
-  { name: "remember", description: "Store durable decisions, invariants, or gotchas." },
-  { name: "workspace", description: "Inspect workspace and repository state." },
-  { name: "workspace_admin", description: "Perform explicit workspace administration." },
-  { name: "overlay", description: "Compare or manage session overlay state." },
-  { name: "session", description: "Manage session state or subscriptions." },
-  { name: "response", description: "Control response encoding or pagination." },
-  { name: "capabilities", description: "Get exact operations and request schemas only when needed." },
+  {
+    name: 'explore',
+    description: 'Localize a task and return ranked source plus call paths. Call first.',
+  },
+  { name: 'search', description: 'Search indexed symbols, text, files, or AST shapes.' },
+  { name: 'read', description: 'Read indexed files, symbols, summaries, or editing context.' },
+  {
+    name: 'relations',
+    description: 'Find usages, callers, dependencies, dependents, or implementations.',
+  },
+  { name: 'trace', description: 'Trace call chains, value flow, or taint paths.' },
+  { name: 'analyze', description: 'Run a graph analysis; use kind help to list analyses.' },
+  { name: 'ask', description: 'Answer a codebase question from graph evidence.' },
+  {
+    name: 'change',
+    description: 'Plan and check mutations: impact, verify, detect, tests, guards, or contract.',
+  },
+  { name: 'edit', description: 'Apply file, symbol, batch, or new-file edits.' },
+  { name: 'refactor', description: 'Rename, move, inline, delete, or apply code actions.' },
+  { name: 'review', description: 'Review changes with graph context.' },
+  { name: 'publish_review', description: 'Publish prepared review feedback.' },
+  { name: 'pr', description: 'Inspect pull-request changes, context, or risk.' },
+  { name: 'recall', description: 'Retrieve notes or memories relevant to the work.' },
+  { name: 'remember', description: 'Store durable decisions, invariants, or gotchas.' },
+  { name: 'workspace', description: 'Inspect workspace and repository state.' },
+  { name: 'workspace_admin', description: 'Perform explicit workspace administration.' },
+  { name: 'overlay', description: 'Compare or manage session overlay state.' },
+  { name: 'session', description: 'Manage session state or subscriptions.' },
+  { name: 'response', description: 'Control response encoding or pagination.' },
+  {
+    name: 'capabilities',
+    description: 'Get exact operations and request schemas only when needed.',
+  },
 ];
 
 // safeRegister registers a Pi tool, tolerating a redundant registration —
@@ -236,16 +248,11 @@ function registerOneTool(pi: any, desc: ToolDescriptor): void {
     // Pass-through arguments: the model supplies whatever the underlying
     // Gortex tool accepts; `gortex call` validates names + args server
     // side and suggests near-matches on a typo.
-    parameters: { type: "object", additionalProperties: true, properties: {} },
+    parameters: { type: 'object', additionalProperties: true, properties: {} },
     async execute(_id: string, params: Record<string, unknown>) {
       try {
-        const out = runGortex([
-          "call",
-          bare,
-          "--json",
-          JSON.stringify(params ?? {}),
-        ]);
-        return { content: [{ type: "text", text: out }], details: {} };
+        const out = runGortex(['call', bare, '--json', JSON.stringify(params ?? {})]);
+        return { content: [{ type: 'text', text: out }], details: {} };
       } catch (err: any) {
         const msg = err?.stderr?.toString?.() || err?.message || String(err);
         throw new Error(`gortex call ${bare} failed: ${msg}`);
@@ -274,7 +281,7 @@ export default function (pi: any) {
   // Pi resets the session's tool registry on every session_start, so
   // (re)register here. Clear the name guard first — it persists across
   // sessions and would otherwise suppress re-registration.
-  pi.on("session_start", () => {
+  pi.on('session_start', () => {
     orientationInjected = false;
     pendingOrientation = GORTEX_INSTRUCTIONS;
     ensureDaemon();
@@ -284,11 +291,11 @@ export default function (pi: any) {
 
   // Fires before the agent loop's first LLM call. It can't mutate messages
   // itself, so it just parks the orientation for the `context` hook.
-  pi.on("before_agent_start", () => {
+  pi.on('before_agent_start', () => {
     if (orientationInjected) return;
-    const decision = callHook({ event: "session_start", cwd: pi?.cwd ?? process.cwd() });
+    const decision = callHook({ event: 'session_start', cwd: pi?.cwd ?? process.cwd() });
     if (decision.orientation) {
-      pendingOrientation = [GORTEX_INSTRUCTIONS, decision.orientation].filter(Boolean).join("\n\n");
+      pendingOrientation = [GORTEX_INSTRUCTIONS, decision.orientation].filter(Boolean).join('\n\n');
     }
     orientationInjected = true;
     return;
@@ -296,13 +303,13 @@ export default function (pi: any) {
 
   // Fires before each LLM call with a mutable message array. Append the
   // parked orientation once, then clear it so it isn't repeated each call.
-  pi.on("context", (event: any) => {
+  pi.on('context', (event: any) => {
     if (!pendingOrientation) return;
     const text = pendingOrientation;
-    pendingOrientation = "";
+    pendingOrientation = '';
     try {
       if (event && Array.isArray(event.messages)) {
-        event.messages.push({ role: "user", content: text });
+        event.messages.push({ role: 'user', content: text });
         return { messages: event.messages };
       }
     } catch {
@@ -314,30 +321,30 @@ export default function (pi: any) {
   if (!ENFORCE) return;
 
   // Enforcement: every non-Gortex tool call is checked against the Go hook.
-  pi.on("tool_call", async (event: any, ctx: any) => {
-    const piName: string = event?.toolName ?? "";
+  pi.on('tool_call', async (event: any, ctx: any) => {
+    const piName: string = event?.toolName ?? '';
     const piInput: Record<string, unknown> = event?.input ?? {};
     const isGortexTool = gortexToolNames.has(piName);
 
     const norm = normalizeToolCall(piName, piInput);
     const decision = callHook({
-      event: "tool_call",
+      event: 'tool_call',
       tool_name: norm.tool_name,
       tool_input: norm.tool_input,
       cwd: ctx?.cwd ?? pi?.cwd ?? process.cwd(),
-      session_id: ctx?.sessionManager?.sessionId ?? "",
+      session_id: ctx?.sessionManager?.sessionId ?? '',
       is_gortex_tool: isGortexTool,
     });
 
     if (decision.block) {
-      return { block: true, reason: decision.reason ?? "[Gortex] blocked — prefer graph tools." };
+      return { block: true, reason: decision.reason ?? '[Gortex] blocked — prefer graph tools.' };
     }
     if (decision.additional_context) {
       // Soft guidance: surface it without blocking the call.
       try {
         pi.sendMessage(
-          { customType: "gortex", content: decision.additional_context, display: true },
-          { deliverAs: "steer" },
+          { customType: 'gortex', content: decision.additional_context, display: true },
+          { deliverAs: 'steer' }
         );
       } catch {
         // sendMessage shape can vary across Pi versions; never fatal.

@@ -15,6 +15,7 @@ export interface AccessConfig {
   whisperModel?: string;
   tinyfishApiKey?: string;
   tinyfishApiBase: string;
+  tinyfishSearchBase: string;
 }
 
 function intOrDefault(value: string | undefined, fallback: string): number {
@@ -47,5 +48,6 @@ export function loadConfig(): AccessConfig {
     whisperModel: process.env.PI_ACCESS_WHISPER_MODEL || 'small',
     tinyfishApiKey: process.env.PI_TINYFISH_API_KEY,
     tinyfishApiBase: process.env.PI_TINYFISH_API_BASE || 'https://api.fetch.tinyfish.ai',
+    tinyfishSearchBase: process.env.PI_TINYFISH_SEARCH_BASE || 'https://api.search.tinyfish.ai',
   };
 }

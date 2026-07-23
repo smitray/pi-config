@@ -1,7 +1,7 @@
 ---
 title: "{{title}}"
-type: source
-tags: [meeting{{tags}}]
+type: meeting
+tags: [{{tags}}]
 date: "{{date}}"
 time: "{{time}}"
 attendees: []

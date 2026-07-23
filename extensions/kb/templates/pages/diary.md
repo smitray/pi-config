@@ -1,11 +1,13 @@
 ---
 title: "{{title}}"
-type: source
-tags: [diary{{tags}}]
+type: diary
+tags: [{{tags}}]
 date: "{{date}}"
 created: "{{created}}"
 updated: "{{updated}}"
 stage: brainstorm
+run: "{{run}}"
+status: "{{status}}"
 ---
 
 # {{title}}
@@ -19,4 +21,9 @@ stage: brainstorm
 ## Connections
 
 ## Shifts & Contradictions
+
+## Context Snapshot
+
+- **Run:** {{run}}
+- **Status:** {{status}}
 

@@ -13,6 +13,8 @@ export interface RegistryEntry {
   type: string;
   tags: string[];
   stage: string;
+  status: string;
+  run: string;
   created: string;
   updated: string;
 }
@@ -86,6 +88,8 @@ export function rebuildMetadata(paths: VaultPaths): void {
           type: (fm.type as string) || 'unknown',
           tags: Array.isArray(fm.tags) ? (fm.tags as string[]) : [],
           stage: (fm.stage as string) || 'brainstorm',
+          status: (fm.status as string) || '',
+          run: (fm.run as string) || '',
           created: (fm.created as string) || '',
           updated: (fm.updated as string) || '',
         });

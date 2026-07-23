@@ -2,11 +2,6 @@ import type { AccessConfig } from './config';
 import { fetchJson } from './http';
 import { approxTokens, extractTitle } from './markdown';
 
-// ponytail: three-tier clean fetch — TinyFish API first, Crawl4AI fit fallback.
-// TinyFish returns ~1.2k tokens vs Crawl4AI's ~12k for the same page (~90% reduction).
-// No LLM extraction tier — that would burn more tokens than it saves unless
-// the extraction LLM is cheaper than the downstream LLM.
-
 interface TinyFishFetchResult {
   url?: string;
   title?: string;
@@ -35,49 +30,9 @@ export interface CleanFetchResult {
 }
 
 /**
- * Fetch a URL and return clean markdown with minimal tokens.
- *
- * Tier 1: TinyFish Fetch API (if configured) — ~90% token reduction
- * Tier 2: Crawl4AI fit mode (always available) — basic content extraction
- *
- * ponytail: no LLM extraction tier because token savings don't justify the
- * extraction cost. Add if downstream LLM costs are high enough.
+ * Fetch a URL via Crawl4AI fit mode (default local backend).
  */
 export async function cleanFetch(url: string, config: AccessConfig): Promise<CleanFetchResult> {
-  // Tier 1: TinyFish
-  if (config.tinyfishApiKey) {
-    try {
-      const data = await fetchJson<TinyFishFetchResponse>(
-        `${config.tinyfishApiBase}/v1/fetch`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${config.tinyfishApiKey}`,
-          },
-          body: JSON.stringify({ urls: [url] }),
-        },
-        config
-      );
-
-      const result = data.results?.[0];
-      if (result?.text && !data.errors?.length) {
-        const tokens = approxTokens(result.text);
-        return {
-          url: result.url || url,
-          markdown: result.text,
-          title: result.title || extractTitle(result.text),
-          source: 'tinyfish',
-          tokens,
-        };
-      }
-      // ponytail: TinyFish failed (rate limit, auth, etc) — fall through to Crawl4AI
-    } catch {
-      // ponytail: network error on TinyFish — fall through to Crawl4AI
-    }
-  }
-
-  // Tier 2: Crawl4AI fit mode
   const crawlUrl = `${config.crawl4aiBase}/md`;
   const crawlBody = JSON.stringify({ url, f: 'fit' });
 
@@ -101,6 +56,43 @@ export async function cleanFetch(url: string, config: AccessConfig): Promise<Cle
     markdown: data.markdown,
     title: extractTitle(data.markdown),
     source: 'crawl4ai',
+    tokens,
+  };
+}
+
+/**
+ * Fetch a URL via TinyFish Fetch API (opt-in, cleaner output, ~90% fewer tokens).
+ * Requires PI_TINYFISH_API_KEY.
+ */
+export async function tinyfishFetch(url: string, config: AccessConfig): Promise<CleanFetchResult> {
+  if (!config.tinyfishApiKey) {
+    throw new Error('TinyFish API key not configured. Set PI_TINYFISH_API_KEY.');
+  }
+
+  const data = await fetchJson<TinyFishFetchResponse>(
+    `${config.tinyfishApiBase}/v1/fetch`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': config.tinyfishApiKey,
+      },
+      body: JSON.stringify({ urls: [url] }),
+    },
+    config
+  );
+
+  const result = data.results?.[0];
+  if (!result?.text || data.errors?.length) {
+    throw new Error(data.errors?.[0]?.error || 'TinyFish fetch failed');
+  }
+
+  const tokens = approxTokens(result.text);
+  return {
+    url: result.url || url,
+    markdown: result.text,
+    title: result.title || extractTitle(result.text),
+    source: 'tinyfish',
     tokens,
   };
 }
