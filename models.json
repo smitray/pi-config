@@ -209,20 +209,6 @@
           }
         },
         {
-          "id": "tencent/hy3:free",
-          "name": "Tencent Hy3 (Free)",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 262144,
-          "maxTokens": 262144,
-          "cost": {
-            "input": 0,
-            "output": 0,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
           "id": "poolside/laguna-xs.2",
           "name": "Poolside Laguna XS.2",
           "reasoning": true,
@@ -330,6 +316,62 @@
           "cost": {
             "input": 0.03,
             "output": 0.14,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "inclusionai/ling-3.0-flash:free",
+          "name": "InclusionAI Ling-3.0 Flash (Free)",
+          "reasoning": false,
+          "input": ["text"],
+          "contextWindow": 262144,
+          "maxTokens": 65536,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "inclusionai/ring-2.6-1t",
+          "name": "InclusionAI Ring-2.6-1T",
+          "reasoning": true,
+          "input": ["text"],
+          "contextWindow": 262144,
+          "maxTokens": 65536,
+          "cost": {
+            "input": 0.075,
+            "output": 0.625,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "inclusionai/ling-2.6-1t",
+          "name": "InclusionAI Ling-2.6-1T",
+          "reasoning": false,
+          "input": ["text"],
+          "contextWindow": 262144,
+          "maxTokens": 65536,
+          "cost": {
+            "input": 0.075,
+            "output": 0.625,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "inclusionai/ling-2.6-flash",
+          "name": "InclusionAI Ling-2.6 Flash",
+          "reasoning": false,
+          "input": ["text"],
+          "contextWindow": 262144,
+          "maxTokens": 65536,
+          "cost": {
+            "input": 0.01,
+            "output": 0.03,
             "cacheRead": 0,
             "cacheWrite": 0
           }
