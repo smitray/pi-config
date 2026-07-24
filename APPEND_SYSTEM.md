@@ -56,9 +56,20 @@ Read AGENTS.md there for details.
 
 ## Skills (`/skill:<name>`)
 
-- `gh`, `kb`, `web-access`, etc.
+- `gh`, `kb`, `web-access`, `gortex`, `gortex-guard`, etc.
 
 ## Tools
+
+## Gortex (Code Intelligence)
+
+If a native tool (find/grep/rg/bash) is blocked by the Gortex guard, **immediately
+switch to gortex_* tools** — don't retry native tools or use workarounds.
+
+**Gortex tools:**
+- `gortex_explore(task="<what to do>")` — find files/symbols
+- `gortex_search(operation="text", query="<text>")` — search text
+- `gortex_search(operation="symbols", query="<name>")` — search symbols
+- `gortex_read(operation="file", target={file:"<path>"})` — read file
 
 ## Auto Web Search
 
