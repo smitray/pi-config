@@ -9,7 +9,12 @@ export const PUBLIC_TOOLS: ToolDescriptor[] = [
     description: 'Localize a task and return ranked source plus call paths. Call first.',
     parameters: {
       type: 'object',
-      properties: { task: { type: 'string', description: 'What to do, e.g. "find models.json" or "remove hy3:free block"' } },
+      properties: {
+        task: {
+          type: 'string',
+          description: 'What to do, e.g. "find models.json" or "remove hy3:free block"',
+        },
+      },
       required: ['task'],
     },
   },
@@ -19,7 +24,11 @@ export const PUBLIC_TOOLS: ToolDescriptor[] = [
     parameters: {
       type: 'object',
       properties: {
-        operation: { type: 'string', enum: ['symbols', 'text', 'files'], description: 'Search type' },
+        operation: {
+          type: 'string',
+          enum: ['symbols', 'text', 'files'],
+          description: 'Search type',
+        },
         query: { type: 'string', description: 'Search query' },
       },
       required: ['operation', 'query'],
@@ -31,7 +40,11 @@ export const PUBLIC_TOOLS: ToolDescriptor[] = [
     parameters: {
       type: 'object',
       properties: {
-        operation: { type: 'string', enum: ['file', 'source', 'summary', 'editing_context'], description: 'Read type' },
+        operation: {
+          type: 'string',
+          enum: ['file', 'source', 'summary', 'editing_context'],
+          description: 'Read type',
+        },
         target: { type: 'object', description: 'Target: {file:"path"} or {symbol:"id"}' },
       },
       required: ['operation', 'target'],
