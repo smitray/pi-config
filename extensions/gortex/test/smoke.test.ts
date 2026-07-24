@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { GORTEX_BIN } from '../config';
 
@@ -7,6 +8,11 @@ import { GORTEX_BIN } from '../config';
 // only fires on native Read/Grep/Glob tool calls, never on gortex tools).
 // Mutating-only tools (refactor, publish_review, remember) and the
 // research-agent-backed `ask` are intentionally excluded.
+
+// Skip entirely if gortex binary is not installed (e.g. CI).
+const hasBinary = existsSync(GORTEX_BIN);
+const describeOrSkip = hasBinary ? describe : describe.skip;
+
 const SAFE: Record<string, string> = {
   explore: '{"task":"ping"}',
   search: '{"operation":"symbols","query":"x"}',
@@ -48,7 +54,7 @@ function callTool(tool: string, payload: string): { responded: boolean; guarded:
   }
 }
 
-describe('gortex binary smoke (read-only ops)', () => {
+describeOrSkip('gortex binary smoke (read-only ops)', () => {
   for (const [tool, payload] of Object.entries(SAFE)) {
     it(`${tool} responds and emits no [Gortex] guard`, () => {
       const { responded, guarded } = callTool(tool, payload);
