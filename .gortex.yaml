@@ -1,0 +1,57 @@
+# Gortex per-repo configuration.
+#
+# File presence is also the binary "repo is indexed" signal for the
+# pi hook pipeline (extensions/hooks/hooks.json) — content below is
+# gortex's own behavior knobs, decoupled from that signal.
+
+# Hard graph boundary slug. Pinned so daemon assignments survive path moves
+# (e.g., when the repo is cloned under a different absolute path).
+workspace: agent
+
+# Honor the repo's .gitignore during the index walk (gortex 61.3+ default,
+# declared here so the policy is auditable in one place).
+respect_gitignore: true
+
+# Per-directory .gortexignore / .ignore / .rgignore also respected.
+respect_dot_gortexignore: true
+
+# Layered excludes — applied on top of .gitignore. Each entry is a glob.
+excludes:
+  # Toolchain artifacts
+  - "**/node_modules/**"
+  - "npm/**"
+  - "git/**"
+  - ".gortex/**"
+  - "extensions/coverage/**"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/*.tsbuildinfo"
+
+  # Runtime state, caches, regenerable (matching .gitignore)
+  - "sessions/**"
+  - "observational-memory/**"
+  - "notes/**"
+  - ".kb/**"
+  - "models-store.json"
+  - "auth.json"
+  - "pi-crash.log"
+  - "*.log"
+  - ".DS_Store"
+  - ".session-log"
+
+  # Config data (JSON / data files — not source code worth traversing)
+  - "themes/**"
+  - "keybindings.json"
+  - "models.json"
+  - "settings.json"
+  - "caveman.json"
+  - "auth.json"
+  - "models-store.json"
+
+  # Top-level docs dir (generated, not source)
+  - "/docs/**"
+
+  # Tests — keep source, drop bulky fixtures
+  - "**/test/fixtures/**"
+  - "**/__fixtures__/**"
+  - "**/*.snap"
