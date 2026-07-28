@@ -12,7 +12,7 @@ import {
   saveManifest,
   savePage,
 } from '../lib/docs-store';
-import { fetchJson, fetchText } from '../lib/http';
+import { fetchJson, fetchText, sleep } from '../lib/http';
 import { writePagesAsKbPackets } from '../lib/kb-packets';
 import { approxTokens, extractLinks, extractTitle, splitIntoChunks } from '../lib/markdown';
 
@@ -30,10 +30,6 @@ interface RawPage {
   url: string;
   title: string;
   markdown: string;
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ponytail: naive robots.txt parser — only blocks explicit "User-agent: *" +
@@ -109,27 +105,6 @@ function pageFilename(index: number, title: string, url: string): string {
   return `${String(index).padStart(4, '0')}-${slug}.md`;
 }
 
-export async function fetchSingleMd(
-  url: string,
-  config: AccessConfig
-): Promise<{ url: string; markdown: string; title: string } | null> {
-  try {
-    const data = await fetchJson<MarkdownResponse>(
-      `${config.crawl4aiBase}/md`,
-      {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ url, f: 'fit' }),
-      },
-      config
-    );
-    if (!data.success || !data.markdown) return null;
-    return { url: data.url || url, markdown: data.markdown, title: extractTitle(data.markdown) };
-  } catch {
-    return null;
-  }
-}
-
 export async function crawlDocs(
   baseUrl: string,
   maxDepth: number,
@@ -163,8 +138,12 @@ export async function crawlDocs(
     const results = await Promise.all(
       batch.map(async (item) => {
         await sleep(config.crawlDelayMs);
-        const page = await fetchSingleMd(item.url, config);
-        return page ? { page, depth: item.depth } : null;
+        try {
+          const result = await cleanFetch(item.url, config);
+          return { page: { url: result.url, title: result.title, markdown: result.markdown }, depth: item.depth };
+        } catch {
+          return null;
+        }
       })
     );
 
@@ -206,7 +185,7 @@ export function registerWebFetch(pi: ExtensionAPI, config: AccessConfig): void {
     description:
       'Fetch a single web page as markdown via Crawl4AI. ' +
       'Filter strategies: fit (default, basic extraction), raw (full page), ' +
-      'bm25/llm (query-relevant chunks), clean (minimal tokens via TinyFish API, ' +
+      'bm25/llm (query-relevant chunks), clean (uses tf_fetch, ' +
       'falls back to Crawl4AI fit).',
     parameters: Type.Object({
       url: Type.String({ description: 'URL to fetch' }),
@@ -222,7 +201,7 @@ export function registerWebFetch(pi: ExtensionAPI, config: AccessConfig): void {
       const { url, q, f } = params as { url: string; q?: string; f?: string };
       const filter = f || 'fit';
 
-      // clean mode: three-tier (TinyFish → Crawl4AI fit)
+      // clean mode: tf_fetch → Crawl4AI fit
       if (filter === 'clean') {
         try {
           const result = await cleanFetch(url, config);
@@ -238,14 +217,31 @@ export function registerWebFetch(pi: ExtensionAPI, config: AccessConfig): void {
           return err('FETCH_UNAVAILABLE', `${message} [crawl4ai: ${config.crawl4aiBase}/md]`, {
             url,
             endpoint: `${config.crawl4aiBase}/md`,
-            hasTinyfishKey: !!config.tinyfishApiKey,
+            hasTfKey: !!config.tinyfishApiKey,
           });
+        }
+      }
+
+      // fit / default: delegate to cleanFetch (same logic as raw/bm25/llm POST below)
+      if (filter === 'fit') {
+        try {
+          const result = await cleanFetch(url, config);
+          return ok(result.markdown, {
+            url: result.url,
+            source: result.source,
+            tokens: result.tokens,
+            title: result.title,
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return err('FETCH_UNAVAILABLE', message, { url });
         }
       }
 
       if ((filter === 'bm25' || filter === 'llm') && !q) {
         return err('MISSING_QUERY', `f="${filter}" requires q= parameter`, { url });
       }
+      // raw / bm25 / llm: direct Crawl4AI POST with filter + optional query
       try {
         const data = await fetchJson<MarkdownResponse>(
           `${config.crawl4aiBase}/md`,
@@ -427,7 +423,7 @@ export function registerWebFetch(pi: ExtensionAPI, config: AccessConfig): void {
   // TinyFish Fetch — opt-in only, requires PI_TINYFISH_API_KEY
   if (config.tinyfishApiKey) {
     pi.registerTool({
-      name: 'tinyfish_fetch',
+      name: 'tf_fetch',
       label: 'TinyFish Fetch',
       description:
         'Fetch a URL via TinyFish API (cleaner output, ~90% fewer tokens than Crawl4AI). Free tier available.',
@@ -437,8 +433,8 @@ export function registerWebFetch(pi: ExtensionAPI, config: AccessConfig): void {
       async execute(_id, params) {
         const { url } = params as { url: string };
         try {
-          const { tinyfishFetch } = await import('../lib/clean-fetch');
-          const result = await tinyfishFetch(url, config);
+          const { tfFetch } = await import('../lib/clean-fetch');
+          const result = await tfFetch(url, config);
           const text = `# ${result.title}\n\n${result.markdown}`;
           return ok(text, {
             url: result.url,
@@ -448,7 +444,7 @@ export function registerWebFetch(pi: ExtensionAPI, config: AccessConfig): void {
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          return err('TINYFISH_FETCH_UNAVAILABLE', message, { url });
+          return err('TF_FETCH_UNAVAILABLE', message, { url });
         }
       },
     });

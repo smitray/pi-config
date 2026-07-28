@@ -78,10 +78,14 @@ function isYtDlpAvailable(): boolean {
 const searxngReachable = await isReachable(config.searxngBase);
 const crawlReachable = await isReachable(config.crawl4aiBase);
 const ytDlpReachable = isYtDlpAvailable();
+const tfReachable = !!config.tinyfishApiKey;
+const tfSearchReachable = tfReachable;
 
 const webSearchTests = searxngReachable ? describe : describe.skip;
 const webFetchTests = crawlReachable ? describe : describe.skip;
 const mediaTests = ytDlpReachable ? describe : describe.skip;
+const tfSearchTests = tfSearchReachable ? describe : describe.skip;
+const tfFetchTests = tfReachable ? describe : describe.skip;
 
 describe('access-web unit helpers', () => {
   it('approxTokens uses words * 1.3', () => {
@@ -178,6 +182,28 @@ webFetchTests('web-fetch integration', { timeout: 30000 }, () => {
     expect(result.isError).toBeFalsy();
     expect(result.content[0].text).toBeTruthy();
     expect(result.details?.totalChunks).toBeGreaterThanOrEqual(1);
+  });
+});
+
+tfSearchTests('tf_search integration', () => {
+  it('searches TinyFish', async () => {
+    const tools = createToolRecorder(config);
+    const result = await tools['tf_search'].execute('tc-1', { query: 'open source', limit: 3 });
+    expect(result.isError).toBeFalsy();
+    expect(result.content[0].text).toBeTruthy();
+    expect(result.details?.results).toBeInstanceOf(Array);
+    expect(((result.details.results as unknown[]) ?? []).length).toBeLessThanOrEqual(3);
+    expect(result.details?.source).toBe('tinyfish');
+  });
+});
+
+tfFetchTests('tf_fetch integration', () => {
+  it('fetches a page via TinyFish', async () => {
+    const tools = createToolRecorder(config);
+    const result = await tools['tf_fetch'].execute('tc-1', { url: 'https://example.com' });
+    expect(result.isError).toBeFalsy();
+    expect(result.content[0].text.toLowerCase()).toContain('example domain');
+    expect(result.details?.source).toBe('tinyfish');
   });
 });
 

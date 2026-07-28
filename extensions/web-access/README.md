@@ -7,6 +7,8 @@ Uses locally hosted services:
 - **Crawl4AI** for web → markdown (host/port via `PI_CRAWL4AI_*`; defaults in env table below)
 - **yt-dlp** for media metadata/subtitles/audio/video
 - **faster-whisper** (optional) for transcript fallback
+- **TinyFish** for search + fetch (opt-in, requires `PI_TINYFISH_API_KEY`; see `tf_search` / `tf_fetch`)
+- `web-fetch f=clean` mode uses tf_fetch as the primary tier when the key is set
 
 GitHub queries are handled by the existing `gh` extension; this extension does not duplicate those tools.
 
@@ -15,7 +17,9 @@ GitHub queries are handled by the existing `gh` extension; this extension does n
 | Tool | Description |
 |------|-------------|
 | `web-search` | Search via SearXNG with language / time / engine / category filters |
+| `tf_search` | Search via TinyFish (opt-in, requires `PI_TINYFISH_API_KEY`). Free tier.
 | `web-fetch` | Fetch one page as markdown, with optional BM25/LLM filter |
+| `tf_fetch` | Fetch via TinyFish (opt-in, requires `PI_TINYFISH_API_KEY`). Free tier. Renders JS, strips noise.
 | `web-fetch-docs` | Recursively crawl a docs site and **persist every page to disk** for later sessions |
 | `docs-list` | Inventory all locally stored docs sets |
 | `docs-pages` | List pages in a docs set, or fetch the full markdown of one specific page |
@@ -59,6 +63,7 @@ Persisted under `${PI_ACCESS_DOWNLOAD_DIR}/docs/<label>/`. `web-fetch-docs` with
 | `PI_ACCESS_WHISPER_BIN` | — |
 | `PI_ACCESS_WHISPER_MODEL` | — |
 | `PI_ACCESS_WHISPER_CUDA` | `0` |
+| `PI_TINYFISH_API_KEY` | — |
 
 ## Configuring environment variables
 
@@ -94,6 +99,30 @@ curl -X POST "${PI_CRAWL4AI_HOST}:${PI_CRAWL4AI_PORT}/md" \
 ## Testing
 
 ```bash
-cd ~/.pi/agent/extensions
-vitest run web-access
+cd ~/.pi/agent/extensions/web-access
+npx vitest run
 ```
+
+## Programmatic API (for other extensions)
+
+Other extensions can import `webSearch` and `webFetch` directly — no pi
+ExtensionAPI needed. Both functions return plain data, not tool results.
+
+```ts
+import { webSearch, webFetch } from '@extensions/web-access';
+
+// Search the web (auto-falls back to TinyFish if key is set)
+const result = await webSearch('nvidia free ai models', { limit: 5 });
+// result.source: 'searxng' | 'tinyfish'
+// result.results: [{ title, url, snippet }]
+
+// Fetch a page as markdown (f=clean uses TinyFish when key is set)
+const page = await webFetch('https://example.com', { f: 'clean' });
+// page.source: 'crawl4ai' | 'tinyfish'
+// page.markdown: string
+// page.tokens: number
+```
+
+Config is loaded from environment (`loadConfig()`). `PI_TINYFISH_API_KEY`
+enables TinyFish as the primary tier for `f=clean` fetch and as a fallback
+when SearXNG is unreachable for search.

@@ -7,6 +7,10 @@ import { registerMediaTools } from './tools/media-cli';
 import { clearWebFetchChunkCache, registerWebFetch } from './tools/web-fetch';
 import { registerWebSearch } from './tools/web-search';
 
+// Programmatic API for use by other extensions.
+// Import directly: import { webSearch, webFetch } from './lib/web-api';
+export { webSearch, webFetch } from './lib/web-api';
+
 const skillsDir = join(dirname(fileURLToPath(import.meta.url)), 'skills');
 
 /**
@@ -32,3 +36,5 @@ export default function accessWeb(pi: ExtensionAPI): void {
     clearDocsStoreChunksCache();
   });
 }
+
+

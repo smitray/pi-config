@@ -2,73 +2,8 @@ import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { err, ok } from '../../_shared/result';
 import type { AccessConfig } from '../lib/config';
-import { fetchJson } from '../lib/http';
-import type { SearchHit } from '../lib/types';
+import { searxngSearch, tfSearch } from '../lib/web-api';
 
-interface SearxResponse {
-  query?: string;
-  number_of_results?: number;
-  results?: Array<{
-    title?: string;
-    url?: string;
-    content?: string;
-  }>;
-}
-
-interface TinyFishSearchResult {
-  position?: number;
-  site_name?: string;
-  snippet?: string;
-  title?: string;
-  url?: string;
-}
-
-interface TinyFishSearchResponse {
-  query?: string;
-  results?: TinyFishSearchResult[];
-  error?: { code?: string; message?: string };
-}
-
-async function tinyfishSearch(
-  query: string,
-  limit: number,
-  config: AccessConfig
-): Promise<SearchHit[]> {
-  const params = new URLSearchParams({ query, limit: String(limit) });
-  const url = `${config.tinyfishSearchBase}?${params}`;
-  const data = await fetchJson<TinyFishSearchResponse>(
-    url,
-    {
-      headers: { 'X-API-Key': config.tinyfishApiKey ?? '' },
-    },
-    config
-  );
-  if (data.error) throw new Error(data.error.message || 'TinyFish search error');
-  return (data.results || []).slice(0, limit).map((r) => ({
-    title: r.title || r.url || '',
-    url: r.url || '',
-    snippet: r.snippet || '',
-  }));
-}
-
-async function searxngSearch(
-  query: string,
-  limit: number,
-  language: string | undefined,
-  time_range: string | undefined,
-  config: AccessConfig
-): Promise<SearchHit[]> {
-  const params: Record<string, string> = { q: query, format: 'json' };
-  if (language) params.language = language;
-  if (time_range) params.time_range = time_range;
-  const searchUrl = `${config.searxngBase}/search?${new URLSearchParams(params)}`;
-  const data = await fetchJson<SearxResponse>(searchUrl, {}, config);
-  return (data.results || []).slice(0, limit).map((r) => ({
-    title: r.title || r.url || '',
-    url: r.url || '',
-    snippet: r.content || '',
-  }));
-}
 
 export function registerWebSearch(pi: ExtensionAPI, config: AccessConfig): void {
   pi.registerTool({
@@ -110,7 +45,7 @@ export function registerWebSearch(pi: ExtensionAPI, config: AccessConfig): void 
   // TinyFish Search — opt-in only, requires PI_TINYFISH_API_KEY
   if (config.tinyfishApiKey) {
     pi.registerTool({
-      name: 'tinyfish_search',
+      name: 'tf_search',
       label: 'TinyFish Search',
       description:
         'Search the web via TinyFish API (structured results, cleaner than SearXNG). Free tier available.',
@@ -123,7 +58,7 @@ export function registerWebSearch(pi: ExtensionAPI, config: AccessConfig): void 
         const n = limit ?? 5;
 
         try {
-          const hits = await tinyfishSearch(query, n, config);
+          const hits = await tfSearch(query, n, config);
           const text = hits.length
             ? hits.map((h, i) => `${i + 1}. ${h.title}\n   ${h.url}\n   ${h.snippet}`).join('\n\n')
             : 'No results.';
