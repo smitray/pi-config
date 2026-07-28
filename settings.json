@@ -1,6 +1,6 @@
 {
   "theme": "catppuccin-mocha",
-  "lastChangelogVersion": "0.81.1",
+  "lastChangelogVersion": "0.82.1",
   "defaultProvider": "minimax",
   "hideThinkingBlock": false,
   "packages": [
