@@ -13,7 +13,7 @@ export class HttpError extends Error {
 // Add jitter or longer backoff if hitting rate limits.
 const TRANSIENT_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
 
-function sleep(ms: number): Promise<void> {
+export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 

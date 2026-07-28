@@ -64,13 +64,13 @@ export async function cleanFetch(url: string, config: AccessConfig): Promise<Cle
  * Fetch a URL via TinyFish Fetch API (opt-in, cleaner output, ~90% fewer tokens).
  * Requires PI_TINYFISH_API_KEY.
  */
-export async function tinyfishFetch(url: string, config: AccessConfig): Promise<CleanFetchResult> {
+export async function tfFetch(url: string, config: AccessConfig): Promise<CleanFetchResult> {
   if (!config.tinyfishApiKey) {
     throw new Error('TinyFish API key not configured. Set PI_TINYFISH_API_KEY.');
   }
 
   const data = await fetchJson<TinyFishFetchResponse>(
-    `${config.tinyfishApiBase}/v1/fetch`,
+    `${config.tinyfishApiBase}`,
     {
       method: 'POST',
       headers: {
