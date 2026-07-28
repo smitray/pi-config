@@ -35,10 +35,10 @@
 // extension has no node_modules, so any non-built-in import would throw
 // at load and take the whole extension down. Tool `parameters` are the
 // MCP server's JSON-Schema objects, passed verbatim.
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn } from 'node:child_process';
 
-const GORTEX_BIN: string = "/home/debasmitr/.local/bin/gortex";
-const HOOK_ARGV: string[] = ["/home/debasmitr/.local/bin/gortex","hook","--agent=pi"];
+const GORTEX_BIN: string = '/home/debasmitr/.local/bin/gortex';
+const HOOK_ARGV: string[] = ['/home/debasmitr/.local/bin/gortex', 'hook', '--agent=pi'];
 const ENFORCE: boolean = true;
 
 // Which eager preset to expose as native Pi tools. The daemon itself
@@ -52,16 +52,16 @@ const ENFORCE: boolean = true;
 // silently filter every promoted tool out of the session — fail open to
 // the daemon's default surface instead. GORTEX_TOOLS in the environment
 // overrides the value baked at install time.
-const TOOLS_PRESET: string = ((process.env && process.env.GORTEX_TOOLS) || "core").trim();
+const TOOLS_PRESET: string = (process.env?.GORTEX_TOOLS || 'core').trim();
 
 // Identity reported as MCP clientInfo, plus the gortex/wire capability
 // declared in the initialize request: the daemon reads it to learn which
 // compact wire formats this client decodes, so list-shaped tools default
 // to GCX1 for this session without a server-side client-name allowlist
 // entry.
-const CLIENT_NAME = "pi";
-const CLIENT_VERSION = "1.0.0";
-const WIRE_FORMATS: string[] = ["gcx"];
+const CLIENT_NAME = 'pi';
+const CLIENT_VERSION = '1.0.0';
+const WIRE_FORMATS: string[] = ['gcx'];
 
 // Names the Gortex tools are registered under in Pi — usually the bare
 // daemon name, except for a few aliased to dodge Pi's built-ins (see
@@ -79,16 +79,15 @@ const gortexToolNames = new Set<string>();
 // absorbs the warm-up window.
 function ensureDaemon(): void {
   try {
-    const child = spawn(GORTEX_BIN, ["daemon", "start", "--detach"], {
-      stdio: "ignore",
+    const child = spawn(GORTEX_BIN, ['daemon', 'start', '--detach'], {
+      stdio: 'ignore',
       detached: true,
     });
-    child.on("error", () => { }); // binary missing / spawn failure — swallow
+    child.on('error', () => {}); // binary missing / spawn failure — swallow
     // No teardown counterpart, by design: the daemon is shared, long-lived
     // infrastructure that outlives the session.
     child.unref();
-  } catch {
-  }
+  } catch {}
 }
 
 // ---------------------------------------------------------------------------
@@ -114,7 +113,7 @@ interface PendingRequest {
 
 class MCPStdioClient {
   private child: any = null;
-  private buffer = "";
+  private buffer = '';
   private searchStart = 0;
   private nextId = 1;
   private pending = new Map<number, PendingRequest>();
@@ -132,31 +131,31 @@ class MCPStdioClient {
     // Unknown values are dropped (fail open) — forwarded verbatim they
     // would parse as a one-tool allow-list and leave the session with
     // no callable graph tools at all.
-    const FORWARDED_PRESETS = new Set(["edit", "nav", "readonly"]);
+    const FORWARDED_PRESETS = new Set(['edit', 'nav', 'readonly']);
     if (!env.GORTEX_TOOLS && FORWARDED_PRESETS.has(preset)) {
       env.GORTEX_TOOLS = TOOLS_PRESET;
     }
     // Never let a preset hide-block tools promoted later by tools_search.
-    if (env.GORTEX_TOOLS && !env.GORTEX_TOOLS_MODE) env.GORTEX_TOOLS_MODE = "defer";
+    if (env.GORTEX_TOOLS && !env.GORTEX_TOOLS_MODE) env.GORTEX_TOOLS_MODE = 'defer';
     return env;
   }
 
   private spawnChild(): void {
-    const child = spawn(GORTEX_BIN, ["mcp"], {
-      stdio: ["pipe", "pipe", "pipe"],
+    const child = spawn(GORTEX_BIN, ['mcp'], {
+      stdio: ['pipe', 'pipe', 'pipe'],
       env: this.childEnv(),
     });
     this.child = child;
-    this.buffer = "";
+    this.buffer = '';
     this.searchStart = 0;
     this.exited = false;
-    child.stdout.on("data", (chunk: Buffer) => this.onData(chunk));
+    child.stdout.on('data', (chunk: Buffer) => this.onData(chunk));
     // Consume stderr so the child never blocks on a full pipe; routing it
     // to the terminal would corrupt Pi's TUI.
-    child.stderr.on("data", () => { });
-    child.stdin.on("error", () => { }); // EPIPE race: child may exit before stdin.write() finishes
-    child.on("error", () => this.markExited(new Error("gortex mcp spawn failed")));
-    child.on("exit", () => this.markExited(new Error("gortex mcp exited")));
+    child.stderr.on('data', () => {});
+    child.stdin.on('error', () => {}); // EPIPE race: child may exit before stdin.write() finishes
+    child.on('error', () => this.markExited(new Error('gortex mcp spawn failed')));
+    child.on('exit', () => this.markExited(new Error('gortex mcp exited')));
   }
 
   private markExited(err: Error): void {
@@ -171,12 +170,13 @@ class MCPStdioClient {
   }
 
   private onData(chunk: Buffer): void {
-    this.buffer += chunk.toString("utf8");
+    this.buffer += chunk.toString('utf8');
     let nl: number;
     // Resume the newline scan where the previous chunk left off — a
     // large frame split across many chunks must not re-scan the whole
     // growing buffer from index 0 on every data event.
-    while ((nl = this.buffer.indexOf("\n", this.searchStart)) >= 0) {
+    // biome-ignore lint/suspicious/noAssignInExpressions: intentional newline-scan assignment in while-condition
+    while ((nl = this.buffer.indexOf('\n', this.searchStart)) >= 0) {
       const line = this.buffer.slice(0, nl).trim();
       this.buffer = this.buffer.slice(nl + 1);
       this.searchStart = 0;
@@ -194,19 +194,19 @@ class MCPStdioClient {
       // One frame past the cap is fatal for this child (no way to
       // resync mid-frame): pending requests reject, the next call
       // respawns a fresh child.
-      this.buffer = "";
+      this.buffer = '';
       this.searchStart = 0;
       const child = this.child;
       this.markExited(new Error(`gortex mcp frame exceeded ${MAX_BUFFER_BYTES} bytes`));
       try {
         child?.kill();
-      } catch {
-      }
+      } catch {}
     }
   }
 
   private dispatch(msg: any): void {
-    if (msg && typeof msg.id === "number" && this.pending.has(msg.id)) {
+    if (msg && typeof msg.id === 'number' && this.pending.has(msg.id)) {
+      // biome-ignore lint/style/noNonNullAssertion: entry asserted present by has() check above
       const p = this.pending.get(msg.id)!;
       this.pending.delete(msg.id);
       if (p.timer) clearTimeout(p.timer);
@@ -217,7 +217,7 @@ class MCPStdioClient {
       }
       return;
     }
-    if (msg && msg.method === "notifications/tools/list_changed") {
+    if (msg && msg.method === 'notifications/tools/list_changed') {
       try {
         this.onToolsListChanged?.();
       } catch {
@@ -227,8 +227,8 @@ class MCPStdioClient {
   }
 
   private send(obj: Record<string, unknown>): void {
-    if (!this.child || this.exited) throw new Error("gortex mcp is not running");
-    this.child.stdin.write(JSON.stringify(obj) + "\n");
+    if (!this.child || this.exited) throw new Error('gortex mcp is not running');
+    this.child.stdin.write(`${JSON.stringify(obj)}\n`);
   }
 
   // A single shared respawn: concurrent callers of request() against a
@@ -259,7 +259,7 @@ class MCPStdioClient {
       }
       this.pending.set(id, entry);
       try {
-        this.send({ jsonrpc: "2.0", id, method, params });
+        this.send({ jsonrpc: '2.0', id, method, params });
       } catch (err: any) {
         this.pending.delete(id);
         if (entry.timer) clearTimeout(entry.timer);
@@ -270,7 +270,7 @@ class MCPStdioClient {
 
   private notify(method: string, params: unknown): void {
     try {
-      this.send({ jsonrpc: "2.0", method, params });
+      this.send({ jsonrpc: '2.0', method, params });
     } catch {
       // notifications are best-effort.
     }
@@ -278,17 +278,17 @@ class MCPStdioClient {
 
   private async initialize(): Promise<void> {
     await this.request(
-      "initialize",
+      'initialize',
       {
-        protocolVersion: "2025-06-18",
+        protocolVersion: '2025-06-18',
         // gortex/wire self-declares this client's compact-format
         // decoders; the daemon prefers it over its name allowlist.
-        capabilities: { experimental: { "gortex/wire": WIRE_FORMATS } },
+        capabilities: { experimental: { 'gortex/wire': WIRE_FORMATS } },
         clientInfo: { name: CLIENT_NAME, version: CLIENT_VERSION },
       },
-      INIT_TIMEOUT_MS,
+      INIT_TIMEOUT_MS
     );
-    this.notify("notifications/initialized", {});
+    this.notify('notifications/initialized', {});
   }
 
   // start spawns the child and runs the MCP handshake, retrying once
@@ -306,7 +306,7 @@ class MCPStdioClient {
   }
 
   async listTools(): Promise<any[]> {
-    const res = await this.request("tools/list", {});
+    const res = await this.request('tools/list', {});
     return Array.isArray(res?.tools) ? res.tools : [];
   }
 
@@ -315,16 +315,15 @@ class MCPStdioClient {
   // finish, but a wedged daemon behind a still-alive child must not
   // hang the agent turn forever.
   async callTool(name: string, args: Record<string, unknown>): Promise<any> {
-    return this.request("tools/call", { name, arguments: args ?? {} }, CALL_TIMEOUT_MS);
+    return this.request('tools/call', { name, arguments: args ?? {} }, CALL_TIMEOUT_MS);
   }
 
   stop(): void {
     const child = this.child;
-    this.markExited(new Error("gortex mcp bridge stopped"));
+    this.markExited(new Error('gortex mcp bridge stopped'));
     try {
       child?.kill();
-    } catch {
-    }
+    } catch {}
   }
 }
 
@@ -336,15 +335,15 @@ let client: MCPStdioClient | null = null;
 // Why the bridge is down this session (empty when it's up). Surfaced
 // once through the orientation injection so the user learns that
 // /reload retries the handshake.
-let bridgeError = "";
+let bridgeError = '';
 
 // textFromResult joins the text parts of an MCP tools/call result.
 function textFromResult(result: any): string {
   const parts = Array.isArray(result?.content) ? result.content : [];
   return parts
-    .filter((c: any) => c && c.type === "text" && typeof c.text === "string")
+    .filter((c: any) => c && c.type === 'text' && typeof c.text === 'string')
     .map((c: any) => c.text)
-    .join("\n");
+    .join('\n');
 }
 
 interface PiDecision {
@@ -362,7 +361,7 @@ function callHook(envelope: Record<string, unknown>): PiDecision {
   try {
     const out = execFileSync(HOOK_ARGV[0], HOOK_ARGV.slice(1), {
       input: JSON.stringify(envelope),
-      encoding: "utf8",
+      encoding: 'utf8',
       maxBuffer: 16 * 1024 * 1024,
       timeout: 5_000,
     }).trim();
@@ -383,38 +382,38 @@ function callHook(envelope: Record<string, unknown>): PiDecision {
 // and input shapes, so we translate here — keeping all Pi-specific
 // knowledge in this Pi-specific file.
 const toolNameMap: Record<string, string> = {
-  read: "Read",
-  grep: "Grep",
-  find: "Glob",
-  ls: "Glob",
-  bash: "Bash",
-  edit: "Edit",
-  write: "Write",
+  read: 'Read',
+  grep: 'Grep',
+  find: 'Glob',
+  ls: 'Glob',
+  bash: 'Bash',
+  edit: 'Edit',
+  write: 'Write',
 };
 
 function firstString(obj: Record<string, unknown>, keys: string[]): string | undefined {
   for (const k of keys) {
     const v = obj[k];
-    if (typeof v === "string" && v !== "") return v;
+    if (typeof v === 'string' && v !== '') return v;
   }
   return undefined;
 }
 
 function normalizeToolCall(
   piName: string,
-  piInput: Record<string, unknown>,
+  piInput: Record<string, unknown>
 ): { tool_name: string; tool_input: Record<string, unknown> } {
   const canonical = toolNameMap[piName.toLowerCase()] ?? piName;
   const out: Record<string, unknown> = { ...piInput };
 
-  const path = firstString(piInput, ["file_path", "path", "file", "filepath", "absolute_path"]);
+  const path = firstString(piInput, ['file_path', 'path', 'file', 'filepath', 'absolute_path']);
   if (path !== undefined) out.file_path = path;
 
-  let pattern = firstString(piInput, ["pattern", "glob", "query", "regex", "name"]);
-  if (pattern === undefined && canonical === "Glob") pattern = path;
+  let pattern = firstString(piInput, ['pattern', 'glob', 'query', 'regex', 'name']);
+  if (pattern === undefined && canonical === 'Glob') pattern = path;
   if (pattern !== undefined) out.pattern = pattern;
 
-  const command = firstString(piInput, ["command", "cmd", "script"]);
+  const command = firstString(piInput, ['command', 'cmd', 'script']);
   if (command !== undefined) out.command = command;
 
   return { tool_name: canonical, tool_input: out };
@@ -437,7 +436,7 @@ interface ToolDescriptor {
 // lint-on-edit plugin). Only "edit"/"read" collide today; checking all
 // seven guards against future facade additions too.
 const PI_RESERVED_TOOL_NAMES = new Set(Object.keys(toolNameMap));
-const PI_ALIAS_PREFIX = "gortex_";
+const PI_ALIAS_PREFIX = 'gortex_';
 
 // piAliasName is unchanged unless name collides with a built-in above, in
 // which case it's registered under a `gortex_`-prefixed alias instead.
@@ -450,10 +449,8 @@ function piAliasName(name: string): string {
 // not a fact any other agent needs.
 function piAliasNote(): string {
   const aliased = Array.from(gortexToolNames).filter((n) => n.startsWith(PI_ALIAS_PREFIX));
-  if (aliased.length === 0) return "";
-  const pairs = aliased
-    .map((n) => `\`${n.slice(PI_ALIAS_PREFIX.length)}\` -> \`${n}\``)
-    .join(", ");
+  if (aliased.length === 0) return '';
+  const pairs = aliased.map((n) => `\`${n.slice(PI_ALIAS_PREFIX.length)}\` -> \`${n}\``).join(', ');
   return (
     `[Gortex] This session renamed these Gortex tools to avoid colliding with Pi's own built-ins ` +
     `of the same name: ${pairs}. Wherever Gortex's guidance or tool descriptions mention the bare name, call the renamed one instead.`
@@ -483,7 +480,7 @@ function safeRegister(pi: any, def: any): string {
 // file's zero-runtime-dependency design already avoids for typebox.
 let TuiText: (new (text: string, x: number, y: number) => any) | undefined;
 try {
-  TuiText = require("@earendil-works/pi-tui").Text;
+  TuiText = require('@earendil-works/pi-tui').Text;
 } catch {
   TuiText = undefined;
 }
@@ -506,9 +503,9 @@ function registerOneTool(pi: any, desc: ToolDescriptor): void {
   if (!name) return;
   if (gortexToolNames.has(piAliasName(name))) return;
   const parameters =
-    desc.inputSchema && typeof desc.inputSchema === "object"
+    desc.inputSchema && typeof desc.inputSchema === 'object'
       ? desc.inputSchema
-      : { type: "object", properties: {} };
+      : { type: 'object', properties: {} };
   const def: any = {
     name,
     label: name,
@@ -522,23 +519,25 @@ function registerOneTool(pi: any, desc: ToolDescriptor): void {
       } catch (err: any) {
         throw new Error(`gortex ${name} failed: ${err?.message || String(err)}`);
       }
-      if (name === "tools_search") {
+      if (name === 'tools_search') {
         // The daemon just promoted the matches and fired list_changed;
         // register them NOW (bypassing the debounce) so every tool the
         // reply cites is already callable when the model reads it.
         await syncTools(pi);
       }
-      const text = textFromResult(result) ||
-        JSON.stringify(result?.structuredContent ?? result ?? {});
+      const text =
+        textFromResult(result) || JSON.stringify(result?.structuredContent ?? result ?? {});
       if (result?.isError) throw new Error(text || `gortex ${name} failed`);
-      return { content: [{ type: "text", text }], details: {} };
+      return { content: [{ type: 'text', text }], details: {} };
     },
   };
   if (TuiText) {
     def.renderResult = (result: any, opts: { expanded?: boolean }) => {
-      if (!opts?.expanded) return new TuiText!("", 0, 0);
-      const text = textFromResult(result) ||
-        JSON.stringify(result?.structuredContent ?? result ?? {});
+      // biome-ignore lint/style/noNonNullAssertion: TuiText guarded by if(TuiText) above
+      if (!opts?.expanded) return new TuiText!('', 0, 0);
+      const text =
+        textFromResult(result) || JSON.stringify(result?.structuredContent ?? result ?? {});
+      // biome-ignore lint/style/noNonNullAssertion: TuiText guarded by if(TuiText) above
       return new TuiText!(text, 0, 0);
     };
   }
@@ -592,16 +591,16 @@ export default function (pi: any) {
   // hook appends it as a tail user message rather than mutating
   // systemPrompt: a systemPrompt change sits at messages[0] and invalidates
   // prefix prompt caching. Computed once per session.
-  let pendingOrientation = "";
+  let pendingOrientation = '';
 
   // Pi resets the session's tool registry on every session_start, so
   // (re)register here. Clear the name guard first — it persists across
   // sessions and would otherwise suppress re-registration. The previous
   // session's bridge child (if any) is stopped before a fresh handshake.
-  pi.on("session_start", async () => {
+  pi.on('session_start', async () => {
     orientationInjected = false;
-    pendingOrientation = "";
-    bridgeError = "";
+    pendingOrientation = '';
+    bridgeError = '';
     ensureDaemon();
     gortexToolNames.clear();
     if (syncTimer) {
@@ -638,22 +637,22 @@ export default function (pi: any) {
 
   // Fires before the agent loop's first LLM call. It can't mutate messages
   // itself, so it just parks the orientation for the `context` hook.
-  pi.on("before_agent_start", () => {
+  pi.on('before_agent_start', () => {
     if (orientationInjected) return;
-    const decision = callHook({ event: "session_start", cwd: pi?.cwd ?? process.cwd() });
+    const decision = callHook({ event: 'session_start', cwd: pi?.cwd ?? process.cwd() });
     const parts: string[] = [];
     if (bridgeError) {
       parts.push(
         `[Gortex] graph tools are unavailable this session (${bridgeError}). ` +
-        `Tell the user to run /reload to retry the connection.`,
+          `Tell the user to run /reload to retry the connection.`
       );
-      bridgeError = "";
+      bridgeError = '';
     }
     if (decision.orientation) parts.push(decision.orientation);
     const aliasNote = piAliasNote();
     if (aliasNote) parts.push(aliasNote);
     if (parts.length > 0) {
-      pendingOrientation = parts.join("\n\n");
+      pendingOrientation = parts.join('\n\n');
       orientationInjected = true;
     }
     return;
@@ -661,13 +660,13 @@ export default function (pi: any) {
 
   // Fires before each LLM call with a mutable message array. Append the
   // parked orientation once, then clear it so it isn't repeated each call.
-  pi.on("context", (event: any) => {
+  pi.on('context', (event: any) => {
     if (!pendingOrientation) return;
     const text = pendingOrientation;
-    pendingOrientation = "";
+    pendingOrientation = '';
     try {
       if (event && Array.isArray(event.messages)) {
-        event.messages.push({ role: "user", content: text });
+        event.messages.push({ role: 'user', content: text });
         return { messages: event.messages };
       }
     } catch {
@@ -679,30 +678,30 @@ export default function (pi: any) {
   if (!ENFORCE) return;
 
   // Enforcement: every non-Gortex tool call is checked against the Go hook.
-  pi.on("tool_call", async (event: any, ctx: any) => {
-    const piName: string = event?.toolName ?? "";
+  pi.on('tool_call', async (event: any, ctx: any) => {
+    const piName: string = event?.toolName ?? '';
     const piInput: Record<string, unknown> = event?.input ?? {};
     const isGortexTool = gortexToolNames.has(piName);
 
     const norm = normalizeToolCall(piName, piInput);
     const decision = callHook({
-      event: "tool_call",
+      event: 'tool_call',
       tool_name: norm.tool_name,
       tool_input: norm.tool_input,
       cwd: ctx?.cwd ?? pi?.cwd ?? process.cwd(),
-      session_id: ctx?.sessionManager?.sessionId ?? "",
+      session_id: ctx?.sessionManager?.sessionId ?? '',
       is_gortex_tool: isGortexTool,
     });
 
     if (decision.block) {
-      return { block: true, reason: decision.reason ?? "[Gortex] blocked — prefer graph tools." };
+      return { block: true, reason: decision.reason ?? '[Gortex] blocked — prefer graph tools.' };
     }
     if (decision.additional_context) {
       // Soft guidance: surface it without blocking the call.
       try {
         pi.sendMessage(
-          { customType: "gortex", content: decision.additional_context, display: true },
-          { deliverAs: "steer" },
+          { customType: 'gortex', content: decision.additional_context, display: true },
+          { deliverAs: 'steer' }
         );
       } catch {
         // sendMessage shape can vary across Pi versions; never fatal.
