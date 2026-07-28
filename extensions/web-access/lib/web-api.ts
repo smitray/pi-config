@@ -78,7 +78,12 @@ export async function webFetch(
     };
   }
 
-  const data = await fetchJson<{ url?: string; markdown?: string; success?: boolean; error?: string }>(
+  const data = await fetchJson<{
+    url?: string;
+    markdown?: string;
+    success?: boolean;
+    error?: string;
+  }>(
     `${config.crawl4aiBase}/md`,
     {
       method: 'POST',
@@ -112,11 +117,10 @@ export async function tfSearch(
 ): Promise<SearchHit[]> {
   const params = new URLSearchParams({ query, limit: String(limit) });
   const url = `${config.tinyfishSearchBase}?${params}`;
-  const data = await fetchJson<{ results?: Array<{ title?: string; url?: string; snippet?: string }>; error?: { message?: string } }>(
-    url,
-    { headers: { 'X-API-Key': config.tinyfishApiKey ?? '' } },
-    config
-  );
+  const data = await fetchJson<{
+    results?: Array<{ title?: string; url?: string; snippet?: string }>;
+    error?: { message?: string };
+  }>(url, { headers: { 'X-API-Key': config.tinyfishApiKey ?? '' } }, config);
   if (data.error) throw new Error(data.error.message || 'TinyFish search error');
   return (data.results || []).slice(0, limit).map((r) => ({
     title: r.title || r.url || '',
@@ -136,15 +140,12 @@ export async function searxngSearch(
   if (language) params.language = language;
   if (time_range) params.time_range = time_range;
   const searchUrl = `${config.searxngBase}/search?${new URLSearchParams(params)}`;
-  const data = await fetchJson<{ results?: Array<{ title?: string; url?: string; content?: string }> }>(
-    searchUrl,
-    {},
-    config
-  );
+  const data = await fetchJson<{
+    results?: Array<{ title?: string; url?: string; content?: string }>;
+  }>(searchUrl, {}, config);
   return (data.results || []).slice(0, limit).map((r) => ({
     title: r.title || r.url || '',
     url: r.url || '',
     snippet: r.content || '',
   }));
 }
-

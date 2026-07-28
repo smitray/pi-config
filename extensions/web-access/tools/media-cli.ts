@@ -39,7 +39,7 @@ function runYtDlp(
 
 export function findFileByIdPrefix(dir: string, id: string, extensions?: string[]): string | null {
   const files = readdirSync(dir);
-  const candidates = files.filter((f) => f.startsWith(id + '.'));
+  const candidates = files.filter((f) => f.startsWith(`${id}.`));
   if (!extensions || extensions.length === 0) {
     return candidates[0] ? join(dir, candidates[0]) : null;
   }

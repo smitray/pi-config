@@ -4,7 +4,6 @@ import { err, ok } from '../../_shared/result';
 import type { AccessConfig } from '../lib/config';
 import { searxngSearch, tfSearch } from '../lib/web-api';
 
-
 export function registerWebSearch(pi: ExtensionAPI, config: AccessConfig): void {
   pi.registerTool({
     name: 'web-search',

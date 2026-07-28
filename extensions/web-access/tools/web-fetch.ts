@@ -140,7 +140,10 @@ export async function crawlDocs(
         await sleep(config.crawlDelayMs);
         try {
           const result = await cleanFetch(item.url, config);
-          return { page: { url: result.url, title: result.title, markdown: result.markdown }, depth: item.depth };
+          return {
+            page: { url: result.url, title: result.title, markdown: result.markdown },
+            depth: item.depth,
+          };
         } catch {
           return null;
         }
