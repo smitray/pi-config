@@ -1,0 +1,16 @@
+exclude:
+    - '**/node_modules/**'
+    - npm/**
+    - git/**
+    - .gortex/**
+    - '**/dist/**'
+    - '**/build/**'
+    - '**/*.tsbuildinfo'
+    - auth.json
+    - '*.log'
+    - .DS_Store
+    - caveman.json
+    - models-store.json
+    - node_modules/**
+respect_gitignore: true
+workspace: agent
