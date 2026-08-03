@@ -188,7 +188,7 @@ webFetchTests('web-fetch integration', { timeout: 30000 }, () => {
 tfSearchTests('tf_search integration', () => {
   it('searches TinyFish', async () => {
     const tools = createToolRecorder(config);
-    const result = await tools['tf_search'].execute('tc-1', { query: 'open source', limit: 3 });
+    const result = await tools.tf_search.execute('tc-1', { query: 'open source', limit: 3 });
     expect(result.isError).toBeFalsy();
     expect(result.content[0].text).toBeTruthy();
     expect(result.details?.results).toBeInstanceOf(Array);
@@ -200,7 +200,7 @@ tfSearchTests('tf_search integration', () => {
 tfFetchTests('tf_fetch integration', () => {
   it('fetches a page via TinyFish', async () => {
     const tools = createToolRecorder(config);
-    const result = await tools['tf_fetch'].execute('tc-1', { url: 'https://example.com' });
+    const result = await tools.tf_fetch.execute('tc-1', { url: 'https://example.com' });
     expect(result.isError).toBeFalsy();
     expect(result.content[0].text.toLowerCase()).toContain('example domain');
     expect(result.details?.source).toBe('tinyfish');

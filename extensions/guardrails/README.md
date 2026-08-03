@@ -103,12 +103,14 @@ interface GuardrailsRule {
 
 ```
 guardrails/
-├── index.ts       # entry + /guardrails command
-├── types.ts       # TypeScript types
-├── matcher.ts     # token-based command matching
-├── gate.ts        # tool_call hook (block/confirm)
-├── defaults.ts    # default rule groups
-└── test/          # vitest tests
+├── index.ts              # entry + /guardrails command
+├── types.ts              # TypeScript types
+├── matcher.ts            # token-based command matching
+├── gate.ts               # tool_call hook (block/confirm)
+├── api.ts                # API surface (guardrails extension hook registration)
+├── guardrails-registry.ts # built-in rule registry
+├── defaults.ts           # default rule groups
+└── test/                 # vitest tests
 ```
 
 ## Testing

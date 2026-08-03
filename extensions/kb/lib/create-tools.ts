@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 import { err, ok } from '../../_shared/result';
+import type { RegistryEntry } from './metadata';
 import { buildPage } from './templates';
 import {
   buildVaultPaths,
@@ -44,57 +45,6 @@ function getNextId(vaultWiki: string, type: string): string {
 // No dependencies — fetch + regex. Upgrade: use a real HTML parser
 // if parsing becomes unreliable.
 
-interface UrlMetadata {
-  title: string;
-  description: string;
-  platform: string;
-}
-
-function detectPlatform(url: string): string {
-  try {
-    const host = new URL(url).hostname.replace('www.', '');
-    if (host.includes('youtube') || host.includes('youtu.be')) return 'youtube';
-    if (host.includes('github')) return 'github';
-    if (host.includes('twitter') || host.includes('x.com')) return 'twitter';
-    if (host.includes('instagram')) return 'instagram';
-    if (host.includes('linkedin')) return 'linkedin';
-    if (host.includes('stackoverflow')) return 'stackoverflow';
-    if (host.includes('npmjs')) return 'npm';
-    if (host.includes('pypi')) return 'pypi';
-    if (host.includes('crates.io')) return 'crates';
-    if (host.includes('dev.to')) return 'devto';
-    if (host.includes('medium')) return 'medium';
-    if (host.includes('reddit')) return 'reddit';
-    if (host.includes('mastodon')) return 'mastodon';
-    return 'web';
-  } catch {
-    return 'web';
-  }
-}
-
-async function fetchUrlMetadata(url: string): Promise<UrlMetadata> {
-  try {
-    const res = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; pi-kb/1.0)' },
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return { title: url, description: '', platform: detectPlatform(url) };
-
-    const html = await res.text();
-    const title =
-      html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)?.[1] ??
-      html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] ??
-      url;
-    const description =
-      html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i)?.[1] ??
-      html.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']+)["']/i)?.[1] ??
-      '';
-    return { title: title.trim(), description: description.trim(), platform: detectPlatform(url) };
-  } catch {
-    return { title: url, description: '', platform: detectPlatform(url) };
-  }
-}
-
 // ─── Helpers ─────────────────────────────────────────────────────
 
 function vaultFromCtx(cwd: string) {
@@ -108,158 +58,6 @@ function writePage(type: string, filename: string, content: string, cwd: string)
   if (!existsSync(typeDir)) mkdirSync(typeDir, { recursive: true });
   writeFileSync(join(typeDir, filename), content, 'utf-8');
   return { typeDir, filename, paths };
-}
-
-// ─── kb_create_schedule ──────────────────────────────────────────
-
-export function registerScheduleTool(pi: ExtensionAPI): void {
-  pi.registerTool({
-    name: 'kb_create_schedule',
-    label: 'KB Create Schedule',
-    description:
-      'Create a daily time-blocked schedule page with morning, deep work, and afternoon blocks.',
-    promptSnippet: 'Create a daily schedule',
-    promptGuidelines: [
-      'Use kb_create_schedule to plan a day. Generates SCHED-XXX ID, time blocks, and sub-agent assignments.',
-    ],
-    parameters: Type.Object({
-      title: Type.String({ description: 'Schedule title (e.g. "2025-07-17 — Day 14")' }),
-      theme: Type.Optional(Type.String({ description: 'Daily theme or focus area' })),
-      morning_time: Type.Optional(
-        Type.String({ description: 'Morning block time (e.g. "09:00-11:00")' })
-      ),
-      morning_focus: Type.Optional(Type.String({ description: 'Morning focus task' })),
-      morning_agent: Type.Optional(
-        Type.String({ description: 'Sub-agent for morning block (e.g. Researcher)' })
-      ),
-      deepwork_time: Type.Optional(
-        Type.String({ description: 'Deep work block time (e.g. "11:00-14:00")' })
-      ),
-      deepwork_focus: Type.Optional(Type.String({ description: 'Deep work task' })),
-      deepwork_agent: Type.Optional(Type.String({ description: 'Sub-agent for deep work block' })),
-      afternoon_time: Type.Optional(
-        Type.String({ description: 'Afternoon block time (e.g. "15:00-17:00")' })
-      ),
-      afternoon_focus: Type.Optional(Type.String({ description: 'Afternoon focus task' })),
-      afternoon_agent: Type.Optional(Type.String({ description: 'Sub-agent for afternoon block' })),
-      wrap_time: Type.Optional(
-        Type.String({ description: 'Review & wrap time (e.g. "17:00-17:30")' })
-      ),
-      day_number: Type.Optional(Type.Integer({ description: 'Day number (e.g. 14)' })),
-      week: Type.Optional(Type.String({ description: 'Week identifier (e.g. "W28")' })),
-      energy: Type.Optional(
-        Type.String({ description: 'Starting energy: high | medium | low', default: 'medium' })
-      ),
-      tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags for categorization' })),
-    }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
-      const cwd = ctx.cwd ?? process.cwd();
-      const paths = vaultFromCtx(cwd);
-      const pageId = getNextId(paths.wiki, 'schedule');
-      const today = fmtDate();
-
-      const { content, filename } = buildPage('schedule', params.title, paths, {
-        id: pageId,
-        date: today,
-        theme: params.theme ?? '',
-        morning_time: params.morning_time ?? '',
-        morning_focus: params.morning_focus ?? '',
-        morning_status: 'pending',
-        morning_agent: params.morning_agent ?? '',
-        deepwork_time: params.deepwork_time ?? '',
-        deepwork_focus: params.deepwork_focus ?? '',
-        deepwork_status: 'pending',
-        deepwork_agent: params.deepwork_agent ?? '',
-        afternoon_time: params.afternoon_time ?? '',
-        afternoon_focus: params.afternoon_focus ?? '',
-        afternoon_status: 'pending',
-        afternoon_agent: params.afternoon_agent ?? '',
-        wrap_time: params.wrap_time ?? '',
-        day_number: String(params.day_number ?? 1),
-        week: params.week ?? '',
-        energy: params.energy ?? 'medium',
-        stage: 'draft',
-        tags: params.tags ?? [],
-      });
-
-      writePage('schedule', filename, content, cwd);
-      return ok(`✅ Schedule created \`${DIR_NAMES.schedule}/${filename}\` [${pageId}]`, {
-        id: pageId,
-        path: `${DIR_NAMES.schedule}/${filename}`,
-      });
-    },
-  });
-}
-
-// ─── kb_create_library ──────────────────────────────────────────
-
-export function registerLibraryTool(pi: ExtensionAPI): void {
-  pi.registerTool({
-    name: 'kb_create_library',
-    label: 'KB Create Library Entry',
-    description:
-      'Create a library entry for a web resource. Auto-fetches title and description from URL. ' +
-      'Use for bookmarks, documentation, tutorials, and research resources.',
-    promptSnippet: 'Add a resource to the KB library',
-    promptGuidelines: [
-      'Use kb_create_library to save a web resource. Auto-fetches metadata from the URL.',
-    ],
-    parameters: Type.Object({
-      url: Type.String({ description: 'URL of the resource' }),
-      title: Type.Optional(
-        Type.String({ description: 'Title (auto-fetched from URL if omitted)' })
-      ),
-      topic: Type.Optional(
-        Type.String({ description: 'Topic or category (e.g. "react", "rust", "architecture")' })
-      ),
-      source_type: Type.Optional(
-        Type.String({
-          description:
-            'Source type: documentation | tutorial | blog | video | paper | tool | book | other',
-          default: 'other',
-        })
-      ),
-      priority: Type.Optional(
-        Type.String({ description: 'Priority: high | medium | low', default: 'medium' })
-      ),
-      tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags for categorization' })),
-      notes: Type.Optional(Type.String({ description: 'Personal notes or why this was saved' })),
-    }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
-      const cwd = ctx.cwd ?? process.cwd();
-      const paths = vaultFromCtx(cwd);
-      const pageId = getNextId(paths.wiki, 'library');
-
-      // Fetch once, destructure
-      const meta = await fetchUrlMetadata(params.url);
-      const title = params.title ?? meta.title;
-
-      const { content, filename } = buildPage('library', title, paths, {
-        id: pageId,
-        url: params.url,
-        topic: params.topic ?? '',
-        source_type: params.source_type ?? 'other',
-        platform: meta.platform,
-        captured: fmtDate(),
-        status: 'unread',
-        priority: params.priority ?? 'medium',
-        reviewed: 'false',
-        shared: 'false',
-        stage: 'draft',
-        tags: params.tags ?? [],
-      });
-
-      writePage('library', filename, content, cwd);
-
-      const extraNotes = params.notes ? `\n\n---\n**Notes:** ${params.notes}` : '';
-      return ok(
-        `✅ Library entry created [${pageId}] — ${title}\n` +
-          `Platform: ${meta.platform} | Type: ${params.source_type ?? 'other'} | Priority: ${params.priority ?? 'medium'}\n` +
-          `URL: ${params.url}${extraNotes}`,
-        { id: pageId, url: params.url, platform: meta.platform, title }
-      );
-    },
-  });
 }
 
 // ─── kb_create_research ──────────────────────────────────────────
@@ -332,295 +130,6 @@ export function registerResearchTool(pi: ExtensionAPI): void {
 }
 
 // ─── kb_create_plan ─────────────────────────────────────────────
-
-export function registerPlanTool(pi: ExtensionAPI): void {
-  pi.registerTool({
-    name: 'kb_create_plan',
-    label: 'KB Create Plan',
-    description:
-      'Create a planning or brainstorming page. Records goal, constraints, options considered, and decision.',
-    promptSnippet: 'Create a planning document',
-    promptGuidelines: [
-      'Use kb_create_plan for planning and brainstorming. Records goal, options, decision, and next steps.',
-    ],
-    parameters: Type.Object({
-      title: Type.String({ description: 'Plan title (e.g. "How to structure the API layer")' }),
-      goal: Type.String({ description: 'What this plan aims to achieve' }),
-      scope: Type.Optional(
-        Type.String({ description: 'Scope: small | medium | large', default: 'medium' })
-      ),
-      priority: Type.Optional(
-        Type.String({ description: 'Priority: critical | high | medium | low', default: 'medium' })
-      ),
-      constraints: Type.Optional(Type.String({ description: 'Known constraints or boundaries' })),
-      options: Type.Optional(Type.String({ description: 'Options considered (one per line)' })),
-      decision: Type.Optional(Type.String({ description: 'Chosen approach and rationale' })),
-      status: Type.Optional(
-        Type.String({
-          description: 'Status: draft | decided | in_progress | blocked',
-          default: 'draft',
-        })
-      ),
-      tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags for categorization' })),
-    }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
-      const cwd = ctx.cwd ?? process.cwd();
-      const paths = vaultFromCtx(cwd);
-      const pageId = getNextId(paths.wiki, 'plan');
-      const opts = params.options
-        ? params.options
-            .split('\n')
-            .map((o) => `- ${o}`)
-            .join('\n')
-        : '';
-
-      const { content, filename } = buildPage('plan', params.title, paths, {
-        id: pageId,
-        status: params.status ?? 'draft',
-        scope: params.scope ?? 'medium',
-        priority: params.priority ?? 'medium',
-        shared: 'false',
-        stage: 'draft',
-        tags: params.tags ?? [],
-      });
-
-      const body = [
-        `## Goal\n\n${params.goal}`,
-        params.constraints ? `## Constraints\n\n${params.constraints}` : '',
-        opts ? `## Options Considered\n\n${opts}` : '',
-        params.decision ? `## Decision\n\n${params.decision}` : '',
-      ]
-        .filter(Boolean)
-        .join('\n\n');
-
-      writePage('plan', filename, `${content}\n\n${body}`, cwd);
-      return ok(`✅ Plan created [${pageId}] — ${params.title}`, {
-        id: pageId,
-        goal: params.goal,
-      });
-    },
-  });
-}
-
-// ─── kb_create_content ──────────────────────────────────────────
-
-export function registerContentTool(pi: ExtensionAPI): void {
-  pi.registerTool({
-    name: 'kb_create_content',
-    label: 'KB Create Content',
-    description:
-      'Create a content planning card for social media. Supports multi-platform: YouTube, LinkedIn, ' +
-      'Twitter/X, Instagram, Threads, Mastodon, blog.',
-    promptSnippet: 'Plan social media content',
-    promptGuidelines: ['Use kb_create_content to plan and track content across platforms.'],
-    parameters: Type.Object({
-      title: Type.String({ description: 'Content title (e.g. "Thread: Why I switched to Bun")' }),
-      idea: Type.String({ description: 'Core idea or hook — what is this content about?' }),
-      platforms: Type.Array(Type.String(), {
-        description:
-          'Target platforms: youtube, linkedin, twitter, instagram, threads, mastodon, blog',
-      }),
-      status: Type.Optional(
-        Type.String({
-          description: 'Status: idea | drafting | scheduled | published',
-          default: 'idea',
-        })
-      ),
-      scheduled_date: Type.Optional(
-        Type.String({ description: 'Planned publish date (YYYY-MM-DD)' })
-      ),
-      key_points: Type.Optional(Type.String({ description: 'Key points to cover (one per line)' })),
-      hashtags: Type.Optional(
-        Type.Array(Type.String(), {
-          description: 'Hashtags to include (as-is, no # prefix needed)',
-        })
-      ),
-      featured: Type.Optional(
-        Type.Boolean({ description: 'Feature this content prominently', default: false })
-      ),
-      tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags for categorization' })),
-    }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
-      const cwd = ctx.cwd ?? process.cwd();
-      const paths = vaultFromCtx(cwd);
-      const pageId = getNextId(paths.wiki, 'content');
-      const keyPts = params.key_points
-        ? params.key_points
-            .split('\n')
-            .map((p) => `- ${p}`)
-            .join('\n')
-        : '';
-      // Store platforms as YAML array string (already handled by buildPage's formatTags)
-      const platformList = params.platforms.join(', ');
-
-      const { content, filename } = buildPage('content', params.title, paths, {
-        id: pageId,
-        idea: params.idea,
-        platforms: params.platforms,
-        status: params.status ?? 'idea',
-        scheduled_date: params.scheduled_date ?? '',
-        published_date: '',
-        featured: String(params.featured ?? false),
-        stage: 'draft',
-        tags: params.tags ?? [],
-      });
-
-      // Store hashtags as-is — format per-platform at publish time
-      const hashtagBody =
-        params.hashtags && params.hashtags.length > 0
-          ? `## Hashtags\n\n${params.hashtags.map((h) => `- ${h}`).join('\n')}`
-          : '';
-      const body = [keyPts ? `## Key Points\n\n${keyPts}` : '', hashtagBody]
-        .filter(Boolean)
-        .join('\n\n');
-
-      writePage('content', filename, `${content}\n\n${body}`, cwd);
-      return ok(
-        `✅ Content card created [${pageId}] — ${params.title}\n` +
-          `Platforms: ${platformList} | Status: ${params.status ?? 'idea'}`,
-        { id: pageId, platforms: params.platforms, idea: params.idea }
-      );
-    },
-  });
-}
-
-// ─── kb_create_ticket ───────────────────────────────────────────
-
-export function registerTicketTool(pi: ExtensionAPI): void {
-  pi.registerTool({
-    name: 'kb_create_ticket',
-    label: 'KB Create Ticket',
-    description:
-      'Create a project ticket. Tickets are requirements that can link to GitHub issues ' +
-      '(via github_repo + github_issue fields). Use for tracking features, bugs, and tasks ' +
-      'that need an owner, priority, and status.',
-    promptSnippet: 'Create a project ticket',
-    promptGuidelines: [
-      'Use kb_create_ticket to create a ticket for a project. Tickets track requirements with owner, priority, and status.',
-    ],
-    parameters: Type.Object({
-      title: Type.String({ description: 'Ticket title (e.g. "Implement OAuth2 login")' }),
-      project: Type.Optional(Type.String({ description: 'Project name or repo this belongs to' })),
-      status: Type.Optional(
-        Type.String({
-          description: 'Status: backlog | todo | in_progress | review | done',
-          default: 'backlog',
-        })
-      ),
-      priority: Type.Optional(
-        Type.String({ description: 'Priority: critical | high | medium | low', default: 'medium' })
-      ),
-      assignee: Type.Optional(Type.String({ description: 'Who owns this ticket' })),
-      labels: Type.Optional(
-        Type.Array(Type.String(), { description: 'Labels or tags (e.g. frontend, bug, auth)' })
-      ),
-      github_repo: Type.Optional(
-        Type.String({ description: 'GitHub repo (e.g. owner/repo) — optional, for tracking' })
-      ),
-      github_issue: Type.Optional(Type.Integer({ description: 'GitHub issue number — optional' })),
-      tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags for categorization' })),
-    }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
-      const cwd = ctx.cwd ?? process.cwd();
-      const paths = vaultFromCtx(cwd);
-      const pageId = getNextId(paths.wiki, 'ticket');
-
-      const { content, filename } = buildPage('ticket', params.title, paths, {
-        id: pageId,
-        project: params.project ?? '',
-        status: params.status ?? 'backlog',
-        priority: params.priority ?? 'medium',
-        assignee: params.assignee ?? '',
-        labels: params.labels ?? [],
-        github_repo: params.github_repo ?? '',
-        github_issue: params.github_issue ? String(params.github_issue) : '',
-        shared: 'false',
-        stage: 'draft',
-        tags: params.tags ?? [],
-      });
-
-      writePage('ticket', filename, content, cwd);
-
-      const ghLink =
-        params.github_repo && params.github_issue
-          ? ` | GitHub: ${params.github_repo}#${params.github_issue}`
-          : '';
-      return ok(
-        `✅ Ticket created [${pageId}] — ${params.title}\n` +
-          `Status: ${params.status ?? 'backlog'} | Priority: ${params.priority ?? 'medium'}${ghLink}`,
-        { id: pageId, status: params.status, priority: params.priority }
-      );
-    },
-  });
-}
-
-// ─── kb_create_todo ─────────────────────────────────────────────
-
-export function registerTodoTool(pi: ExtensionAPI): void {
-  pi.registerTool({
-    name: 'kb_create_todo',
-    label: 'KB Create TODO',
-    description:
-      'Create a TODO item linked to a parent ticket or artifact. ' +
-      'Use for granular tasks that belong to a bigger piece of work. ' +
-      'Query all todos with kb_search_tags(type=todo).',
-    promptSnippet: 'Create a TODO item',
-    promptGuidelines: [
-      'Use kb_create_todo to break down a ticket into actionable tasks. Link to parent ticket or artifact.',
-    ],
-    parameters: Type.Object({
-      title: Type.String({ description: 'TODO title (e.g. "Add unit tests for auth module")' }),
-      status: Type.Optional(
-        Type.String({ description: 'Status: pending | in_progress | done', default: 'pending' })
-      ),
-      priority: Type.Optional(
-        Type.String({ description: 'Priority: critical | high | medium | low', default: 'medium' })
-      ),
-      assignee: Type.Optional(Type.String({ description: 'Who owns this task' })),
-      due: Type.Optional(Type.String({ description: 'Due date (YYYY-MM-DD)' })),
-      parent_ticket: Type.Optional(
-        Type.String({ description: 'Parent ticket ID (e.g. TICK-001)' })
-      ),
-      parent_artifact: Type.Optional(Type.String({ description: 'Parent artifact title or ID' })),
-      tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags for categorization' })),
-    }),
-    async execute(_id, params, _signal, _onUpdate, ctx) {
-      const cwd = ctx.cwd ?? process.cwd();
-      const paths = vaultFromCtx(cwd);
-      const pageId = getNextId(paths.wiki, 'todo');
-
-      const { content, filename } = buildPage('todo', params.title, paths, {
-        id: pageId,
-        status: params.status ?? 'pending',
-        priority: params.priority ?? 'medium',
-        assignee: params.assignee ?? '',
-        due: params.due ?? '',
-        parent_ticket: params.parent_ticket ?? '',
-        parent_artifact: params.parent_artifact ?? '',
-        stage: 'draft',
-        tags: params.tags ?? [],
-      });
-
-      writePage('todo', filename, content, cwd);
-
-      const parent = params.parent_ticket
-        ? ` under ${params.parent_ticket}`
-        : params.parent_artifact
-          ? ` under artifact: ${params.parent_artifact}`
-          : '';
-      return ok(
-        `✅ TODO created [${pageId}] — ${params.title}${parent}\n` +
-          `Status: ${params.status ?? 'pending'} | Priority: ${params.priority ?? 'medium'}` +
-          (params.due ? ` | Due: ${params.due}` : ''),
-        {
-          id: pageId,
-          status: params.status,
-          parent: params.parent_ticket ?? params.parent_artifact,
-        }
-      );
-    },
-  });
-}
 
 // ─── Project management ──────────────────────────────────────────
 // Root KB controls all project vaults. Each project vault lives in a git repo.
@@ -799,6 +308,434 @@ export function registerProjectTools(pi: ExtensionAPI): void {
       ];
 
       return ok(lines.join('\n'), { count: projects.length, projects });
+    },
+  });
+}
+
+// ─── Pipeline tool registration functions ────────────────────────
+
+export function registerProjectPageTool(pi: ExtensionAPI): void {
+  pi.registerTool({
+    name: 'kb_create_project_page',
+    label: 'KB Create Project Page',
+    description:
+      'Create the root project page (type: project) inside a project vault. ' +
+      'This is the container for brainstorms, plans, specs, and tasks.',
+    promptSnippet: 'Create project root page',
+    promptGuidelines: [
+      'Use kb_create_project_page to create the root container for a project pipeline.',
+    ],
+    parameters: Type.Object({
+      title: Type.String({ description: 'Project title (e.g. "Auth System Overhaul")' }),
+      project_id: Type.Optional(
+        Type.String({ description: 'Project ID (e.g. PROJ-001). Auto-generated if omitted.' })
+      ),
+      status: Type.Optional(
+        Type.String({ description: 'Status: active | paused | archived', default: 'active' })
+      ),
+      priority: Type.Optional(
+        Type.String({ description: 'Priority: critical | high | medium | low', default: 'medium' })
+      ),
+      owner: Type.Optional(Type.String({ description: 'Project owner' })),
+      tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags' })),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const paths = vaultFromCtx(cwd);
+      const pageId = params.project_id ?? getNextId(paths.wiki, 'project');
+
+      const { content, filename } = buildPage('project', params.title, paths, {
+        id: pageId,
+        status: params.status ?? 'active',
+        priority: params.priority ?? 'medium',
+        owner: params.owner ?? '',
+        brainstorm_status: 'seed',
+        planning_status: 'draft',
+        specs_total: '0',
+        specs_done: '0',
+        tasks_total: '0',
+        tasks_done: '0',
+        prs_total: '0',
+        prs_merged: '0',
+        progress_pct: '0',
+        stage: 'draft',
+        tags: params.tags ?? [],
+      });
+
+      writePage('project', filename, content, cwd);
+      return ok(`✅ Project page created [${pageId}] — ${params.title}`, {
+        id: pageId,
+        path: `${DIR_NAMES.project}/${filename}`,
+      });
+    },
+  });
+}
+
+export function registerBrainstormTool(pi: ExtensionAPI): void {
+  pi.registerTool({
+    name: 'kb_create_brainstorm',
+    label: 'KB Create Brainstorm',
+    description:
+      'Create a brainstorm page for raw ideas and iterative refinement. ' +
+      'Links to parent project. Supports iteration tracking.',
+    promptSnippet: 'Create a brainstorm page',
+    promptGuidelines: ['Use kb_create_brainstorm to capture and refine ideas for a project.'],
+    parameters: Type.Object({
+      title: Type.String({ description: 'Brainstorm title' }),
+      project: Type.String({ description: 'Parent project ID (e.g. PROJ-001)' }),
+      iteration: Type.Optional(
+        Type.Integer({ description: 'Iteration number (1 for initial)', default: 1 })
+      ),
+      status: Type.Optional(
+        Type.String({
+          description: 'Status: seed | growing | refined | archived',
+          default: 'seed',
+        })
+      ),
+      tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags' })),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const paths = vaultFromCtx(cwd);
+      const pageId = getNextId(paths.wiki, 'brainstorm');
+
+      const { content, filename } = buildPage('brainstorm', params.title, paths, {
+        id: pageId,
+        project: params.project,
+        iteration: String(params.iteration ?? 1),
+        status: params.status ?? 'seed',
+        maturity: 'low',
+        next_iteration: String((params.iteration ?? 1) + 1),
+        stage: 'brainstorm',
+        tags: params.tags ?? [],
+      });
+
+      writePage('brainstorm', filename, content, cwd);
+      return ok(`✅ Brainstorm created [${pageId}] — ${params.title}`, {
+        id: pageId,
+        project: params.project,
+      });
+    },
+  });
+}
+
+export function registerSprintPlanTool(pi: ExtensionAPI): void {
+  pi.registerTool({
+    name: 'kb_create_sprint_plan',
+    label: 'KB Create Sprint Plan',
+    description: 'Create a sprint plan page. Links to parent project. Tracks child specs.',
+    promptSnippet: 'Create a sprint plan',
+    promptGuidelines: ['Use kb_create_sprint_plan to define sprint scope and track specs.'],
+    parameters: Type.Object({
+      title: Type.String({ description: 'Sprint plan title' }),
+      project: Type.String({ description: 'Parent project ID' }),
+      sprint: Type.Integer({ description: 'Sprint number' }),
+      start_date: Type.Optional(Type.String({ description: 'Start date (YYYY-MM-DD)' })),
+      end_date: Type.Optional(Type.String({ description: 'End date (YYYY-MM-DD)' })),
+      status: Type.Optional(
+        Type.String({ description: 'Status: draft | active | completed', default: 'draft' })
+      ),
+      tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags' })),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const paths = vaultFromCtx(cwd);
+      const pageId = getNextId(paths.wiki, 'sprint-plan');
+
+      const { content, filename } = buildPage('sprint-plan', params.title, paths, {
+        id: pageId,
+        project: params.project,
+        sprint: String(params.sprint),
+        start_date: params.start_date ?? '',
+        end_date: params.end_date ?? '',
+        status: params.status ?? 'draft',
+        specs_total: '0',
+        specs_done: '0',
+        progress_pct: '0',
+        stage: 'draft',
+        tags: params.tags ?? [],
+      });
+
+      writePage('sprint-plan', filename, content, cwd);
+      return ok(`✅ Sprint plan created [${pageId}] — ${params.title}`, {
+        id: pageId,
+        sprint: params.sprint,
+      });
+    },
+  });
+}
+
+export function registerSpecTool(pi: ExtensionAPI): void {
+  pi.registerTool({
+    name: 'kb_create_spec',
+    label: 'KB Create Spec',
+    description:
+      'Create a feature specification page. Links to parent sprint plan. Tracks child tasks.',
+    promptSnippet: 'Create a feature spec',
+    promptGuidelines: ['Use kb_create_spec to define a feature and track implementation tasks.'],
+    parameters: Type.Object({
+      title: Type.String({ description: 'Spec title' }),
+      project: Type.String({ description: 'Project ID' }),
+      sprint_plan: Type.String({ description: 'Parent sprint plan ID' }),
+      feature: Type.String({ description: 'Feature name (e.g. jwt-auth)' }),
+      status: Type.Optional(
+        Type.String({
+          description: 'Status: draft | review | approved | superseded',
+          default: 'draft',
+        })
+      ),
+      priority: Type.Optional(
+        Type.String({ description: 'Priority: critical | high | medium | low', default: 'medium' })
+      ),
+      owner: Type.Optional(Type.String({ description: 'Spec owner' })),
+      tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags' })),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const paths = vaultFromCtx(cwd);
+      const pageId = getNextId(paths.wiki, 'spec');
+
+      const { content, filename } = buildPage('spec', params.title, paths, {
+        id: pageId,
+        project: params.project,
+        sprint_plan: params.sprint_plan,
+        feature: params.feature,
+        status: params.status ?? 'draft',
+        priority: params.priority ?? 'medium',
+        owner: params.owner ?? '',
+        tasks_total: '0',
+        tasks_done: '0',
+        progress_pct: '0',
+        review_checklist_passed: 'false',
+        stage: 'draft',
+        tags: params.tags ?? [],
+      });
+
+      writePage('spec', filename, content, cwd);
+      return ok(`✅ Spec created [${pageId}] — ${params.title}`, {
+        id: pageId,
+        feature: params.feature,
+      });
+    },
+  });
+}
+
+export function registerTaskTool(pi: ExtensionAPI): void {
+  pi.registerTool({
+    name: 'kb_create_task',
+    label: 'KB Create Task',
+    description:
+      'Create an implementation task page. Links to parent spec. ' +
+      'Has completion gate: tests_passing + review_approved + pr_linked must all be true for done.',
+    promptSnippet: 'Create an implementation task',
+    promptGuidelines: [
+      'Use kb_create_task to define atomic work units. Status cannot move to done without completion gate.',
+    ],
+    parameters: Type.Object({
+      title: Type.String({ description: 'Task title' }),
+      project: Type.String({ description: 'Project ID' }),
+      spec: Type.String({ description: 'Parent spec ID' }),
+      sprint: Type.Optional(Type.Integer({ description: 'Sprint number' })),
+      status: Type.Optional(
+        Type.String({
+          description: 'Status: backlog | ready | in_progress | blocked | review | done',
+          default: 'backlog',
+        })
+      ),
+      priority: Type.Optional(
+        Type.String({ description: 'Priority: critical | high | medium | low', default: 'medium' })
+      ),
+      owner: Type.Optional(Type.String({ description: 'Task owner' })),
+      estimate: Type.Optional(Type.String({ description: 'Time estimate (e.g. 4h)' })),
+      tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags' })),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const paths = vaultFromCtx(cwd);
+      const pageId = getNextId(paths.wiki, 'task');
+
+      const { content, filename } = buildPage('task', params.title, paths, {
+        id: pageId,
+        project: params.project,
+        spec: params.spec,
+        sprint: String(params.sprint ?? ''),
+        status: params.status ?? 'backlog',
+        priority: params.priority ?? 'medium',
+        owner: params.owner ?? '',
+        estimate: params.estimate ?? '',
+        actual: '',
+        tests_passing: 'false',
+        review_approved: 'false',
+        pr_linked: '',
+        stage: 'draft',
+        tags: params.tags ?? [],
+      });
+
+      writePage('task', filename, content, cwd);
+      return ok(`✅ Task created [${pageId}] — ${params.title}`, {
+        id: pageId,
+        spec: params.spec,
+      });
+    },
+  });
+}
+
+// ─── kb_kanban ──────────────────────────────────────────────────
+
+interface KanbanColumn {
+  name: string;
+  emoji: string;
+  items: RegistryEntry[];
+}
+
+interface KanbanBoard {
+  project: string;
+  columns: KanbanColumn[];
+  pipeline: {
+    brainstorm: string;
+    planning: string;
+    specs_total: number;
+    specs_done: number;
+    tasks_total: number;
+    tasks_done: number;
+    prs_total: number;
+    prs_merged: number;
+    progress_pct: number;
+  };
+}
+
+function renderKanbanMarkdown(board: KanbanBoard): string {
+  const lines: string[] = [`# Kanban — ${board.project}`, ''];
+
+  lines.push('## Pipeline Overview');
+  lines.push('');
+  lines.push('| Stage | Status | Progress |');
+  lines.push('|-------|--------|----------|');
+  lines.push(
+    `| Brainstorm | ${board.pipeline.brainstorm === 'refined' ? '✅' : '🟡'} ${board.pipeline.brainstorm} | — |`
+  );
+  lines.push(
+    `| Planning | ${board.pipeline.planning === 'completed' ? '✅' : '🟡'} ${board.pipeline.planning} | — |`
+  );
+  lines.push(
+    `| Specs | ${board.pipeline.specs_done}/${board.pipeline.specs_total} | ${board.pipeline.specs_total > 0 ? Math.round((board.pipeline.specs_done / board.pipeline.specs_total) * 100) : 0}% |`
+  );
+  lines.push(
+    `| Tasks | ${board.pipeline.tasks_done}/${board.pipeline.tasks_total} | ${board.pipeline.progress_pct}% |`
+  );
+  lines.push(
+    `| PRs | ${board.pipeline.prs_merged}/${board.pipeline.prs_total} | ${board.pipeline.prs_total > 0 ? Math.round((board.pipeline.prs_merged / board.pipeline.prs_total) * 100) : 0}% |`
+  );
+  lines.push(`| **Overall** | **in_progress** | **${board.pipeline.progress_pct}%** |`);
+  lines.push('');
+
+  lines.push('## Task Board');
+  lines.push('');
+
+  for (const col of board.columns) {
+    if (col.items.length === 0) continue;
+    lines.push(`### ${col.emoji} ${col.name} (${col.items.length})`);
+    for (const item of col.items) {
+      const priority = item.priority ? ` | ${item.priority}` : '';
+      const owner = item.owner ? ` | @${item.owner}` : '';
+      const blocked = item.status === 'blocked' ? ' ↳ check notes' : '';
+      const pr = item.pr_linked ? ` ↳ PR: ${item.pr_linked}` : '';
+      lines.push(`- [[${item.title}]]${priority}${owner}${blocked}${pr}`);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+export function registerKanbanTool(pi: ExtensionAPI): void {
+  pi.registerTool({
+    name: 'kb_kanban',
+    label: 'KB Kanban Board',
+    description:
+      'Generate Kanban board view for a project. Shows task pipeline, spec progress, ' +
+      'and overall project status. Reads from registry.json.',
+    promptSnippet: 'Show project Kanban board',
+    promptGuidelines: [
+      'Use kb_kanban to visualize project progress. Shows tasks grouped by status column.',
+    ],
+    parameters: Type.Object({
+      project: Type.String({ description: 'Project ID (e.g. PROJ-001)' }),
+      format: Type.Optional(
+        Type.String({ description: 'Output format: markdown | json', default: 'markdown' })
+      ),
+    }),
+    async execute(_id, params, _signal, _onUpdate, ctx) {
+      const cwd = ctx.cwd ?? process.cwd();
+      const paths = vaultFromCtx(cwd);
+      const registryPath = join(paths.meta, 'registry.json');
+
+      if (!existsSync(registryPath)) {
+        return err('NO_REGISTRY', 'Registry not found. Run kb_rebuild_meta first.');
+      }
+
+      const registry: RegistryEntry[] = readJson(registryPath) ?? [];
+
+      const projectPages = registry.filter(
+        (p) => p.project === params.project || p.id.includes(params.project)
+      );
+
+      if (projectPages.length === 0) {
+        return err('NO_PROJECT', `No pages found for project ${params.project}`);
+      }
+
+      const tasks = projectPages.filter((p) => p.type === 'task');
+      const specs = projectPages.filter((p) => p.type === 'spec');
+      const plans = projectPages.filter((p) => p.type === 'sprint-plan');
+      const brainstorms = projectPages.filter((p) => p.type === 'brainstorm');
+      const prs = projectPages.filter((p) => p.type === 'pr');
+
+      const columns: KanbanColumn[] = [
+        { name: 'Backlog', emoji: '📋', items: tasks.filter((t) => t.status === 'backlog') },
+        { name: 'Ready', emoji: '🟢', items: tasks.filter((t) => t.status === 'ready') },
+        {
+          name: 'In Progress',
+          emoji: '🔵',
+          items: tasks.filter((t) => t.status === 'in_progress'),
+        },
+        { name: 'Blocked', emoji: '🔴', items: tasks.filter((t) => t.status === 'blocked') },
+        { name: 'Review', emoji: '👀', items: tasks.filter((t) => t.status === 'review') },
+        { name: 'Done', emoji: '✅', items: tasks.filter((t) => t.status === 'done') },
+      ];
+
+      const tasksTotal = tasks.length;
+      const tasksDone = tasks.filter((t) => t.status === 'done').length;
+      const pipeline = {
+        brainstorm: brainstorms.some((b) => b.status === 'refined')
+          ? 'refined'
+          : brainstorms.some((b) => b.status === 'growing')
+            ? 'growing'
+            : 'seed',
+        planning: plans.some((p) => p.status === 'active')
+          ? 'active'
+          : plans.every((p) => p.status === 'completed')
+            ? 'completed'
+            : 'draft',
+        specs_total: specs.length,
+        specs_done: specs.filter((s) => s.status === 'approved').length,
+        tasks_total: tasksTotal,
+        tasks_done: tasksDone,
+        prs_total: prs.length,
+        prs_merged: prs.filter((p) => p.status === 'merged').length,
+        progress_pct: tasksTotal > 0 ? Math.round((tasksDone / tasksTotal) * 100) : 0,
+      };
+
+      const board: KanbanBoard = {
+        project: params.project,
+        columns,
+        pipeline,
+      };
+
+      if (params.format === 'json') {
+        return ok(JSON.stringify(board, null, 2), board as unknown as Record<string, unknown>);
+      }
+
+      return ok(renderKanbanMarkdown(board), board as unknown as Record<string, unknown>);
     },
   });
 }

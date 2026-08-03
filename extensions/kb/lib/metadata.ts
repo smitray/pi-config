@@ -17,6 +17,23 @@ export interface RegistryEntry {
   run: string;
   created: string;
   updated: string;
+  // Pipeline fields
+  project?: string;
+  parent?: string;
+  children?: string[];
+  priority?: string;
+  owner?: string;
+  tests_passing?: boolean;
+  review_approved?: boolean;
+  pr_linked?: string;
+  sprint?: number;
+  iteration?: number;
+  maturity?: string;
+  specs_total?: number;
+  specs_done?: number;
+  tasks_total?: number;
+  tasks_done?: number;
+  progress_pct?: number;
 }
 
 export interface BacklinkEntry {
@@ -92,6 +109,25 @@ export function rebuildMetadata(paths: VaultPaths): void {
           run: (fm.run as string) || '',
           created: (fm.created as string) || '',
           updated: (fm.updated as string) || '',
+          // Pipeline fields
+          project: (fm.project as string) || undefined,
+          parent: (fm.parent as string) || undefined,
+          children: Array.isArray(fm.children) ? (fm.children as string[]) : undefined,
+          priority: (fm.priority as string) || undefined,
+          owner: (fm.owner as string) || undefined,
+          tests_passing:
+            fm.tests_passing === true || fm.tests_passing === 'true' ? true : undefined,
+          review_approved:
+            fm.review_approved === true || fm.review_approved === 'true' ? true : undefined,
+          pr_linked: (fm.pr_linked as string) || undefined,
+          sprint: typeof fm.sprint === 'number' ? fm.sprint : undefined,
+          iteration: typeof fm.iteration === 'number' ? fm.iteration : undefined,
+          maturity: (fm.maturity as string) || undefined,
+          specs_total: typeof fm.specs_total === 'number' ? fm.specs_total : undefined,
+          specs_done: typeof fm.specs_done === 'number' ? fm.specs_done : undefined,
+          tasks_total: typeof fm.tasks_total === 'number' ? fm.tasks_total : undefined,
+          tasks_done: typeof fm.tasks_done === 'number' ? fm.tasks_done : undefined,
+          progress_pct: typeof fm.progress_pct === 'number' ? fm.progress_pct : undefined,
         });
 
         const targets = extractWikilinks(content);

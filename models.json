@@ -1,104 +1,69 @@
 {
   "providers": {
-    "mimo-plan": {
-      "baseUrl": "https://token-plan-sgp.xiaomimimo.com/v1",
-      "api": "openai-completions",
-      "apiKey": "$MIMO_API_KEY",
-      "compat": {
-        "requiresReasoningContentOnAssistantMessages": true,
-        "thinkingFormat": "deepseek"
-      },
-      "models": [
-        {
-          "id": "mimo-v2.5",
-          "name": "MiMo-V2.5",
-          "reasoning": true,
-          "input": ["text", "image"],
-          "contextWindow": 1048576,
-          "maxTokens": 131072,
-          "cost": {
-            "input": 0.105,
-            "output": 0.28,
-            "cacheRead": 0.0028,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "mimo-v2.5-pro",
-          "name": "MiMo-V2.5-Pro",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 1048576,
-          "maxTokens": 131072,
-          "cost": {
-            "input": 0.435,
-            "output": 0.87,
-            "cacheRead": 0.0036,
-            "cacheWrite": 0
-          }
-        }
-      ]
-    },
-    "deepseek": {
-      "baseUrl": "https://api.deepseek.com",
-      "api": "openai-completions",
-      "apiKey": "$DEEPSEEK_API_KEY",
-      "compat": {
-        "thinkingFormat": "deepseek"
-      },
-      "models": [
-        {
-          "id": "deepseek-v4-flash",
-          "name": "DeepSeek V4 Flash",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 1000000,
-          "maxTokens": 65536,
-          "cost": {
-            "input": 0.14,
-            "output": 0.28,
-            "cacheRead": 0.0028,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "deepseek-v4-pro",
-          "name": "DeepSeek V4 Pro",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 1000000,
-          "maxTokens": 65536,
-          "cost": {
-            "input": 0.435,
-            "output": 0.87,
-            "cacheRead": 0.003625,
-            "cacheWrite": 0
-          }
-        }
-      ]
-    },
     "curated": {
       "baseUrl": "https://openrouter.ai/api/v1",
       "api": "openai-completions",
       "apiKey": "$OPENROUTER_API_KEY",
       "models": [
         {
-          "id": "poolside/laguna-m.1",
-          "name": "Poolside Laguna M.1",
-          "reasoning": true,
+          "id": "qwen/qwen3.7-flash",
+          "name": "Qwen 3.7 Flash",
+          "reasoning": false,
           "input": ["text"],
-          "contextWindow": 262144,
+          "contextWindow": 1000000,
           "maxTokens": 32768,
           "cost": {
-            "input": 0.2,
-            "output": 0.4,
+            "input": 0,
+            "output": 0,
             "cacheRead": 0,
             "cacheWrite": 0
           }
         },
         {
-          "id": "poolside/laguna-m.1:free",
-          "name": "Poolside Laguna M.1 (Free)",
+          "id": "qwen/qwen3.5-flash-02-23",
+          "name": "Qwen 3.5 Flash (02-23)",
+          "reasoning": false,
+          "input": ["text"],
+          "contextWindow": 1000000,
+          "maxTokens": 32768,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "openai/gpt-5-nano",
+          "name": "OpenAI GPT-5 Nano",
+          "reasoning": true,
+          "input": ["text", "image"],
+          "contextWindow": 400000,
+          "maxTokens": 32768,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "amazon/nova-lite-v1",
+          "name": "Amazon Nova Lite v1",
+          "reasoning": false,
+          "input": ["text", "image"],
+          "contextWindow": 300000,
+          "maxTokens": 32768,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "poolside/laguna-xs-2.1:free",
+          "name": "Poolside Laguna XS 2.1 (Free)",
           "reasoning": true,
           "input": ["text"],
           "contextWindow": 262144,
@@ -125,11 +90,67 @@
           }
         },
         {
-          "id": "poolside/laguna-xs-2.1:free",
-          "name": "Poolside Laguna XS 2.1 (Free)",
+          "id": "inclusionai/ling-3.0-flash:free",
+          "name": "InclusionAI Ling-3.0 Flash (Free)",
+          "reasoning": false,
+          "input": ["text"],
+          "contextWindow": 262144,
+          "maxTokens": 32768,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "qwen/qwen3-coder-30b-a3b-instruct",
+          "name": "Qwen 3 Coder 30B A3B Instruct",
+          "reasoning": false,
+          "input": ["text"],
+          "contextWindow": 262144,
+          "maxTokens": 32768,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "google/gemma-4-26b-a4b-it:free",
+          "name": "Google Gemma 4 26B A4B (Free)",
+          "reasoning": false,
+          "input": ["text"],
+          "contextWindow": 262144,
+          "maxTokens": 32768,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "tencent/hy3-preview",
+          "name": "Tencent Hy3 Preview",
           "reasoning": true,
           "input": ["text"],
           "contextWindow": 262144,
+          "maxTokens": 32768,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        },
+        {
+          "id": "z-ai/glm-4.7-flash",
+          "name": "Z.ai GLM 4.7 Flash",
+          "reasoning": false,
+          "input": ["text"],
+          "contextWindow": 202752,
           "maxTokens": 32768,
           "cost": {
             "input": 0,
@@ -162,174 +183,6 @@
           "cost": {
             "input": 0,
             "output": 0,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "liquid/lfm-2-24b-a2b",
-          "name": "Liquid LFM-2 24B A2B",
-          "reasoning": false,
-          "input": ["text"],
-          "contextWindow": 128000,
-          "maxTokens": 32768,
-          "cost": {
-            "input": 0.03,
-            "output": 0.12,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "qwen/qwen3.6-35b-a3b",
-          "name": "Qwen 3.6 35B A3B",
-          "reasoning": true,
-          "input": ["text", "image"],
-          "contextWindow": 262144,
-          "maxTokens": 65536,
-          "cost": {
-            "input": 0.14,
-            "output": 1,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "tencent/hy3",
-          "name": "Tencent Hy3",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 262144,
-          "maxTokens": 131072,
-          "cost": {
-            "input": 0.20,
-            "output": 0.80,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "tencent/hy3:free",
-          "name": "Tencent Hy3 (Free)",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 262144,
-          "maxTokens": 262144,
-          "cost": {
-            "input": 0,
-            "output": 0,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "poolside/laguna-xs.2",
-          "name": "Poolside Laguna XS.2",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 262144,
-          "maxTokens": 32768,
-          "cost": {
-            "input": 0.10,
-            "output": 0.20,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "poolside/laguna-xs.2:free",
-          "name": "Poolside Laguna XS.2 (Free)",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 262144,
-          "maxTokens": 32768,
-          "cost": {
-            "input": 0,
-            "output": 0,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "nvidia/nemotron-3-ultra-550b-a55b",
-          "name": "NVIDIA Nemotron 3 Ultra 550B",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 1000000,
-          "maxTokens": 65536,
-          "cost": {
-            "input": 0.50,
-            "output": 2.20,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "nvidia/nemotron-3-ultra-550b-a55b:free",
-          "name": "NVIDIA Nemotron 3 Ultra 550B (Free)",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 1000000,
-          "maxTokens": 262144,
-          "cost": {
-            "input": 0,
-            "output": 0,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "nvidia/nemotron-3-super-120b-a12b",
-          "name": "NVIDIA Nemotron 3 Super 120B",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 1000000,
-          "maxTokens": 65536,
-          "cost": {
-            "input": 0.08,
-            "output": 0.45,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "nvidia/nemotron-3-super-120b-a12b:free",
-          "name": "NVIDIA Nemotron 3 Super 120B (Free)",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 1000000,
-          "maxTokens": 65536,
-          "cost": {
-            "input": 0,
-            "output": 0,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "openai/gpt-oss-120b",
-          "name": "OpenAI GPT-OSS 120B",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 131072,
-          "maxTokens": 65536,
-          "cost": {
-            "input": 0.03,
-            "output": 0.15,
-            "cacheRead": 0,
-            "cacheWrite": 0
-          }
-        },
-        {
-          "id": "openai/gpt-oss-20b",
-          "name": "OpenAI GPT-OSS 20B",
-          "reasoning": true,
-          "input": ["text"],
-          "contextWindow": 131072,
-          "maxTokens": 65536,
-          "cost": {
-            "input": 0.03,
-            "output": 0.14,
             "cacheRead": 0,
             "cacheWrite": 0
           }

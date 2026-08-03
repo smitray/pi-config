@@ -89,7 +89,7 @@ describe('vault structure', () => {
 // ─── templates ───────────────────────────────────────────────────
 
 describe('template write', () => {
-  it('creates all 8 template files (project mode)', () => {
+  it('creates all template files (project mode)', () => {
     const paths = setupVault();
     for (const t of [
       CONCEPT,
@@ -97,22 +97,28 @@ describe('template write', () => {
       'synthesis',
       'analysis',
       'source',
-      'meeting',
-      'diary',
-      'artifact',
+      'handoff',
+      'research',
+      'project',
+      'library-doc',
+      'daily-log',
+      'brainstorm',
+      'sprint-plan',
+      'spec',
+      'task',
     ]) {
       expect(existsSync(join(paths.templates, `${t}.md`))).toBe(true);
     }
     cleanup();
   });
 
-  it('skips artifact in personal mode', () => {
+  it('skips project in personal mode', () => {
     tmpRoot = mkdtempSync(join(tmpdir(), 'kb-test-personal-'));
     process.env.KB_HOME = tmpRoot;
     const paths = getVaultPaths(tmpRoot);
     ensureVaultStructure(paths);
     writeDefaultTemplates(paths, 'personal');
-    expect(existsSync(join(paths.templates, 'artifact.md'))).toBe(false);
+    expect(existsSync(join(paths.templates, 'project.md'))).toBe(false);
     expect(existsSync(join(paths.templates, 'concept.md'))).toBe(true);
     rmSync(tmpRoot, { recursive: true, force: true });
     delete process.env.KB_HOME;

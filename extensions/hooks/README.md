@@ -119,9 +119,11 @@ Token matching (same as guardrails):
 hooks/
 ├── types/schema.ts        # TypeScript types
 ├── engine/
+│   ├── config.ts          # hook config loader
 │   ├── hook-execution.ts  # runHooks(), variable substitution
 │   └── events.ts          # event handler registration
 ├── commands/register.ts   # /hooks on|off
+├── hooks.json             # default hook config
 ├── index.ts
 └── test/
 ```

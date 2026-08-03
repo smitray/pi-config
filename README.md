@@ -16,12 +16,12 @@ Packages auto-install on first pi startup.
 | File/Dir | Purpose |
 |---|---|
 | `settings.json` | Provider, model, theme, packages |
-| `models.json` | Custom model definitions (xiaomi, minimax, openrouter) |
+| `models.json` | Curated OpenRouter model list (qwen, openai, gemma, glm, ...) |
 | `keybindings.json` | Vim-style keybindings |
-| `APPEND_SYSTEM.md` | System prompt augmentation |
-| `extensions/` | Custom extensions (`gh`, `guardrails`, `hooks`, `web-access`) |
-| `skills/` | User-level pi skills (e.g. `git-commit`) |
-| `themes/` | User-level pi themes (e.g. `catppuccin-mocha`) |
+| `APPEND_SYSTEM.md` | System prompt augmentation (caveman + ponytail modes) |
+| `extensions/` | Custom extensions (`gh`, `guardrails`, `hooks`, `kb`, `markitdown`, `web-access`) |
+| `skills/` | User-level pi skills (`git-commit`, `om-recall`) |
+| `themes/` | User-level pi themes (`catppuccin-mocha`) |
 
 ## Extensions
 
@@ -30,7 +30,9 @@ Packages auto-install on first pi startup.
 | `gh` | GitHub CLI integration — repos, PRs, issues, search, gists, workflows |
 | `guardrails` | Security rules blocking risky tool calls |
 | `hooks` | Shell hooks on lifecycle events |
-| `web-access` | Web search, fetch/crawl, persisted docs, media download |
+| `kb` | Knowledge Base — persistent wiki vaults with type-enforced templates |
+| `markitdown` | Microsoft MarkItDown — PDF/DOCX/PPTX/XLSX/images → Markdown |
+| `web-access` | Web search (SearXNG), fetch/crawl (Crawl4AI), docs persistence, media (yt-dlp) |
 
 See [extensions/README.md](extensions/README.md) for dev setup and commands.
 
@@ -39,14 +41,10 @@ See [extensions/README.md](extensions/README.md) for dev setup and commands.
 | Skill | Description |
 |---|---|
 | `git-commit` | Conventional Commits with emoji prefixes |
-| `web-media` | YouTube/media transcription via yt-dlp |
-| `web-fetch` | Fetch web pages as clean markdown |
-| `web-search` | Web search via SearXNG |
 | `om-recall` | Query observational memory from past sessions |
 
-Skills are markdown docs in `skills/*/SKILL.md`. pi auto-discovers them on startup.
+Web search/fetch/media tools are bundled inside the `web-access` extension (not standalone skills). Skills are markdown docs in `skills/*/SKILL.md`. pi auto-discovers them on startup.
 
 ## Packages
 
-- `pi-observational-memory` — session continuity
-- `pi-ponytail` — lazy-senior-dev mode for the model
+- `pi-observational-memory` — session continuity via observations/reflections

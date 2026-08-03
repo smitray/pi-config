@@ -4,33 +4,36 @@ import { dirname, join } from 'node:path';
 
 // Canonical directory and ID name map. Update here to add a new type.
 export const DIR_NAMES: Record<string, string> = {
+  // Knowledge types
   concept: 'concepts',
   entity: 'entities',
   source: 'sources',
   synthesis: 'syntheses',
   analysis: 'analyses',
-  artifact: 'artifacts',
-  meeting: 'meetings',
-  diary: 'diaries',
   handoff: 'handoffs',
-  library: 'libraries',
   research: 'research',
-  ticket: 'tickets',
-  todo: 'todos',
-  schedule: 'schedules',
-  plan: 'plans',
-  content: 'contents',
+  // Pipeline types
+  project: 'projects',
+  'library-doc': 'libraries',
+  'daily-log': 'dailies',
+  brainstorm: 'brainstorms',
+  'sprint-plan': 'plans',
+  spec: 'specs',
+  task: 'tasks',
 };
 
 export const ID_PREFIXES: Record<string, string> = {
-  schedule: 'SCHED',
-  library: 'LIB',
+  // Knowledge prefixes
   research: 'RES',
-  plan: 'PLAN',
-  content: 'CONT',
-  ticket: 'TICK',
-  todo: 'TODO',
   handoff: 'HOFF',
+  // Pipeline prefixes
+  project: 'PROJ',
+  'library-doc': 'LIB',
+  'daily-log': 'DAY',
+  brainstorm: 'BR',
+  'sprint-plan': 'SP',
+  spec: 'SPEC',
+  task: 'TASK',
 };
 
 // ponytail: vault resolution walks up for .kb/, falls back to ~/.kb/.
