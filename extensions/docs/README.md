@@ -8,6 +8,7 @@ Planning documents, session logs, and code reviews for all pi extensions.
 |------|-------------|
 | [KB-WIKI-SUMMARY.md](./KB-WIKI-SUMMARY.md) | **Single source of truth** — requirements, progress, review findings, gaps |
 | [PI-EXTENSION-STRUCTURE.md](./PI-EXTENSION-STRUCTURE.md) | Recommended `~/.pi/agent/` and `extensions/` layout, including tests, settings, and generated output |
+| [USING-TMUX-SUBAGENT.md](./USING-TMUX-SUBAGENT.md) | Driving pi inside a tmux subagent for long-running tasks |
 
 ## Code Reviews
 

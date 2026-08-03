@@ -10,7 +10,7 @@ for *our* dev workflow, don't import it from outside the workspace."
 
 ## Why not a published package
 
-Three extensions sharing ~80 lines of code is below the threshold where a
+Four extensions sharing ~100 lines of code is below the threshold where a
 proper package (npm, version, changelog, build) pays for itself. Move to a
 package if:
 - A 4th extension needs `spawn.ts`, **or**
@@ -21,7 +21,7 @@ package if:
 
 | File | Purpose | Used by |
 |------|---------|---------|
-| `spawn.ts` | Async child-process wrapper with timeout + SIGKILL escalation | `gh`, `hooks`, `web-access` |
+| `spawn.ts` | Async child-process wrapper with timeout + SIGKILL escalation | `gh`, `hooks`, `markitdown`, `web-access` |
 
 ## Adding a new shared file
 
@@ -30,4 +30,4 @@ package if:
 3. Import from consumers using a relative path: `from '../../../_shared/spawn'`.
 4. Don't add tests here — test through the consumer that uses it. A test for
    `spawn.ts` belongs with whoever depends on it most heavily (currently
-   `gh/test/`).
+   `markitdown/test/`).

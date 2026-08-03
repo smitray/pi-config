@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  registerContentTool,
-  registerLibraryTool,
-  registerPlanTool,
+  registerBrainstormTool,
+  registerKanbanTool,
+  registerProjectPageTool,
   registerProjectTools,
   registerResearchTool,
-  registerScheduleTool,
-  registerTicketTool,
-  registerTodoTool,
+  registerSpecTool,
+  registerSprintPlanTool,
+  registerTaskTool,
 } from '../lib/create-tools';
 
 function makePi() {
@@ -23,16 +23,36 @@ function makePi() {
 }
 
 const TOOLS = [
-  { name: 'registerScheduleTool', fn: registerScheduleTool, toolName: 'kb_create_schedule' },
-  { name: 'registerLibraryTool', fn: registerLibraryTool, toolName: 'kb_create_library' },
-  { name: 'registerResearchTool', fn: registerResearchTool, toolName: 'kb_create_research' },
-  { name: 'registerPlanTool', fn: registerPlanTool, toolName: 'kb_create_plan' },
-  { name: 'registerContentTool', fn: registerContentTool, toolName: 'kb_create_content' },
-  { name: 'registerTicketTool', fn: registerTicketTool, toolName: 'kb_create_ticket' },
-  { name: 'registerTodoTool', fn: registerTodoTool, toolName: 'kb_create_todo' },
+  {
+    name: 'registerResearchTool',
+    fn: registerResearchTool,
+    toolName: 'kb_create_research',
+    param: 'title',
+  },
+  {
+    name: 'registerProjectPageTool',
+    fn: registerProjectPageTool,
+    toolName: 'kb_create_project_page',
+    param: 'title',
+  },
+  {
+    name: 'registerBrainstormTool',
+    fn: registerBrainstormTool,
+    toolName: 'kb_create_brainstorm',
+    param: 'title',
+  },
+  {
+    name: 'registerSprintPlanTool',
+    fn: registerSprintPlanTool,
+    toolName: 'kb_create_sprint_plan',
+    param: 'title',
+  },
+  { name: 'registerSpecTool', fn: registerSpecTool, toolName: 'kb_create_spec', param: 'title' },
+  { name: 'registerTaskTool', fn: registerTaskTool, toolName: 'kb_create_task', param: 'title' },
+  { name: 'registerKanbanTool', fn: registerKanbanTool, toolName: 'kb_kanban', param: 'project' },
 ];
 
-for (const { name, fn, toolName } of TOOLS) {
+for (const { name, fn, toolName, param } of TOOLS) {
   describe(name, () => {
     it(`registers ${toolName} tool`, () => {
       const pi = makePi() as Parameters<typeof fn>[0];
@@ -41,11 +61,11 @@ for (const { name, fn, toolName } of TOOLS) {
       expect(pi.tools[0].name).toBe(toolName);
     });
 
-    it('has required title parameter', () => {
+    it(`has required ${param} parameter`, () => {
       const pi = makePi() as Parameters<typeof fn>[0];
       fn(pi);
       const props = (pi.tools[0].parameters as { properties: Record<string, unknown> }).properties;
-      expect(props).toHaveProperty('title');
+      expect(props).toHaveProperty(param);
     });
   });
 }

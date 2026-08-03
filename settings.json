@@ -1,6 +1,6 @@
 {
   "theme": "catppuccin-mocha",
-  "lastChangelogVersion": "0.82.1",
+  "lastChangelogVersion": "0.83.0",
   "defaultProvider": "minimax",
   "hideThinkingBlock": false,
   "packages": [
@@ -18,7 +18,7 @@
     "observationsPoolTargetTokens": 10000,
     "agentMaxTurns": 16,
     "model": {
-      "provider": "mimo-plan",
+      "provider": "xiaomi-token-plan-sgp",
       "id": "mimo-v2.5",
       "thinking": "low"
     },
@@ -46,6 +46,6 @@
   "terminal": {
     "showTerminalProgress": false
   },
-  "defaultModel": "MiniMax-M2.7",
+  "defaultModel": "MiniMax-M3",
   "defaultThinkingLevel": "high"
 }

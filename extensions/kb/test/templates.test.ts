@@ -14,35 +14,35 @@ const fakePaths: VaultPaths = {
 
 describe('new page templates', () => {
   for (const type of [
-    'schedule',
-    'library',
     'research',
-    'plan',
-    'content',
-    'ticket',
-    'todo',
+    'library-doc',
+    'daily-log',
+    'brainstorm',
+    'sprint-plan',
+    'spec',
+    'task',
   ] as const) {
     it(`${type} loads real template (not stub)`, () => {
       const r = buildPage(type, 'Test', fakePaths, { id: 'TEST-001', tags: [] });
       const expected: Record<typeof type, string> = {
-        schedule: 'Morning (',
-        library: 'URL:',
         research: 'Question',
-        plan: 'Goal',
-        content: 'Idea',
-        ticket: 'Acceptance Criteria',
-        todo: 'Parent',
+        'library-doc': 'Summary',
+        'daily-log': 'Day Intent',
+        brainstorm: 'Raw Ideas',
+        'sprint-plan': 'Sprint Goal',
+        spec: 'Problem Statement',
+        task: 'Objective',
       };
       expect(r.content).toContain(expected[type]);
       expect(r.content).toContain('TEST-001');
       const prefixMap: Record<typeof type, string> = {
-        schedule: 'sched',
-        library: 'lib',
         research: 'res',
-        plan: 'plan',
-        content: 'cont',
-        ticket: 'tick',
-        todo: 'todo',
+        'library-doc': 'lib',
+        'daily-log': 'day',
+        brainstorm: 'br',
+        'sprint-plan': 'sp',
+        spec: 'spec',
+        task: 'task',
       };
       expect(r.filename).toMatch(new RegExp(`^${prefixMap[type]}-TEST-001\\.md$`));
     });

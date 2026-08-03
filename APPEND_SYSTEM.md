@@ -18,5 +18,4 @@
 ## Auto Web Search
 If unsure, `web-search`. Don't ask — just search.
 
-## Gortex
-`.gortex.yaml` in cwd → repo is Gortex-indexed → use `gortex_explore` → `gortex_search`/`gortex_read`/`gortex_relations`. Never `read`/`grep`/`find`/grep-style `bash` on indexed paths. No `.gortex.yaml` → built-ins.
+

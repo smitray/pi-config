@@ -6,22 +6,22 @@ import { fmtDate, type VaultPaths } from './vault';
 // Copied to vault on bootstrap. kb_ensure_page reads from vault or extension.
 
 export type PageType =
+  // Knowledge types
   | 'concept'
   | 'entity'
   | 'synthesis'
   | 'analysis'
   | 'source'
-  | 'meeting'
-  | 'diary'
   | 'handoff'
-  | 'artifact'
-  | 'schedule'
-  | 'library'
   | 'research'
-  | 'plan'
-  | 'content'
-  | 'ticket'
-  | 'todo';
+  // Pipeline types
+  | 'project'
+  | 'library-doc'
+  | 'daily-log'
+  | 'brainstorm'
+  | 'sprint-plan'
+  | 'spec'
+  | 'task';
 
 // Extension dir resolved once at import time
 const EXT_DIR = join(import.meta.dirname ?? __dirname, '..');
@@ -29,24 +29,26 @@ const EXT_DIR = join(import.meta.dirname ?? __dirname, '..');
 export function writeDefaultTemplates(paths: VaultPaths, mode?: string): void {
   const pagesDir = join(EXT_DIR, 'templates', 'pages');
   const types = [
+    // Knowledge types
     'concept',
     'entity',
     'synthesis',
     'analysis',
     'source',
-    'meeting',
-    'diary',
     'handoff',
-    'schedule',
-    'library',
     'research',
-    'plan',
-    'content',
-    'ticket',
-    'todo',
+    // Pipeline types
+    'library-doc',
+    'daily-log',
+    'brainstorm',
+    'sprint-plan',
+    'spec',
+    'task',
   ];
-  // Artifact template is project-only
-  if (mode !== 'personal') types.push('artifact');
+  // Project template is project-only
+  if (mode !== 'personal') {
+    types.push('project');
+  }
 
   for (const type of types) {
     const target = join(paths.templates, `${type}.md`);
@@ -57,39 +59,6 @@ export function writeDefaultTemplates(paths: VaultPaths, mode?: string): void {
       writeFileSync(target, readFileSync(src, 'utf-8'), 'utf-8');
     }
   }
-}
-
-const MINIMAL_AGENTS_MD = `# Knowledge Base
-
-This \`.kb/\` directory is a Karpathy-style LLM Wiki maintained by the \`kb\` pi extension.
-
-## Skills (auto-loaded when KB extension is active)
-
-- \`kb\` \u2014 full tool reference
-- \`kb-research\` \u2014 research & save to KB
-- \`kb-capture-url\` \u2014 capture GitHub/docs/YouTube
-- \`kb-bootstrap\` \u2014 init a new vault
-- \`kb-update\` \u2014 update existing pages
-
-## Layout
-
-\`\`\`
-.kb/
-\u251c\u2500\u2500 raw/sources/    # immutable source packets
-\u251c\u2500\u2500 wiki/           # agent-owned pages (concepts/entities/syntheses/analyses/...)
-\u251c\u2500\u2500 meta/           # auto-generated registry, backlinks, embeddings, events
-\u2514\u2500\u2500 templates/      # page templates
-\`\`\`
-
-## Per-vault notes
-
-<!-- Add your project-specific conventions below this line -->
-`;
-
-export function writeAgentsMd(paths: VaultPaths): void {
-  const target = join(paths.dotKb, 'AGENTS.md');
-  if (existsSync(target)) return;
-  writeFileSync(target, MINIMAL_AGENTS_MD, 'utf-8');
 }
 
 export function loadTemplate(type: PageType, paths: VaultPaths): string {
@@ -185,19 +154,18 @@ export function buildPage(
   const id = (extraVars.id as string | undefined) ?? '';
 
   let filename: string;
-  if (type === 'artifact' && extraVars.prefix) {
-    // Artifact: {prefix}-{slug}-{date}.md
-    filename = `${extraVars.prefix}-${slug}-${today}.md`;
-  } else if (id) {
-    // ID-based types: use short type prefix from DIR_NAMES key
+  if (id) {
+    // ID-based types: use short type prefix
     const shortMap: Record<string, string> = {
-      schedule: 'sched',
-      library: 'lib',
       research: 'res',
-      plan: 'plan',
-      content: 'cont',
-      ticket: 'tick',
-      todo: 'todo',
+      // Pipeline types
+      project: 'proj',
+      'library-doc': 'lib',
+      'daily-log': 'day',
+      brainstorm: 'br',
+      'sprint-plan': 'sp',
+      spec: 'spec',
+      task: 'task',
     };
     filename = `${shortMap[type] ?? type}-${id}.md`;
   } else {

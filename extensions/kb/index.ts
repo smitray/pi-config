@@ -7,14 +7,14 @@ import { Type } from 'typebox';
 import { err, ok } from '../_shared/result';
 import { captureFile, captureText } from './lib/capture';
 import {
-  registerContentTool,
-  registerLibraryTool,
-  registerPlanTool,
+  registerBrainstormTool,
+  registerKanbanTool,
+  registerProjectPageTool,
   registerProjectTools,
   registerResearchTool,
-  registerScheduleTool,
-  registerTicketTool,
-  registerTodoTool,
+  registerSpecTool,
+  registerSprintPlanTool,
+  registerTaskTool,
 } from './lib/create-tools';
 import { findPageByTitle, formatEnrichmentResult, mergeObservationIntoPage } from './lib/enrich';
 import { logEvent } from './lib/events';
@@ -26,7 +26,7 @@ import { loadKBConfig } from './lib/models';
 import { formatObservationResult, saveObservation } from './lib/observe';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
 import { formatRetroResult, saveInsight } from './lib/retro';
-import { buildPage, writeAgentsMd, writeDefaultTemplates } from './lib/templates';
+import { buildPage, writeDefaultTemplates } from './lib/templates';
 import {
   DIR_NAMES,
   ensureVaultStructure,
@@ -139,21 +139,6 @@ export default function (pi: ExtensionAPI) {
 
       ensureVaultStructure(paths);
 
-      // AGENTS.md only for personal (root) vaults — projects inherit from KB tool skills.
-      if (resolvedMode === 'personal') {
-        let writeAgentsFile = true;
-        if (ctx.hasUI) {
-          const choice = await ctx.ui.select('Write ~/.kb/AGENTS.md?', [
-            'yes \u2014 include minimal AGENTS.md (pointer to skills)',
-            'skip \u2014 no AGENTS.md (skills only)',
-          ]);
-          writeAgentsFile = !choice?.startsWith('skip');
-        }
-        if (writeAgentsFile) {
-          writeAgentsMd(paths);
-        }
-      }
-
       writeJson(join(paths.dotKb, 'config.json'), {
         topic: params.topic,
         mode: resolvedMode,
@@ -192,10 +177,9 @@ export default function (pi: ExtensionAPI) {
     label: 'KB Ensure Page',
     description:
       'Create or update a wiki page with enforced template frontmatter. ' +
-      'Page types: concept, entity, synthesis, analysis, source, artifact, meeting, diary, ' +
-      'schedule, library, research, plan, content. ' +
-      'For typed pages (schedule, library, research, plan, content), prefer the dedicated ' +
-      'kb_create_* tools which auto-generate IDs and handle type-specific fields.',
+      'Page types: concept, entity, synthesis, analysis, source, handoff, research, ' +
+      'project, library-doc, daily-log, brainstorm, sprint-plan, spec, task. ' +
+      'For pipeline types, prefer the dedicated kb_create_* tools which auto-generate IDs.',
     promptSnippet: 'Create a KB wiki page from a template',
     promptGuidelines: [
       'Use kb_ensure_page to create new wiki pages. Templates are always enforced.',
@@ -262,22 +246,22 @@ export default function (pi: ExtensionAPI) {
       }
 
       const validTypes = [
+        // Knowledge types
         'concept',
         'entity',
         'synthesis',
         'analysis',
         'source',
-        'artifact',
-        'meeting',
-        'diary',
         'handoff',
-        'schedule',
-        'library',
         'research',
-        'plan',
-        'content',
-        'ticket',
-        'todo',
+        // Pipeline types
+        'project',
+        'library-doc',
+        'daily-log',
+        'brainstorm',
+        'sprint-plan',
+        'spec',
+        'task',
       ];
       const pageType = validTypes.includes(params.type) ? params.type : 'concept';
 
@@ -690,7 +674,7 @@ export default function (pi: ExtensionAPI) {
       type: Type.Optional(
         Type.String({
           description:
-            'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary, handoff, schedule, library, research, plan, content, ticket, todo',
+            'Page type: concept, entity, synthesis, analysis, source, handoff, research, project, library-doc, daily-log, brainstorm, sprint-plan, spec, task',
         })
       ),
       stage: Type.Optional(
@@ -1020,15 +1004,17 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  // ─── New typed tools ───────────────────────────────────────────
-  registerScheduleTool(pi);
-  registerLibraryTool(pi);
+  // ─── Knowledge tools ─────────────────────────────────────────
   registerResearchTool(pi);
-  registerPlanTool(pi);
-  registerContentTool(pi);
-  registerTicketTool(pi);
-  registerTodoTool(pi);
   registerProjectTools(pi);
+
+  // ─── Pipeline tools ──────────────────────────────────────────
+  registerProjectPageTool(pi);
+  registerBrainstormTool(pi);
+  registerSprintPlanTool(pi);
+  registerSpecTool(pi);
+  registerTaskTool(pi);
+  registerKanbanTool(pi);
 
   // ─── Hooks ─────────────────────────────────────────────────────
 
