@@ -1,39 +1,40 @@
 ---
 name: om-recall
-description: "Query observational memory from previous Pi sessions by date. Use when the user asks 'what did I do yesterday', 'what happened on Monday', 'what were we working on last week', or any question about past session activity."
+description: >
+  Query observational memory from previous Pi sessions by date. Use when the user asks
+  'what did I do yesterday', 'what happened on Monday', 'what were we working on last week',
+  or any question about past session activity. Part of the pi-observational-memory package.
 ---
 
 # OM Recall
 
-## When to Use
+Access session history via the observational-memory package. No script needed — these are built-in commands/tools.
 
-- "What did I do yesterday?"
-- "What happened on Monday?"
-- "What were we working on last week?"
+## Commands (slash)
 
-## Usage
+| Command | What it does |
+|---|---|
+| `/om:status` | Current OM status: branch, turn count, events |
+| `/om:view` | Summarized observations for current day |
+| `/om:view full` | All observations (includes low-relevance) |
+| `/om:view --date YYYY-MM-DD` | Observations for specific day |
+| `/om:view --project /path` | Scoped to a project directory |
 
-```bash
-node scripts/om-recall.mjs [date] [--verbose] [--project /path/to/repo]
+## Tool
+
+```text
+recall(<12-char-hex-id>)   # recover exact source context behind an observation/reflection
 ```
 
-Date formats: `yesterday`, `today`, `last 3 days`, `YYYY-MM-DD`
-
-## Behavior
-
-**Productive days only**: Shows git commits first. If no commits, exits early (use `--verbose` to see session data anyway).
-
-**Project-scoped**: Filters sessions by workspace directory. Use `--project` to specify repo (defaults to cwd).
-
-## Output
-
-- **Git Activity** — commits for that day
-- **Reflections** — durable facts from OM
-- **Key Events** — high/critical relevance observations (filtered by default)
-
-Use `--verbose` to see all observations.
+Use when you need verbatim content from a remembered claim, not just the summary.
 
 ## Timezone
 
-Set in `settings.json` under `observational-memory.timezoneOffset` (e.g., `5.5` for IST).
+Configured in `settings.json` under `observational-memory.timezoneOffset`.
 Override: `OM_TIMEZONE_OFFSET=5.5`
+
+## Pattern
+
+User: "What did we work on Monday?" → `/om:view --date 2026-08-03`
+User: recalls an ID from a prior session → `recall(abc123def456)`
+User: "Show me current OM status" → `/om:status`

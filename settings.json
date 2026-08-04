@@ -1,7 +1,7 @@
 {
   "theme": "catppuccin-mocha",
   "lastChangelogVersion": "0.83.0",
-  "defaultProvider": "minimax",
+  "defaultProvider": "xiaomi-token-plan-sgp",
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-observational-memory",
@@ -46,6 +46,6 @@
   "terminal": {
     "showTerminalProgress": false
   },
-  "defaultModel": "MiniMax-M3",
+  "defaultModel": "mimo-v2.5-pro",
   "defaultThinkingLevel": "high"
 }
