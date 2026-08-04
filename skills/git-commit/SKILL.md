@@ -6,7 +6,7 @@ description: >
   Handles empty stage, type/scope detection, breaking change formatting, and hook errors.
 license: MIT
 metadata:
-  author: "Debasmita"
+  author: "Debasmit"
 ---
 
 # git-commit (Conventional Commits with emojis)

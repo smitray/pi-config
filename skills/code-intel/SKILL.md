@@ -7,7 +7,7 @@ description: >
   code exploration without loading full files.
 license: MIT
 metadata:
-  author: "Debasmita"
+  author: "Debasmit"
 ---
 
 # code-intel
