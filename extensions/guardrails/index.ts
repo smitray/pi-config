@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import defaults from './defaults';
 import { setupGateHook } from './gate';
+import { registerRules } from './guardrails-registry';
 
 interface GuardrailsConfig {
   enabled: boolean;
@@ -43,6 +44,26 @@ export default function guardrails(pi: ExtensionAPI) {
 
       ctx.ui.notify(`Guardrails: ${enabled ? 'ON' : 'OFF'}`, 'info');
     },
+  });
+
+  // Auto-fix confirmations
+  registerRules({
+    group: 'auto-fix',
+    pattern: '*',
+    rules: [
+      {
+        context: 'command',
+        pattern: 'ast-grep * --update-all *',
+        action: 'confirm',
+        reason: 'ast-grep auto-applies file rewrites — confirm',
+      },
+      {
+        context: 'command',
+        pattern: 'ast-grep * -U *',
+        action: 'confirm',
+        reason: 'ast-grep -U auto-applies rewrites — confirm',
+      },
+    ],
   });
 
   // Setup permission gate hook
