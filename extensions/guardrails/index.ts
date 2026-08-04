@@ -1,5 +1,3 @@
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import defaults from './defaults';
 import { setupGateHook } from './gate';
@@ -9,8 +7,6 @@ interface GuardrailsConfig {
 }
 
 const DEFAULT_CONFIG: GuardrailsConfig = { enabled: true };
-
-const skillsDir = join(dirname(fileURLToPath(import.meta.url)), 'skills');
 
 /**
  * Guardrails extension — security rules that block or confirm risky tool calls.
@@ -51,7 +47,4 @@ export default function guardrails(pi: ExtensionAPI) {
 
   // Setup permission gate hook
   setupGateHook(pi, defaults, () => enabled);
-
-  // Bundle the guardrails SKILL.md with the extension.
-  pi.on('resources_discover', () => ({ skillPaths: [skillsDir] }));
 }

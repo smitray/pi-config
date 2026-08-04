@@ -1,11 +1,7 @@
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { registerCommands } from './commands/register';
 import { loadConfig } from './engine/config';
 import { registerEventHandlers } from './engine/events';
-
-const skillsDir = join(dirname(fileURLToPath(import.meta.url)), 'skills');
 
 /**
  * Hooks extension — run shell commands on pi lifecycle events.
@@ -44,6 +40,4 @@ export default function hooksExtension(pi: ExtensionAPI): void {
       enabled = v;
     },
   });
-
-  pi.on('resources_discover', () => ({ skillPaths: [skillsDir] }));
 }
