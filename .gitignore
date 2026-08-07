@@ -23,3 +23,5 @@ extensions/coverage/
 models-store.json
 /git/
 tags
+/pi-blackhole/
+package-lock.json

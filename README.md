@@ -20,7 +20,7 @@ Packages auto-install on first pi startup.
 | `keybindings.json` | Vim-style keybindings |
 | `APPEND_SYSTEM.md` | System prompt augmentation (caveman + ponytail modes) |
 | `extensions/` | Custom extensions (`gh`, `guardrails`, `hooks`, `kb`, `markitdown`, `web-access`) |
-| `skills/` | User-level pi skills (`git-commit`, `om-recall`) |
+| `skills/` | User-level pi skills (`git-commit`, `flashback`) |
 | `themes/` | User-level pi themes (`catppuccin-mocha`) |
 
 ## Extensions
@@ -41,7 +41,7 @@ See [extensions/README.md](extensions/README.md) for dev setup and commands.
 | Skill | Description |
 |---|---|
 | `git-commit` | Conventional Commits with emoji prefixes |
-| `om-recall` | Query observational memory from past sessions |
+| `flashback` | Search past Pi sessions by date (observations + git commits) |
 
 Web search/fetch/media tools are bundled inside the `web-access` extension (not standalone skills). Skills are markdown docs in `skills/*/SKILL.md`. pi auto-discovers them on startup.
 

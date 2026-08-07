@@ -70,7 +70,7 @@ A personal + project knowledge base integrated with pi, inspired by Andrej Karpa
 | Cross-extension reuse | ✅ | `_shared/result.ts`, `guardrails/api.ts`, web-access chunking |
 | Model config | ✅ | Task/synthesis/embedding models in `settings.json` |
 | Hybrid search | ✅ | Lexical + semantic blend (embeddings opt-in, disabled by default) |
-| Session logging | ✅ | Via pi-observational-memory (om-recall skill) |
+| Session logging | ✅ | Via pi-blackhole (flashback skill) |
 
 ### 2.2 Extension ecosystem (6 extensions)
 
@@ -149,7 +149,7 @@ A personal + project knowledge base integrated with pi, inspired by Andrej Karpa
 | Multi-page docs ingestion | Deferred | web-fetch-docs kbRoot parameter exists, skill not authored |
 | YouTube transcript ingestion | Blocked | STT model not available (4GB VRAM) |
 | Embeddings enabled by default | Deferred | Enable when vault hits 1000+ pages |
-| Session trajectories | Deferred | YAGNI — om-recall covers continuity |
+| Session trajectories | Deferred | YAGNI — flashback covers continuity |
 | Skill distillation from trajectories | Deferred | YAGNI — need trajectories first |
 
 ### 4.2 Code quality debt
