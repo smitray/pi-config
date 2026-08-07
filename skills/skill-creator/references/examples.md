@@ -4,37 +4,53 @@ Good examples of each pattern. Use as references when creating new skills.
 
 ## Minimal Skill (≤50 lines)
 
-**om-recall** — thin workflow skill, everything fits in SKILL.md.
+**flashback** — thin workflow skill, everything fits in SKILL.md.
 
 ```markdown
 ---
-name: om-recall
+name: flashback
 description: >
-  Query observational memory from previous Pi sessions by date.
-  Use when the user asks 'what did I do yesterday', ...
+  Search past Pi sessions by date via scripts/flashback.mjs — reads pi session
+  JSONL files (observations/reflections written by pi-blackhole) plus git commits.
+  Use when the user asks 'what did I do yesterday', 'what happened on Monday',
+  'show me last activity', or any question about PAST session work.
 compatibility: >
-  Requires npm:pi-observational-memory package.
+  Reads ~/.pi/agent/sessions/**/*.jsonl. git for commit summaries. Node >= 18.
 ---
 
-# OM Recall
+# Flashback
+
+Answer "what did I do [when]" from past Pi sessions.
 
 ## When to Use
 
-| Command | What it does |
+| User asks | Run |
 |---|---|
-| `/om:status` | Current OM status |
-| `/om:view --date YYYY-MM-DD` | Observations for specific day |
+| What did I do yesterday? | `node scripts/flashback.mjs yesterday` |
+| What happened on [date]? | `node scripts/flashback.mjs YYYY-MM-DD` |
+| Last week | `node scripts/flashback.mjs "last 7 days"` |
 
 ## Usage
 
 ```text
-recall(<12-char-hex-id>)   # recover exact source context
+node scripts/flashback.mjs [date] [keyword...] [--verbose]
 ```
 
-## Timezone
+Output: git commits for the day, then `[observation]`/`[reflection]` entries
+with timestamps. Run from the skill directory.
 
-Configured in `settings.json` under `observational-memory.timezoneOffset`.
-Override: `OM_TIMEZONE_OFFSET=5.5`
+## Error Handling
+
+| Symptom | Response |
+|---|---|
+| `Unknown date` | yesterday / today / last N days / YYYY-MM-DD only |
+| No memories found | report git commits + session count; widen window |
+| ENOENT sessions | pi session storage moved; verify ~/.pi/agent/sessions |
+
+## What This Skill Does NOT Do
+
+- Does NOT search the current session — use the `recall` tool
+- Does not compact sessions (use `/blackhole`)
 ```
 
 ## Reference Skill (~200 lines)

@@ -1,90 +1,70 @@
 ---
 name: flashback
 description: >
-  Flashback to past Pi sessions via pi-blackhole. Use when the user asks 'what did I do yesterday',
-  'what happened on Monday', 'what were we working on last week', 'show me last activity',
-  'what did I do on [date]', 'find discussion about [topic] on [date]', 'flashback to [date/topic]',
-  or any question about past session work. Supports date-specific, topic-specific, and recent-activity queries.
+  Search past Pi sessions by date via scripts/flashback.mjs — reads pi session
+  JSONL files (observations/reflections written by pi-blackhole) plus git commits.
+  Use when the user asks 'what did I do yesterday', 'what happened on Monday',
+  'what were we working on last week', 'show me last activity', 'what did I do
+  on [date]', 'find discussion about [topic] on [date]', 'flashback to [date/topic]',
+  or any question about PAST session work. Does not help with the current session.
 compatibility: >
-  Requires npm:pi-blackhole package. Uses /blackhole-memory, /blackhole-recall commands
-  and the recall tool.
+  Reads ~/.pi/agent/sessions/**/*.jsonl (pi-blackhole om.observations.recorded /
+  om.reflections.recorded entries). git required for commit summaries. Node >= 18.
 ---
 
 # Flashback
 
-Travel back through your Pi session history via pi-blackhole.
+Answer "what did I do [when]" from past Pi sessions. Reads durable
+observations/reflections blackhole wrote into session files, filtered by date.
 
 ## When to Use
 
-| User asks | Command / Tool |
+| User asks | Run |
 |---|---|
-| What did I do yesterday/last? | `/blackhole-memory status` + `recall` with recent context |
-| Progress / latest update | `/blackhole-memory status` → summarize findings |
-| What happened on [date]? | `/blackhole-recall` with date scope, or `recall` searching by date |
-| Find discussion about [topic] | `recall("<topic query>")` — BM25 search across transcript |
-| Find discussion about [topic] on [date] | `recall("<topic> <date>")` with `scope:all` |
-| Show all memory | `/blackhole-memory full` |
-| Show visible memory | `/blackhole-memory view` |
+| What did I do yesterday? | `node scripts/flashback.mjs yesterday` |
+| What happened on [date]? | `node scripts/flashback.mjs YYYY-MM-DD` |
+| Last week / last N days | `node scripts/flashback.mjs "last 7 days"` |
+| Discussion about [topic] on [date] | `node scripts/flashback.mjs YYYY-MM-DD <topic>` |
+| Show me last activity | `node scripts/flashback.mjs today` |
 
-## Quick Start
+Run from the skill dir (`~/.pi/agent/skills/flashback/`), then summarize the
+output as bullets — group by theme, keep timestamps.
 
-### Recent activity / last update
+## Usage
 
-1. Run `/blackhole-memory status` to get pipeline state and token counts
-2. Use `recall` tool with recent terms or `mode:touched` to see files worked on
-3. Summarize in bullet points
+```text
+node scripts/flashback.mjs [date] [keyword...] [--verbose]
+```
 
-### Date-specific query
-
-1. Use `recall("<topic or date keywords>")` — searches transcript by BM25
-2. Add `scope:all` to search across all session lineages
-3. For file changes on a date: `recall("mode:touched")` then filter by date context
-
-### Topic search
-
-1. `recall("<exact terms or regex>")` — ranked search
-2. `recall("<topic> scope:all")` — across all sessions
-3. `recall("mode:file")` — search only file content from write/edit operations
-
-## Output Format
-
-Default (bullet points):
-- Key decisions, actions, outcomes as bullet list
-- Group by topic if multiple themes
-- Include timestamps when available
-
-Detailed (when user asks to elaborate):
-- Full summary with context
-- Include source entry references
-- Show file changes, commits, blockers
-
-## Commands Reference
-
-| Command | What it does |
+| Arg | Meaning |
 |---|---|
-| `/blackhole` | Manual compact — deterministic structural summary |
-| `/blackhole settings` | Open configuration overlay |
-| `/blackhole om-off` / `om-on` | Toggle observational memory |
-| `/blackhole-memory status` | Pipeline status: token progress, observation/reflection counts |
-| `/blackhole-memory view` | Show visible observations and reflections |
-| `/blackhole-memory full` | Show ALL recorded memory (includes dropped) |
-| `/blackhole-recall <query> [page:N] [scope:all] [mode:file\|touched]` | Search session history |
+| `yesterday` (default) | Previous local day |
+| `today` / `last N days` | Same day / trailing window |
+| `YYYY-MM-DD` | Specific day |
+| `keyword...` | OR-filter on memory content (e.g. `kb`, `auth bug`) |
+| `--verbose` | Show source session file per memory |
 
-## Recall Tool Inputs
+Output: header with counts, git commits for that day (productive-day signal),
+then `[observation]`/`[reflection]` entries with timestamps.
 
-| Input | What it does |
+## Error Handling
+
+| Symptom | Response |
 |---|---|
-| `[12-char hex]` | Recover source evidence for observation/reflection ID |
-| `#N` | Expand session entry by index |
-| `#N:path` | Drill-down into file content from tool call |
-| Free text | BM25-ranked search across transcript |
-| `mode:file` | Search only write/edit file content |
-| `mode:touched` | Aggregate all files written/edited, grouped by path |
-| Regex | Pattern search (e.g. `fork.*auth`) |
-| `scope:all` | Search across all session lineages |
+| `Unknown date: "..."` | Use yesterday / today / last N days / YYYY-MM-DD only |
+| `No observations/reflections found` | Day has no OM entries (pre-blackhole sessions or idle day). Report git commits + session file count; try wider window or `last N days` |
+| `ENOENT ... sessions` | `~/.pi/agent/sessions/` missing — pi session storage moved or not initialized |
+| `0 session files` | Date range has no session files — verify date, try `last 7 days` |
+| Exit non-zero, script missing | Reinstall skill from git; verify `scripts/flashback.mjs` exists |
 
 ## What This Skill Does NOT Do
 
-- Does not compact sessions (use `/blackhole` directly)
+- Does NOT search the current session — use the `recall` tool for live transcript
+- Does not compact sessions (use `/blackhole`)
 - Does not modify blackhole config (use `/blackhole settings`)
-- Does not replace the `recall` tool — this skill guides when/how to use it
+- Does not search file content — memories are distilled observations/reflections only
+
+## Related
+
+- `recall` tool — current-session history (complement: flashback = past sessions)
+- `/blackhole-memory` — live pipeline status for the current session
