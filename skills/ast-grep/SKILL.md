@@ -26,6 +26,17 @@ Syntax-aware search, rewriting, and structural coding standards. Prefer over `rg
 
 For full command reference, see [command-reference.md](references/command-reference.md).
 
+## Quick start: extensions
+
+Run from `~/.pi/agent` and scope searches to custom extension code:
+
+```bash
+ast-grep run -l ts -p 'pi.registerTool($$$)' extensions --globs '!node_modules/**'
+ast-grep run -l ts -p 'export default function($$$)' extensions --globs '!node_modules/**'
+```
+
+ast-grep parses files on demand. It does **not** create a tags file or persistent AST index. `sgconfig.yml`, `ast-grep/rules/`, and rule tests are only needed for repeatable lint rules; searches need none of them.
+
 ## Search Pattern Syntax
 
 Metavariables capture AST nodes. Always quote patterns with single quotes so shell does not expand `$`.
@@ -137,6 +148,13 @@ Avoid bare `ast-grep-ignore`. After baseline cleaning, enforce explicit IDs:
 ```bash
 ast-grep scan --error=no-suppress-all --error=unused-suppression
 ```
+
+## Troubleshooting and boundaries
+
+- No matches: verify `-l`, quote `$` metavariables, then use `--debug-query=ast`.
+- `scan` cannot find config: run from project root or pass `--config sgconfig.yml`.
+- Do not use ast-grep for symbol resolution, types, comments, or prose; use ctags, LSP, or `rg`.
+- Do not create `sgconfig.yml` for one-off searches.
 
 ## Official References
 

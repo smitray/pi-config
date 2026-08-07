@@ -1,6 +1,6 @@
 # notify
 
-Inform the user of what is happening.
+Desktop notifications via `notify-send`. Skips when user is active.
 
 ## Tool
 
@@ -8,20 +8,18 @@ Inform the user of what is happening.
 
 Send a desktop notification.
 
-Supported params:
+| Param | Required | Description |
+|-------|----------|-------------|
+| `message` | yes | Notification text |
+| `category` | no | `pi.task` (default), `pi.error`, `pi.info`, `pi.milestone` |
 
-- `message` (required)
+## Auto-notify
 
-## Command
+Fires on `agent_settled` only when:
+- User hasn't typed in last 5 seconds
+- Terminal window is not focused (hyprland: matches by PID or title containing `π`)
 
-### `/tts [on|off]`
+## Requirements
 
-Controls text-to-speech playback for future notifications. Without arguments, toggles TTS.
-
-## Runtime behavior
-
-- If `notify-send` fails, tool returns explicit error + exit details.
-- When TTS is enabled, extension:
-  - pauses active media players,
-  - runs `tts` command,
-  - resumes previous players.
+- `notify-send` in PATH
+- `hyprctl` for focus detection (hyprland IPC — graceful fallback if missing)
