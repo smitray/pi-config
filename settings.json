@@ -5,7 +5,7 @@
   "hideThinkingBlock": false,
   "packages": [
     "npm:pi-blackhole",
-    "npm:@juicesharp/rpiv-ask-user-question",
+    "npm:@mrclrchtr/supi-code-intelligence",
     "git:github.com/DietrichGebert/ponytail",
     "git:github.com/jonjonrankin/pi-caveman"
   ],

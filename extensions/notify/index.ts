@@ -1,6 +1,6 @@
+import { execSync } from 'node:child_process';
 import type { AgentToolResult, ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
-import { execSync } from 'node:child_process';
 
 const COOLDOWN_MS = 5_000; // skip notify if user typed within last 5s
 
@@ -102,8 +102,7 @@ export default function notifyExtension(pi: ExtensionAPI): void {
       }),
       category: Type.Optional(
         Type.String({
-          description:
-            'Notification category: pi.task (default), pi.error, pi.info, pi.milestone',
+          description: 'Notification category: pi.task (default), pi.error, pi.info, pi.milestone',
         })
       ),
     }),
