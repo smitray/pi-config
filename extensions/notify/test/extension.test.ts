@@ -21,5 +21,6 @@ describe('notify extension', () => {
     const notifyTool = tools.find((t) => t.name === 'notify');
     expect(notifyTool).toBeDefined();
     expect(events).toContain('agent_settled');
+    expect(events).toContain('input');
   });
 });
