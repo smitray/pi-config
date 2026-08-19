@@ -18,13 +18,13 @@ describe('KB guardrails', () => {
     expect(groups[0].pattern).toBe('*');
   });
 
-  it('registers two rules for raw and meta paths', () => {
+  it('registers three rules for raw, meta, and wiki paths', () => {
     installGuardrails();
 
     const groups = getDynamicGroups();
     const rules = groups[0].rules;
 
-    expect(rules).toHaveLength(2);
+    expect(rules).toHaveLength(3);
 
     // Rule 1: block writes to .kb/raw
     expect(rules[0].context).toBe('file_name');
@@ -37,6 +37,12 @@ describe('KB guardrails', () => {
     expect(rules[1].pattern).toBe('\\.kb/meta');
     expect(rules[1].action).toBe('block');
     expect(rules[1].reason).toContain('auto-generated');
+
+    // Rule 3: block direct writes to .kb/wiki
+    expect(rules[2].context).toBe('file_name');
+    expect(rules[2].pattern).toBe('\\.kb/wiki');
+    expect(rules[2].action).toBe('block');
+    expect(rules[2].reason).toContain('write-restricted');
   });
 
   it('can be called multiple times without duplicate accumulation', () => {

@@ -10,6 +10,7 @@ import { registerRules } from '../../guardrails/guardrails-registry';
  * Rules:
  * - Block writes to .kb/raw/ (immutable source packets)
  * - Block writes to .kb/meta/ (auto-generated metadata)
+ * - Block direct writes to .kb/wiki/ (typed tools only)
  *
  * Vault path is resolved per-event from cwd, not at load time.
  * This handles the case where cwd changes between sessions/projects.
@@ -17,7 +18,7 @@ import { registerRules } from '../../guardrails/guardrails-registry';
 export function installGuardrails(): void {
   // ponytail: we register a single group with a wildcard pattern.
   // The actual path matching happens in the rule's context + pattern.
-  // We use file_name context with a regex that matches .kb/raw or .kb/meta.
+  // We use file_name context with a regex that matches .kb paths.
   registerRules({
     group: 'kb-immutable',
     pattern: '*',
@@ -33,6 +34,13 @@ export function installGuardrails(): void {
         pattern: '\\.kb/meta',
         action: 'block',
         reason: '.kb/meta/ is auto-generated — edit pages in wiki/ instead',
+      },
+      {
+        context: 'file_name',
+        pattern: '\\.kb/wiki',
+        action: 'block',
+        reason:
+          '.kb/wiki/ is write-restricted — pages must be created via kb_ensure_page or kb_create_* tools',
       },
     ],
   });

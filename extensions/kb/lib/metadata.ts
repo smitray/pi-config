@@ -34,6 +34,17 @@ export interface RegistryEntry {
   tasks_total?: number;
   tasks_done?: number;
   progress_pct?: number;
+  // v2: handoff chain fields
+  from_handoff?: string;
+  to_handoff?: string;
+  skip_reason?: string;
+  task?: string;
+  // v2: knowledge provenance fields
+  derived_from?: string[];
+  confidence?: string;
+  last_verified?: string;
+  // v2: ADR supersession
+  superseded_by?: string;
 }
 
 export interface BacklinkEntry {
@@ -128,6 +139,16 @@ export function rebuildMetadata(paths: VaultPaths): void {
           tasks_total: typeof fm.tasks_total === 'number' ? fm.tasks_total : undefined,
           tasks_done: typeof fm.tasks_done === 'number' ? fm.tasks_done : undefined,
           progress_pct: typeof fm.progress_pct === 'number' ? fm.progress_pct : undefined,
+          // v2: handoff chain fields
+          from_handoff: (fm.from_handoff as string) || undefined,
+          to_handoff: (fm.to_handoff as string) || undefined,
+          skip_reason: (fm.skip_reason as string) || undefined,
+          task: (fm.task as string) || undefined,
+          // v2: knowledge provenance
+          derived_from: Array.isArray(fm.derived_from) ? (fm.derived_from as string[]) : undefined,
+          confidence: (fm.confidence as string) || undefined,
+          last_verified: (fm.last_verified as string) || undefined,
+          superseded_by: (fm.superseded_by as string) || undefined,
         });
 
         const targets = extractWikilinks(content);

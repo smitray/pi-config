@@ -14,6 +14,9 @@ export type PageType =
   | 'source'
   | 'handoff'
   | 'research'
+  // v2: new knowledge types
+  | 'context'
+  | 'adr'
   // Pipeline types
   | 'project'
   | 'library-doc'
@@ -22,6 +25,25 @@ export type PageType =
   | 'sprint-plan'
   | 'spec'
   | 'task';
+
+export const PAGE_TYPES: PageType[] = [
+  'concept',
+  'entity',
+  'synthesis',
+  'analysis',
+  'source',
+  'handoff',
+  'research',
+  'context',
+  'adr',
+  'project',
+  'library-doc',
+  'daily-log',
+  'brainstorm',
+  'sprint-plan',
+  'spec',
+  'task',
+];
 
 // Extension dir resolved once at import time
 const EXT_DIR = join(import.meta.dirname ?? __dirname, '..');
@@ -37,6 +59,9 @@ export function writeDefaultTemplates(paths: VaultPaths, mode?: string): void {
     'source',
     'handoff',
     'research',
+    // v2: new knowledge types
+    'context',
+    'adr',
     // Pipeline types
     'library-doc',
     'daily-log',
@@ -158,6 +183,7 @@ export function buildPage(
     // ID-based types: use short type prefix
     const shortMap: Record<string, string> = {
       research: 'res',
+      adr: 'adr',
       // Pipeline types
       project: 'proj',
       'library-doc': 'lib',
@@ -166,6 +192,7 @@ export function buildPage(
       'sprint-plan': 'sp',
       spec: 'spec',
       task: 'task',
+      handoff: 'hoff',
     };
     filename = `${shortMap[type] ?? type}-${id}.md`;
   } else {

@@ -18,7 +18,9 @@ import {
 } from './lib/create-tools';
 import { findPageByTitle, formatEnrichmentResult, mergeObservationIntoPage } from './lib/enrich';
 import { logEvent } from './lib/events';
+import { registerFlowTool } from './lib/flow';
 import { installGuardrails } from './lib/guardrails';
+import { registerHandoffTools } from './lib/handoffs';
 import { getUningestedSources, markSourceIngested } from './lib/ingest';
 import { formatLintReport, lintWiki } from './lib/lint';
 import { rebuildMetadata } from './lib/metadata';
@@ -26,7 +28,9 @@ import { loadKBConfig } from './lib/models';
 import { formatObservationResult, saveObservation } from './lib/observe';
 import { formatRecallResults, searchByTag, searchWiki } from './lib/recall';
 import { formatRetroResult, saveInsight } from './lib/retro';
-import { buildPage, writeDefaultTemplates } from './lib/templates';
+import { loadRoleRegistry, registerRoleTools } from './lib/roles';
+import { registerScaffoldTool } from './lib/scaffold';
+import { buildPage, PAGE_TYPES, writeDefaultTemplates } from './lib/templates';
 import {
   DIR_NAMES,
   ensureVaultStructure,
@@ -178,8 +182,8 @@ export default function (pi: ExtensionAPI) {
     description:
       'Create or update a wiki page with enforced template frontmatter. ' +
       'Page types: concept, entity, synthesis, analysis, source, handoff, research, ' +
-      'project, library-doc, daily-log, brainstorm, sprint-plan, spec, task. ' +
-      'For pipeline types, prefer the dedicated kb_create_* tools which auto-generate IDs.',
+      'context, adr, project, library-doc, daily-log, brainstorm, sprint-plan, spec, task. ' +
+      'This is the only typed page-creation tool — direct writes to wiki/ are blocked.',
     promptSnippet: 'Create a KB wiki page from a template',
     promptGuidelines: [
       'Use kb_ensure_page to create new wiki pages. Templates are always enforced.',
@@ -187,7 +191,7 @@ export default function (pi: ExtensionAPI) {
     parameters: Type.Object({
       type: Type.String({
         description:
-          'Page type: concept, entity, synthesis, analysis, source, artifact, meeting, diary, schedule, library, research, plan, content',
+          'Page type: concept, entity, synthesis, analysis, source, handoff, research, context, adr, project, library-doc, daily-log, brainstorm, sprint-plan, spec, task',
       }),
       title: Type.String({ description: 'Page title' }),
       content: Type.Optional(
@@ -245,25 +249,15 @@ export default function (pi: ExtensionAPI) {
         return err('NO_VAULT', 'No KB vault found. Run `kb_bootstrap` first.');
       }
 
-      const validTypes = [
-        // Knowledge types
-        'concept',
-        'entity',
-        'synthesis',
-        'analysis',
-        'source',
-        'handoff',
-        'research',
-        // Pipeline types
-        'project',
-        'library-doc',
-        'daily-log',
-        'brainstorm',
-        'sprint-plan',
-        'spec',
-        'task',
-      ];
-      const pageType = validTypes.includes(params.type) ? params.type : 'concept';
+      const validTypes = PAGE_TYPES as readonly string[];
+      if (!validTypes.includes(params.type)) {
+        return err(
+          'UNKNOWN_TYPE',
+          `Unknown page type: ${params.type}. Known types: ${validTypes.join(', ')}. ` +
+            'Wiki pages are write-restricted — only typed creation via this tool.'
+        );
+      }
+      const pageType = params.type;
 
       const { content, filename } = buildPage(
         pageType as Parameters<typeof buildPage>[0],
@@ -624,6 +618,18 @@ export default function (pi: ExtensionAPI) {
         ? readdirSync(paths.templates).filter((f: string) => f.endsWith('.md')).length
         : 0;
 
+      // v2: role install status
+      const roles = loadRoleRegistry(paths);
+      const roleInstalled =
+        roles.length > 0
+          ? roles
+              .map(
+                (r) =>
+                  `${r.name}: ${Object.values(r.installed).filter(Boolean).length}/${r.skills.length}`
+              )
+              .join(', ')
+          : 'not scaffolded — run kb_scaffold to create role pages';
+
       const lines = [
         `# 🧠 KB Status — ${ctx2.mode}`,
         '',
@@ -643,6 +649,10 @@ export default function (pi: ExtensionAPI) {
         '## Templates',
         '',
         `- **Active:** ${templateCount}`,
+        '',
+        '## Roles',
+        '',
+        `- ${roleInstalled}`,
       ];
 
       return {
@@ -755,14 +765,20 @@ export default function (pi: ExtensionAPI) {
     name: 'kb_lint',
     label: 'KB Lint',
     description:
-      'Health check for the wiki: orphan pages, broken wikilinks, empty pages, stale pages. ' +
-      'Returns a structured lint report.',
+      'Health check for the wiki: orphan pages, broken wikilinks, empty pages, stale pages, ' +
+      'frontmatter-type mismatches, broken handoff chains, bad derived_from refs, role-skill gaps. ' +
+      'strict=true returns an error result when any warning is found (CI / pre-commit).',
     promptSnippet: 'Run KB health check',
     promptGuidelines: ['Use kb_lint to check wiki health. Run after ingest or periodically.'],
     parameters: Type.Object({
       staleDays: Type.Optional(
         Type.Number({
           description: 'Days before a page is considered stale (default: 30)',
+        })
+      ),
+      strict: Type.Optional(
+        Type.Boolean({
+          description: 'Fail (error result) on any warning. For CI / pre-commit (default: false)',
         })
       ),
     }),
@@ -777,6 +793,16 @@ export default function (pi: ExtensionAPI) {
 
       const report = lintWiki(paths, params.staleDays ?? 30);
       const formatted = formatLintReport(report);
+
+      if (params.strict && report.summary.warnings > 0) {
+        return err(
+          'LINT_FAILED',
+          `${formatted}\n\nStrict mode: ${report.summary.warnings} warning(s) found.`,
+          {
+            summary: report.summary,
+          }
+        );
+      }
 
       return ok(formatted, { summary: report.summary });
     },
@@ -1015,6 +1041,18 @@ export default function (pi: ExtensionAPI) {
   registerSpecTool(pi);
   registerTaskTool(pi);
   registerKanbanTool(pi);
+
+  // ─── v2: flow engine ─────────────────────────────────────────
+  registerFlowTool(pi);
+
+  // ─── v2: handoff chain ───────────────────────────────────────
+  registerHandoffTools(pi);
+
+  // ─── v2: role packages ───────────────────────────────────────
+  registerRoleTools(pi);
+
+  // ─── v2: scaffolding ─────────────────────────────────────────
+  registerScaffoldTool(pi);
 
   // ─── Hooks ─────────────────────────────────────────────────────
 

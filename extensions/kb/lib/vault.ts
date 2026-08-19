@@ -12,6 +12,9 @@ export const DIR_NAMES: Record<string, string> = {
   analysis: 'analyses',
   handoff: 'handoffs',
   research: 'research',
+  // v2: new knowledge types
+  context: 'context',
+  adr: 'adrs',
   // Pipeline types
   project: 'projects',
   'library-doc': 'libraries',
@@ -20,12 +23,15 @@ export const DIR_NAMES: Record<string, string> = {
   'sprint-plan': 'plans',
   spec: 'specs',
   task: 'tasks',
+  // Role pages (entity type, stored under agents/)
+  agents: 'agents',
 };
 
 export const ID_PREFIXES: Record<string, string> = {
   // Knowledge prefixes
   research: 'RES',
   handoff: 'HOFF',
+  adr: 'ADR',
   // Pipeline prefixes
   project: 'PROJ',
   'library-doc': 'LIB',
