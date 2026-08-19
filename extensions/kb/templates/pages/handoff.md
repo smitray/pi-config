@@ -1,25 +1,32 @@
 ---
 title: "{{title}}"
-type: diary
-tags: [{{tags}}]
+type: handoff
+id: "{{id}}"
+stage: {{stage}}
+task: "{{task}}"
+project: "{{project}}"
+status: {{status}}
+skip_reason: "{{skip_reason}}"
 run: "{{run}}"
-stage: "{{stage}}"
-handoff_for: "{{handoff_for}}"
-date: "{{date}}"
 created: "{{created}}"
 updated: "{{updated}}"
+from_handoff: "{{from_handoff}}"
+to_handoff: "{{to_handoff}}"
+summary: "{{summary}}"
 ---
 
 # {{title}}
 
-## Current Run State
+## Summary
 
-## Completed Stages
+{{summary}}
 
-## Active Stage
+## Decisions
+
+## Work Done
 
 ## Blockers
 
-## Next Step
+## Next Stage
 
 ## Related Pages

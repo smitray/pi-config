@@ -15,10 +15,11 @@ compatibility: >
 ## Quick Start
 
 ```text
-kb_bootstrap topic="My Project"                          # Initialize vault
-kb_capture source="README.md" title="Project README"     # Capture a source
+kb_scaffold topic="My Project" mode=project          # Full bootstrap (vault, roles, flow skill, ADR)
+kb_capture source="README.md" title="Project README" # Capture a source
 kb_ingest                                                # List pending sources
 kb_ensure_page type=concept title="Architecture Overview"# Create wiki page
+kb_flow action=start flow=build project=PROJ-001        # Walk a flow, handoffs per stage
 kb_recall_context query="auth patterns"                  # Search project-first
 kb_lint staleDays=30                                     # Health check
 ```
@@ -39,25 +40,41 @@ For common workflows, see [workflow guide](references/workflow-guide.md).
 
 | Mode | Location | Templates | AGENTS.md |
 |---|---|---|---|
-| Project | `.kb/` in repo | 8 types | No |
-| Personal | `~/.kb/` | 7 types | Yes |
+| Project | `.kb/` in repo | 16 types | Yes (via kb_scaffold) |
+| Personal | `~/.kb/` | 15 types | No |
 
 Auto-detected from cwd/git repo status. Override: `KB_MODE=project|personal`.
 
-## Page Types
+## Page Types (16)
 
-| Type | Purpose | Section Count |
+| Type | Dir | ID |
 |---|---|---|
-| `concept` | Ideas, patterns, techniques | Template-driven |
-| `entity` | Concrete things (libraries, tools) | Template-driven |
-| `synthesis` | Combined insight from multiple sources | Template-driven |
-| `analysis` | Comparison, evaluation, trade-offs | Template-driven |
-| `source` | Summary of captured source | Template-driven |
-| `artifact` | WIP, brainstorming, planning (project only) | Template-driven |
-| `meeting` | Meeting notes (personal only) | Template-driven |
-| `diary` | Daily log (personal only) | Template-driven |
+| `concept` | concepts/ | — |
+| `entity` | entities/ | — |
+| `synthesis` | syntheses/ | — |
+| `analysis` | analyses/ | — |
+| `source` | sources/ | — |
+| `research` | research/ | `RES-` |
+| `context` | context/ | — |
+| `adr` | adrs/ | `ADR-` |
+| `handoff` | handoffs/ | `HOFF-` |
+| `project` | projects/ | `PROJ-` |
+| `library-doc` | libraries/ | `LIB-` |
+| `daily-log` | dailies/ | `DAY-` |
+| `brainstorm` | brainstorms/ | `BR-` |
+| `sprint-plan` | plans/ | `SP-` |
+| `spec` | specs/ | `SPEC-` |
+| `task` | tasks/ | `TASK-` |
 
-See [full reference](references/tool-reference.md) for all 15 tools and their parameters.
+## Flows
+
+`kb_flow` walks 12 named flows; every stage emits a handoff. Start → advance → loop_back (on failure) → complete. Review chains with `kb_get_handoff_chain`. See `skills/kb-flow/` for the router skill.
+
+## Roles
+
+Role pages live in `wiki/agents/` (entity type). `kb_role_install role=<name>` manages skill bundles; `kb_role_list` shows install status.
+
+See [full reference](references/tool-reference.md) for all 29 tools and their parameters.
 
 ## Maintenance
 

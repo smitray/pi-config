@@ -60,14 +60,24 @@ function writePage(type: string, filename: string, content: string, cwd: string)
   return { typeDir, filename, paths };
 }
 
+// ─── Deprecation shim ──────────────────────────────────────────
+// v2: kb_create_* collapse into kb_ensure_page (type dispatch) or kb_scaffold.
+// Deprecated tools still work for one release, with a console warning.
+function deprecate(tool: string, replacement: string): void {
+  console.warn(
+    `[kb] ${tool} is deprecated — use ${replacement} instead. It will be removed in a future release.`
+  );
+}
+
 // ─── kb_create_research ──────────────────────────────────────────
 
 export function registerResearchTool(pi: ExtensionAPI): void {
   pi.registerTool({
     name: 'kb_create_research',
-    label: 'KB Create Research',
+    label: 'KB Create Research (deprecated)',
     description:
-      'Track a research question through investigation. Records question, sources, findings, and confidence level.',
+      '[DEPRECATED] Track a research question through investigation. Records question, sources, findings, and confidence level. ' +
+      'Replaced by kb_ensure_page type=research.',
     promptSnippet: 'Track a research question',
     promptGuidelines: [
       'Use kb_create_research to track deep research. Records question, findings, sources, and confidence.',
@@ -98,6 +108,7 @@ export function registerResearchTool(pi: ExtensionAPI): void {
       ),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
+      deprecate('kb_create_research', 'kb_ensure_page type=research');
       const cwd = ctx.cwd ?? process.cwd();
       const paths = vaultFromCtx(cwd);
       const pageId = getNextId(paths.wiki, 'research');
@@ -168,11 +179,11 @@ function findGitRoot(cwd: string): string | null {
 export function registerProjectTools(pi: ExtensionAPI): void {
   pi.registerTool({
     name: 'kb_create_project',
-    label: 'KB Create Project',
+    label: 'KB Create Project (deprecated)',
     description:
-      'Create a new project vault in a git repo. Bootstrap .kb/ structure, ' +
+      '[DEPRECATED] Create a new project vault in a git repo. Bootstrap .kb/ structure, ' +
       'register the project in the root KB inventory, and create a project page. ' +
-      'Run from inside a git repo.',
+      'Replaced by kb_scaffold. Run from inside a git repo.',
     promptSnippet: 'Create a new project vault',
     promptGuidelines: [
       'Use kb_create_project to create a new project vault in a git repo. Registers it in root KB.',
@@ -188,6 +199,7 @@ export function registerProjectTools(pi: ExtensionAPI): void {
       ),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
+      deprecate('kb_create_project', 'kb_scaffold');
       const cwd = ctx.cwd ?? process.cwd();
       const projectRoot = findGitRoot(cwd);
 
@@ -275,14 +287,15 @@ export function registerProjectTools(pi: ExtensionAPI): void {
 
   pi.registerTool({
     name: 'kb_list_projects',
-    label: 'KB List Projects',
+    label: 'KB List Projects (deprecated)',
     description:
-      'List all project vaults registered in the root KB. ' +
-      'Shows project ID, name, path, status, and description.',
+      '[DEPRECATED] List all project vaults registered in the root KB. ' +
+      'Shows project ID, name, path, status, and description. Replaced by kb_status.',
     promptSnippet: 'List all projects',
     promptGuidelines: ['Use kb_list_projects to see all registered project vaults.'],
     parameters: Type.Object({}),
     async execute(_id, _params, _signal, _onUpdate, _ctx) {
+      deprecate('kb_list_projects', 'kb_status');
       const rootVault = getRootVaultPaths();
       const projectsPath = join(rootVault.meta, 'projects.json');
       const projects: ProjectEntry[] = existsSync(projectsPath)
@@ -317,10 +330,10 @@ export function registerProjectTools(pi: ExtensionAPI): void {
 export function registerProjectPageTool(pi: ExtensionAPI): void {
   pi.registerTool({
     name: 'kb_create_project_page',
-    label: 'KB Create Project Page',
+    label: 'KB Create Project Page (deprecated)',
     description:
-      'Create the root project page (type: project) inside a project vault. ' +
-      'This is the container for brainstorms, plans, specs, and tasks.',
+      '[DEPRECATED] Create the root project page (type: project) inside a project vault. ' +
+      'This is the container for brainstorms, plans, specs, and tasks. Replaced by kb_ensure_page type=project.',
     promptSnippet: 'Create project root page',
     promptGuidelines: [
       'Use kb_create_project_page to create the root container for a project pipeline.',
@@ -340,6 +353,7 @@ export function registerProjectPageTool(pi: ExtensionAPI): void {
       tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags' })),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
+      deprecate('kb_create_project_page', 'kb_ensure_page type=project');
       const cwd = ctx.cwd ?? process.cwd();
       const paths = vaultFromCtx(cwd);
       const pageId = params.project_id ?? getNextId(paths.wiki, 'project');
@@ -374,10 +388,10 @@ export function registerProjectPageTool(pi: ExtensionAPI): void {
 export function registerBrainstormTool(pi: ExtensionAPI): void {
   pi.registerTool({
     name: 'kb_create_brainstorm',
-    label: 'KB Create Brainstorm',
+    label: 'KB Create Brainstorm (deprecated)',
     description:
-      'Create a brainstorm page for raw ideas and iterative refinement. ' +
-      'Links to parent project. Supports iteration tracking.',
+      '[DEPRECATED] Create a brainstorm page for raw ideas and iterative refinement. ' +
+      'Links to parent project. Supports iteration tracking. Replaced by kb_ensure_page type=brainstorm.',
     promptSnippet: 'Create a brainstorm page',
     promptGuidelines: ['Use kb_create_brainstorm to capture and refine ideas for a project.'],
     parameters: Type.Object({
@@ -395,6 +409,7 @@ export function registerBrainstormTool(pi: ExtensionAPI): void {
       tags: Type.Optional(Type.Array(Type.String(), { description: 'Tags' })),
     }),
     async execute(_id, params, _signal, _onUpdate, ctx) {
+      deprecate('kb_create_brainstorm', 'kb_ensure_page type=brainstorm');
       const cwd = ctx.cwd ?? process.cwd();
       const paths = vaultFromCtx(cwd);
       const pageId = getNextId(paths.wiki, 'brainstorm');
